@@ -16,6 +16,23 @@ abstract class Controller
         return $user;
     }
 
+    protected function admin(): array
+    {
+        $user = $this->auth();
+        if (!Auth::isAdmin($user)) {
+            http_response_code(404);
+            view('errors/404', ['title' => 'Pagina niet gevonden']);
+            exit;
+        }
+
+        if (empty($user['password_hash'])) {
+            flash('error', 'Beveilig je adminaccount eerst met een wachtwoord.');
+            redirect('/settings#wachtwoord');
+        }
+
+        return $user;
+    }
+
     protected function verifyCsrf(): void
     {
         if (!hash_equals($_SESSION['_token'] ?? '', (string) ($_POST['_token'] ?? ''))) {

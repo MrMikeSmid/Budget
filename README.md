@@ -43,7 +43,7 @@ Voor installatie buiten `localhost` is een geldige HTTPS-verbinding vereist. De 
 
 Upload de volledige repository naar de map die publiek bereikbaar is als `/development`. Er hoeft geen vaste base URL ingesteld te worden: de app leidt `/development` af uit `SCRIPT_NAME`, waardoor routes en assets automatisch het goede prefix gebruiken. Zorg dat Apache `mod_rewrite` actief is en `AllowOverride All` voor de doelmap toestaat.
 
-De SQLite-database wordt bij het eerste verzoek automatisch aangemaakt in `storage/app.sqlite`. Maak `storage/` schrijfbaar voor de PHP/Apache-gebruiker, bijvoorbeeld met `chmod 775 storage`.
+De SQLite-database wordt bij het eerste verzoek automatisch aangemaakt in `storage/app.sqlite`. Maak `storage/` schrijfbaar voor de PHP/Apache-gebruiker, bijvoorbeeld met `chmod 775 storage`. De FTP-deployment slaat de volledige map `storage/` bewust over, zodat de database en profielfoto's bij een nieuwe release op de server behouden blijven.
 
 ## E-mailuitnodigingen
 
@@ -80,14 +80,11 @@ De gebruiker kan pushnotificaties zelf aan- of uitzetten onder **Instellingen**.
    - pad: `/development/push/onesignal/`
    - bestandsnaam: `OneSignalSDKWorker.js`
    - scope: `/development/push/onesignal/`
-4. Neem bij **Settings → Keys & IDs** de App ID en App API Key over naar de serveromgeving:
+4. Log in met het adminaccount, open `/admin` en sla daar de OneSignal App ID en REST API Key op. Deze waarden worden in de SQLite-database bewaard; de API key wordt nooit naar de browser gestuurd.
 
-```bash
-export SAMEN_ONESIGNAL_APP_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-export SAMEN_ONESIGNAL_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
+Het oudste bestaande account wordt bij de database-upgrade eenmalig admin. Bij een nieuwe installatie wordt het eerste account admin. Stel voor voorspelbaar beheer bij voorkeur `SAMEN_ADMIN_EMAIL` in; een account met dat e-mailadres krijgt automatisch adminrechten. Een admin moet een wachtwoord hebben voordat `/admin` toegankelijk is.
 
-De API key is alleen server-side beschikbaar en wordt nooit naar de browser gestuurd. Na het instellen verschijnt de notificatie-optie automatisch in Samen.
+De eerdere omgevingsvariabelen `SAMEN_ONESIGNAL_APP_ID` en `SAMEN_ONESIGNAL_API_KEY` blijven als fallback werken zolang er nog geen waarden via `/admin` zijn opgeslagen.
 
 ### Gedrag per platform
 

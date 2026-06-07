@@ -12,7 +12,9 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 
 use App\Models\TodoList;
 use App\Models\User;
+use App\Models\AppSetting;
 use App\Services\InvitationMailer;
+use App\Services\OneSignalSettings;
 use App\Services\PushNotificationService;
 
 function assert_true(bool $condition, string $message): void {
@@ -32,6 +34,12 @@ function render_settings(array $user): string {
     return (string) ob_get_clean();
 }
 
+function render_admin(string $onesignal_app_id, bool $onesignal_configured): string {
+    ob_start();
+    require dirname(__DIR__) . '/app/Views/admin/index.php';
+    return (string) ob_get_clean();
+}
+
 function render_list_show(array $user, array $list, array $items, array $members): string {
     ob_start();
     require dirname(__DIR__) . '/app/Views/lists/show.php';
@@ -43,6 +51,8 @@ $owner = $users->findOrCreate('owner@example.nl');
 $member = $users->findOrCreate('member@example.nl');
 $outsider = $users->findOrCreate('outsider@example.nl');
 assert_true($owner['name'] === 'Owner', 'account is created from an e-mail address');
+assert_true((int) $owner['is_admin'] === 1, 'the first account becomes the initial administrator');
+assert_true((int) $member['is_admin'] === 0, 'later accounts do not receive administrator access');
 assert_true($users->findOrCreate('OWNER@example.nl')['id'] === $owner['id'], 'e-mail addresses are case-insensitively unique');
 
 $lists = new TodoList();
@@ -116,8 +126,15 @@ assert_true(str_contains($sentMail['message'], 'Owner (owner@example.nl)'), 'the
 assert_true(str_contains($sentMail['message'], 'http://localhost/development/lists/' . $listId), 'the invitation includes an absolute link to the shared list');
 assert_true($sentMail['headers']['From'] === 'noreply@localhost', 'the invitation uses the configured sender address');
 
-$GLOBALS['config']['onesignal_app_id'] = '11111111-1111-4111-8111-111111111111';
-$GLOBALS['config']['onesignal_api_key'] = 'test-api-key';
+$oneSignalSettings = new OneSignalSettings();
+$oneSignalSettings->save('11111111-1111-4111-8111-111111111111', 'test-api-key');
+assert_true((new AppSetting())->get('onesignal_app_id') === '11111111-1111-4111-8111-111111111111', 'the OneSignal App ID is persisted in the database');
+$oneSignalSettings->save('22222222-2222-4222-8222-222222222222', null);
+assert_true($oneSignalSettings->apiKey() === 'test-api-key', 'leaving the API key blank preserves the stored secret');
+$oneSignalSettings->save('11111111-1111-4111-8111-111111111111', null);
+$adminPage = render_admin($oneSignalSettings->appId(), $oneSignalSettings->isConfigured());
+assert_true(str_contains($adminPage, 'OneSignal REST API Key'), 'the admin page contains the OneSignal credentials form');
+assert_true(!str_contains($adminPage, 'value="test-api-key"'), 'the stored OneSignal API key is never rendered into the admin form');
 $pushRequest = null;
 $push = new PushNotificationService(function (string $url, array $headers, string $payload) use (&$pushRequest): bool {
     $pushRequest = ['url' => $url, 'headers' => $headers, 'payload' => json_decode($payload, true, flags: JSON_THROW_ON_ERROR)];
@@ -130,8 +147,10 @@ assert_true($pushRequest['payload']['url'] === 'http://localhost/development/lis
 assert_true($pushRequest['headers']['Authorization'] === 'Key test-api-key', 'the OneSignal API key is sent using the required authorization scheme');
 $settingsWithPush = render_settings($ownerWithImage);
 assert_true(str_contains($settingsWithPush, 'data-push-toggle'), 'configured push notifications expose a preference button');
-$GLOBALS['config']['onesignal_app_id'] = '';
-$GLOBALS['config']['onesignal_api_key'] = '';
+$oneSignalSettings->save('', '');
+
+$deploymentWorkflow = file_get_contents(dirname(__DIR__) . '/.github/workflows/deploy.yml');
+assert_true(str_contains($deploymentWorkflow, "--exclude='^storage(/|$)'"), 'FTP deployments preserve the remote storage directory and SQLite database');
 
 $stylesheet = file_get_contents(dirname(__DIR__) . '/public/assets/css/app.css');
 assert_true(

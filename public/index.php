@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\AdminController;
 use App\Controllers\AuthController;
 use App\Controllers\HomeController;
 use App\Controllers\ListController;
@@ -18,6 +19,8 @@ $router->get('/pwa-icon/{name}', [PwaController::class, 'icon']);
 $router->get('/sw.js', [PwaController::class, 'serviceWorker']);
 $router->get('/push/onesignal/OneSignalSDKWorker.js', [PwaController::class, 'oneSignalWorker']);
 $router->get('/', [HomeController::class, 'index']);
+$router->get('/admin', [AdminController::class, 'show']);
+$router->post('/admin/onesignal', [AdminController::class, 'updateOneSignal']);
 $router->get('/login', [AuthController::class, 'show']);
 $router->post('/login', [AuthController::class, 'identify']);
 $router->post('/login/password', [AuthController::class, 'password']);

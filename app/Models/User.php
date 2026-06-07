@@ -29,8 +29,9 @@ final class User
         }
         $local = explode('@', $email)[0];
         $name = ucwords(str_replace(['.', '_', '-'], ' ', $local));
-        $stmt = db()->prepare('INSERT INTO users (email, name, push_external_id) VALUES (?, ?, ?)');
-        $stmt->execute([$email, $name ?: 'Nieuw lid', 'samen-' . bin2hex(random_bytes(24))]);
+        $isAdmin = $this->shouldCreateAsAdmin($email) ? 1 : 0;
+        $stmt = db()->prepare('INSERT INTO users (email, name, push_external_id, is_admin) VALUES (?, ?, ?, ?)');
+        $stmt->execute([$email, $name ?: 'Nieuw lid', 'samen-' . bin2hex(random_bytes(24)), $isAdmin]);
         return $this->find((int) db()->lastInsertId());
     }
 
@@ -55,5 +56,15 @@ final class User
     {
         $stmt = db()->prepare('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
         $stmt->execute([password_hash($password, PASSWORD_DEFAULT), $id]);
+    }
+
+    private function shouldCreateAsAdmin(string $email): bool
+    {
+        $adminEmail = (string) config('admin_email', '');
+        if ($adminEmail !== '') {
+            return mb_strtolower($email) === $adminEmail;
+        }
+
+        return (int) db()->query('SELECT COUNT(*) FROM users')->fetchColumn() === 0;
     }
 }
