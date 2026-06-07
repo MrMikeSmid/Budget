@@ -80,3 +80,8 @@
 @media(max-width:899px){
   .bottom-nav .desktop-only{display:none}
 }
+
+/* Installable app */
+.install-card{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;margin-bottom:20px;padding:20px;border:1px solid #ded5ff;border-radius:24px;background:linear-gradient(135deg,#f3efff,#fff 70%);box-shadow:0 12px 34px rgba(77,54,160,.1)}
+.install-card[hidden]{display:none}.install-card__icon{width:58px;height:58px;display:grid;place-items:center;border-radius:18px;background:var(--violet);box-shadow:0 10px 24px rgba(109,74,255,.25)}.install-card__icon .brand-mark{transform:scale(1.15)}.install-card__copy h2{margin:0 0 5px;font:800 19px Manrope,sans-serif}.install-card__copy p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}.install-card>.button{grid-column:1/-1;width:100%}.install-card--installed{border-color:#cce9df;background:linear-gradient(135deg,#effaf6,#fff 70%)}.install-steps{display:grid;gap:18px;margin:8px 0 26px;padding-left:24px;color:var(--muted);line-height:1.55}.install-steps li{padding-left:5px}.install-steps strong{color:var(--ink)}
+@media(min-width:900px){.install-card{grid-template-columns:auto 1fr auto}.install-card>.button{grid-column:auto;width:auto}.install-help .modal-card{max-width:480px}}

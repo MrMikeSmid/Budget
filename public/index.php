@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Controllers\AuthController;
 use App\Controllers\HomeController;
 use App\Controllers\ListController;
+use App\Controllers\PwaController;
 use App\Controllers\SettingsController;
 use App\Core\Request;
 use App\Core\Router;
@@ -12,6 +13,9 @@ use App\Core\Router;
 require dirname(__DIR__) . '/app/bootstrap.php';
 
 $router = new Router();
+$router->get('/manifest.webmanifest', [PwaController::class, 'manifest']);
+$router->get('/pwa-icon/{name}', [PwaController::class, 'icon']);
+$router->get('/sw.js', [PwaController::class, 'serviceWorker']);
 $router->get('/', [HomeController::class, 'index']);
 $router->get('/login', [AuthController::class, 'show']);
 $router->post('/login', [AuthController::class, 'identify']);

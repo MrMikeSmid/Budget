@@ -159,3 +159,53 @@ if (liveList) {
   window.addEventListener('focus', requestState);
   window.addEventListener('pagehide', () => window.clearInterval(pollTimer), { once: true });
 }
+
+const serviceWorkerUrl = document.body.dataset.serviceWorker;
+const appScope = document.body.dataset.appScope;
+if ('serviceWorker' in navigator && serviceWorkerUrl) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(serviceWorkerUrl, { scope: appScope }).catch((error) => {
+      console.warn('Service worker registreren is mislukt.', error);
+    });
+  });
+}
+
+const installCard = document.querySelector('[data-pwa-install]');
+const installButton = document.querySelector('[data-install-button]');
+const installCopy = document.querySelector('[data-install-copy]');
+let deferredInstallPrompt = null;
+
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+
+if (installCard && installButton && !isStandalone) {
+  if (isIos) {
+    installCard.hidden = false;
+    installButton.textContent = 'Bekijk stappen';
+    installButton.addEventListener('click', () => document.getElementById('install-help')?.showModal());
+  }
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    installCard.hidden = false;
+  });
+
+  installButton.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installCard.hidden = true;
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    installCard.hidden = true;
+  });
+} else if (installCard && isStandalone) {
+  installCard.hidden = false;
+  installCard.classList.add('install-card--installed');
+  installButton?.remove();
+  if (installCopy) installCopy.textContent = 'Samen is geïnstalleerd en opent als zelfstandige app.';
+}

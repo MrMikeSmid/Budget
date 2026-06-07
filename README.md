@@ -10,6 +10,7 @@ Een mobiele PHP/SQLite-app waarmee mensen lijstjes maken, delen en samen afvinke
 - Gedeelde todo-lijsten op basis van het e-mailadres van de andere gebruiker.
 - Taken toevoegen en door iedere deelnemer afvinken, inclusief registratie wie dat deed.
 - Responsive, mobile-first community-interface met bottom navigation.
+- Installeerbare PWA voor iOS en Android, met app-iconen, standalone-weergave en een offline terugvalscherm.
 - CSRF-beveiliging, gehashte wachtwoorden, prepared statements en escaped HTML-uitvoer.
 
 > De gevraagde e-mail-only login geeft iedereen die een onbeveiligd e-mailadres kent toegang tot dat account. De interface benoemt dit bewust subtiel maar duidelijk en stuurt aan op het instellen van een wachtwoord.
@@ -28,6 +29,15 @@ php -S 127.0.0.1:8080 -t . public/router.php
 ```
 
 Of gebruik Apache en laat de repository-root als document root dienen. De root-`.htaccess` stuurt applicatieroutes door naar `public/index.php` en beschermt interne directories.
+
+## Installeren als app
+
+Samen is een Progressive Web App (PWA) en kan via HTTPS op een telefoon worden geïnstalleerd:
+
+- **Android (Chrome):** open Instellingen in Samen en tik op **Installeren**, of gebruik **App installeren** in het browsermenu.
+- **iPhone/iPad (Safari):** open Instellingen in Samen, tik op **Bekijk stappen**, kies in Safari **Delen** en daarna **Zet op beginscherm**.
+
+Voor installatie buiten `localhost` is een geldige HTTPS-verbinding vereist. De manifest- en service-worker-URL's nemen automatisch het deploymentpad over.
 
 ## Deployment in `/development`
 
