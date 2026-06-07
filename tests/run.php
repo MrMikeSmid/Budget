@@ -131,6 +131,22 @@ assert_true(
     'the profile install notification stays hidden on desktop'
 );
 
+$javascript = file_get_contents(dirname(__DIR__) . '/public/assets/js/app.js');
+assert_true(
+    str_contains($javascript, "const isInstalledApp = standaloneDisplay.matches || window.navigator.standalone === true;"),
+    'installed Android and iOS PWAs are detected in standalone mode'
+);
+assert_true(
+    str_contains($javascript, "} else if (installCard) {
+  hideInstallCard();
+}"),
+    'the profile install card stays hidden when Samen is already installed'
+);
+assert_true(
+    !str_contains($javascript, 'install-card--installed'),
+    'the installed PWA no longer shows an installation status card'
+);
+
 
 assert_true(
     str_contains($stylesheet, 'img{display:block;max-width:100%;height:auto}'),

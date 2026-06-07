@@ -174,13 +174,18 @@ if ('serviceWorker' in navigator && serviceWorkerUrl) {
 
 const installCard = document.querySelector('[data-pwa-install]');
 const installButton = document.querySelector('[data-install-button]');
-const installCopy = document.querySelector('[data-install-copy]');
 let deferredInstallPrompt = null;
 
-const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const standaloneDisplay = window.matchMedia('(display-mode: standalone)');
+const isInstalledApp = standaloneDisplay.matches || window.navigator.standalone === true;
 const isIos = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 
-if (installCard && installButton && !isStandalone) {
+const hideInstallCard = () => {
+  deferredInstallPrompt = null;
+  if (installCard) installCard.hidden = true;
+};
+
+if (installCard && installButton && !isInstalledApp) {
   if (isIos) {
     installCard.hidden = false;
     installButton.textContent = 'Bekijk stappen';
@@ -201,15 +206,12 @@ if (installCard && installButton && !isStandalone) {
     installCard.hidden = true;
   });
 
-  window.addEventListener('appinstalled', () => {
-    deferredInstallPrompt = null;
-    installCard.hidden = true;
+  window.addEventListener('appinstalled', hideInstallCard);
+  standaloneDisplay.addEventListener?.('change', (event) => {
+    if (event.matches) hideInstallCard();
   });
-} else if (installCard && isStandalone) {
-  installCard.hidden = false;
-  installCard.classList.add('install-card--installed');
-  installButton?.remove();
-  if (installCopy) installCopy.textContent = 'Samen is geïnstalleerd en opent als zelfstandige app.';
+} else if (installCard) {
+  hideInstallCard();
 }
 
 const avatarInput = document.querySelector('[data-avatar-input]');
