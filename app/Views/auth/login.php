@@ -15,14 +15,14 @@
         <form method="post" action="<?= e(url('/login/password')) ?>" class="auth-form">
             <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
             <label class="field"><span>Wachtwoord voor <?= e($email) ?></span><input type="password" name="password" autocomplete="current-password" required autofocus placeholder="Je wachtwoord"></label>
-            <button class="button button--primary button--wide">Inloggen <span>→</span></button>
+            <button class="button button--primary button--wide">Inloggen <span class="ui-icon ui-icon--arrow-right" aria-hidden="true"></span></button>
             <a class="text-link" href="<?= e(url('/login')) ?>">Ander e-mailadres gebruiken</a>
         </form>
     <?php else: ?>
         <form method="post" action="<?= e(url('/login')) ?>" class="auth-form">
             <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
             <label class="field"><span>Jouw e-mailadres</span><input type="email" name="email" value="<?= e($email ?? '') ?>" autocomplete="email" inputmode="email" required autofocus placeholder="jij@voorbeeld.nl"></label>
-            <button class="button button--primary button--wide">Begin met Samen <span>→</span></button>
+            <button class="button button--primary button--wide">Begin met Samen <span class="ui-icon ui-icon--arrow-right" aria-hidden="true"></span></button>
             <p class="microcopy"><span>⌁</span> Nog geen account? Dat maken we vanzelf voor je.</p>
         </form>
     <?php endif; ?>

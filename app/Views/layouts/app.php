@@ -18,7 +18,7 @@
         <a class="security-nudge" href="<?= e(url('/settings#beveiliging')) ?>">
             <span class="security-nudge__icon">♢</span>
             <span><strong>Bescherm je account</strong><small>Stel straks rustig een wachtwoord in</small></span>
-            <span aria-hidden="true">→</span>
+            <span class="ui-icon ui-icon--arrow-right" aria-hidden="true"></span>
         </a>
     <?php endif; ?>
     <?php foreach ($flashes as $type => $message): ?>
@@ -27,9 +27,9 @@
     <main class="page-content"><?= $content ?></main>
     <?php if ($viewer): ?>
         <nav class="bottom-nav" aria-label="Hoofdnavigatie">
-            <a href="<?= e(url('/')) ?>" class="<?= ($_SERVER['REQUEST_URI'] ?? '') === url('/') ? 'active' : '' ?>"><span class="nav-icon">⌂</span><span>Lijstjes</span></a>
+            <a href="<?= e(url('/')) ?>" class="<?= ($_SERVER['REQUEST_URI'] ?? '') === url('/') ? 'active' : '' ?>"><span class="ui-icon ui-icon--checklist nav-icon" aria-hidden="true"></span><span>Lijstjes</span></a>
             <button type="button" class="nav-create" data-open-modal="new-list" aria-label="Nieuw lijstje"><span>＋</span></button>
-            <a href="<?= e(url('/settings')) ?>" class="<?= str_contains($_SERVER['REQUEST_URI'] ?? '', '/settings') ? 'active' : '' ?>"><span class="nav-icon">◉</span><span>Profiel</span></a>
+            <a href="<?= e(url('/settings')) ?>" class="<?= str_contains($_SERVER['REQUEST_URI'] ?? '', '/settings') ? 'active' : '' ?>"><span class="ui-icon ui-icon--user nav-icon" aria-hidden="true"></span><span>Profiel</span></a>
         </nav>
         <dialog class="modal" id="new-list">
             <form method="post" action="<?= e(url('/lists')) ?>" class="modal-card">
@@ -42,7 +42,7 @@
                 </div><div class="color-choices">
                     <?php foreach (['violet','coral','mint','sun'] as $index => $color): ?><label><input type="radio" name="color" value="<?= $color ?>" <?= $index === 0 ? 'checked' : '' ?>><span class="swatch swatch--<?= $color ?>"></span></label><?php endforeach; ?>
                 </div></fieldset>
-                <button class="button button--primary button--wide">Lijstje maken <span>→</span></button>
+                <button class="button button--primary button--wide">Lijstje maken <span class="ui-icon ui-icon--arrow-right" aria-hidden="true"></span></button>
             </form>
         </dialog>
     <?php endif; ?>
