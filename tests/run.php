@@ -162,6 +162,7 @@ assert_true(!str_contains($adminPage, 'value="test-api-key"'), 'the stored OneSi
 assert_true(str_contains($adminPage, 'data-rich-editor'), 'the admin page contains the invitation rich-text editor');
 assert_true(str_contains($adminPage, 'Samen team'), 'the admin page renders the saved invitation sender');
 assert_true(str_contains($adminPage, 'data-email-preview'), 'the admin page contains an invitation e-mail preview');
+assert_true(str_contains($adminPage, '/admin/onesignal/test'), 'the admin page offers a direct push delivery test');
 $pushRequest = null;
 $push = new PushNotificationService(function (string $url, array $headers, string $payload) use (&$pushRequest): bool {
     $pushRequest = ['url' => $url, 'headers' => $headers, 'payload' => json_decode($payload, true, flags: JSON_THROW_ON_ERROR)];
@@ -172,6 +173,23 @@ assert_true($pushRequest['payload']['include_aliases']['external_id'] === [$memb
 assert_true($pushRequest['payload']['target_channel'] === 'push', 'the OneSignal request selects the push channel');
 assert_true($pushRequest['payload']['url'] === 'http://localhost/development/lists/' . $listId, 'push notifications open the changed list');
 assert_true($pushRequest['headers']['Authorization'] === 'Key test-api-key', 'the OneSignal API key is sent using the required authorization scheme');
+$acceptedPush = new PushNotificationService(static fn(string $url, array $headers, string $payload): array => [
+    'status' => 200,
+    'body' => json_encode(['id' => '33333333-3333-4333-8333-333333333333'], JSON_THROW_ON_ERROR),
+]);
+assert_true($acceptedPush->send([(int) $member['id']], 'Test'), 'a OneSignal response with a notification id is accepted');
+$unmatchedPush = new PushNotificationService(static fn(string $url, array $headers, string $payload): array => [
+    'status' => 200,
+    'body' => json_encode(['id' => '', 'errors' => ['No valid subscriptions']], JSON_THROW_ON_ERROR),
+]);
+assert_true(!$unmatchedPush->send([(int) $member['id']], 'Test'), 'a 200 response without a notification id is not reported as sent');
+assert_true($unmatchedPush->lastError() === 'OneSignal vond geen actief pushabonnement voor deze gebruiker.', 'an unmatched OneSignal user gets a useful diagnostic');
+$unauthorizedPush = new PushNotificationService(static fn(string $url, array $headers, string $payload): array => [
+    'status' => 403,
+    'body' => json_encode(['errors' => ['Access denied']], JSON_THROW_ON_ERROR),
+]);
+assert_true(!$unauthorizedPush->send([(int) $member['id']], 'Test'), 'an unauthorized OneSignal response is rejected');
+assert_true(str_contains((string) $unauthorizedPush->lastError(), 'API key'), 'an unauthorized response identifies the API key problem');
 $settingsWithPush = render_settings($ownerWithImage);
 assert_true(str_contains($settingsWithPush, 'data-push-toggle'), 'configured push notifications expose a preference button');
 $oneSignalSettings->save('', '');

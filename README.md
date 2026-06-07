@@ -81,6 +81,9 @@ De gebruiker kan pushnotificaties zelf aan- of uitzetten onder **Instellingen**.
    - bestandsnaam: `OneSignalSDKWorker.js`
    - scope: `/development/push/onesignal/`
 4. Log in met het adminaccount, open `/admin` en sla daar de OneSignal App ID en REST API Key op. Deze waarden worden in de SQLite-database bewaard; de API key wordt nooit naar de browser gestuurd.
+5. Zet meldingen onder **Instellingen** aan voor het adminaccount en gebruik daarna in `/admin` de knop **Stuur testmelding naar dit account**. De test maakt onderscheid tussen een geweigerde API key en een account zonder actief OneSignal-abonnement.
+
+OneSignal kan een verzendaanvraag met HTTP 200 beantwoorden terwijl geen enkel abonnement overeenkomt. Samen controleert daarom ook of de API-respons een notificatie-ID bevat; alleen dan wordt de melding als geaccepteerd beschouwd. Technische details van een afwijzing worden in de PHP-errorlog vastgelegd zonder de API key te loggen.
 
 Het oudste bestaande account wordt bij de database-upgrade eenmalig admin. Bij een nieuwe installatie wordt het eerste account admin. Stel voor voorspelbaar beheer bij voorkeur `SAMEN_ADMIN_EMAIL` in; een account met dat e-mailadres krijgt automatisch adminrechten. Een admin moet een wachtwoord hebben voordat `/admin` toegankelijk is.
 

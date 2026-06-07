@@ -39,7 +39,7 @@
         </details>
     </div>
 
-    <div class="settings-section admin-card">
+    <div class="settings-section admin-card" id="pushnotificaties">
         <span class="eyebrow">Pushnotificaties</span><h2>OneSignal</h2>
         <p class="section-intro">Bewaar de OneSignal-gegevens in de database. De browser krijgt alleen de App ID te zien; de API key blijft server-side.</p>
         <form method="post" action="<?= e(url('/admin/onesignal')) ?>">
@@ -55,6 +55,13 @@
             <strong><?= !empty($onesignal_configured) ? 'OneSignal is actief' : 'OneSignal is nog niet compleet' ?></strong>
             <span><?= !empty($onesignal_configured) ? 'Meldingen gebruiken nu de waarden uit de database.' : 'Vul zowel de App ID als API key in om pushnotificaties te activeren.' ?></span>
         </div>
+        <?php if (!empty($onesignal_configured)): ?>
+            <form method="post" action="<?= e(url('/admin/onesignal/test')) ?>">
+                <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
+                <button class="button button--soft button--wide">Stuur testmelding naar dit account</button>
+                <small>Dit controleert de API key én of OneSignal een actief abonnement aan jouw account heeft gekoppeld.</small>
+            </form>
+        <?php endif; ?>
     </div>
 </div>
 </section>
