@@ -191,18 +191,34 @@ $subscriptionService = new OneSignalSubscriptionService(function (string $method
             'subscriptions' => [[
                 'id' => '22222222-2222-4222-8222-222222222222',
                 'type' => 'ChromePush',
-                'enabled' => true,
+                'notification_types' => 1,
                 'device_model' => 'Chrome',
                 'device_os' => 'macOS',
+            ], [
+                'id' => '33333333-3333-4333-8333-333333333333',
+                'type' => 'SafariPush',
+                'notification_types' => -2,
+                'enabled' => true,
+                'device_model' => 'Safari',
+                'device_os' => 'iOS',
+            ], [
+                'id' => '44444444-4444-4444-8444-444444444444',
+                'type' => 'FirefoxPush',
+                'enabled' => 'true',
+                'device_model' => 'Firefox',
+                'device_os' => 'Linux',
             ]],
         ], JSON_THROW_ON_ERROR)];
     }
     return ['status' => 202, 'body' => '{}'];
 });
 $subscriptions = $subscriptionService->forUsers([$member]);
-assert_true(count($subscriptions) === 1, 'OneSignal subscriptions are fetched for local users by external ID');
+assert_true(count($subscriptions) === 3, 'OneSignal subscriptions are fetched for local users by external ID');
 assert_true($subscriptions[0]['email'] === 'member@example.nl', 'fetched subscriptions stay linked to the local email address');
 assert_true($subscriptions[0]['subscription_id'] === '22222222-2222-4222-8222-222222222222', 'fetched subscriptions expose the OneSignal subscription ID');
+assert_true($subscriptions[0]['enabled'] === true, 'positive OneSignal notification types are shown as active');
+assert_true($subscriptions[1]['enabled'] === false, 'an unsubscribed notification type takes precedence over the legacy enabled field');
+assert_true($subscriptions[2]['enabled'] === true, 'legacy OneSignal responses still use the enabled field as a fallback');
 assert_true($subscriptionRequests[0]['method'] === 'GET' && str_contains($subscriptionRequests[0]['url'], '/users/by/external_id/'), 'subscription lookup uses the OneSignal View User API');
 assert_true($subscriptionService->delete('22222222-2222-4222-8222-222222222222'), 'OneSignal subscriptions can be deleted by subscription ID');
 assert_true($subscriptionRequests[1]['method'] === 'DELETE' && str_contains($subscriptionRequests[1]['url'], '/subscriptions/22222222-2222-4222-8222-222222222222'), 'subscription deletion calls the OneSignal Delete Subscription API');

@@ -57,7 +57,7 @@ final class OneSignalSubscriptionService
                     'external_id' => $externalId,
                     'subscription_id' => (string) ($subscription['id'] ?? ''),
                     'type' => (string) ($subscription['type'] ?? 'Push'),
-                    'enabled' => (bool) ($subscription['enabled'] ?? false),
+                    'enabled' => $this->isEnabled($subscription),
                     'device' => trim(implode(' ', array_filter([
                         (string) ($subscription['device_model'] ?? ''),
                         (string) ($subscription['device_os'] ?? ''),
@@ -156,6 +156,20 @@ final class OneSignalSubscriptionService
             $this->lastError = 'OneSignal gaf een ongeldig antwoord.';
             return null;
         }
+    }
+
+    /** @param array<string, mixed> $subscription */
+    private function isEnabled(array $subscription): bool
+    {
+        if (($subscription['invalid_identifier'] ?? false) === true) {
+            return false;
+        }
+
+        if (isset($subscription['notification_types']) && is_numeric($subscription['notification_types'])) {
+            return (int) $subscription['notification_types'] > 0;
+        }
+
+        return filter_var($subscription['enabled'] ?? false, FILTER_VALIDATE_BOOL);
     }
 
     private function isPushSubscription(string $type): bool
