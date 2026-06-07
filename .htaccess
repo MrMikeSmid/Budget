@@ -5,6 +5,10 @@ RewriteEngine On
 RewriteRule ^(?:app|config|storage|tests)(?:/|$) - [F,L,NC]
 RewriteRule ^(?:composer\.(?:json|lock)|README\.md)$ - [F,L,NC]
 
+# The application root is an existing directory, so route it explicitly before
+# the file/directory checks below to prevent a 403 when indexes are disabled.
+RewriteRule ^$ public/index.php [QSA,L]
+
 # Existing files (assets) are served directly; all other requests enter the app.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

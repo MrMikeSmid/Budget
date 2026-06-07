@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 $database = sys_get_temp_dir() . '/samen-test-' . bin2hex(random_bytes(4)) . '.sqlite';
 putenv('SAMEN_DATABASE=' . $database);
-$_SERVER['SCRIPT_NAME'] = '/developement/public/index.php';
-$_SERVER['REQUEST_URI'] = '/developement/';
+$_SERVER['SCRIPT_NAME'] = '/development/public/index.php';
+$_SERVER['REQUEST_URI'] = '/development/';
 $_SERVER['REQUEST_METHOD'] = 'GET';
 require dirname(__DIR__) . '/app/bootstrap.php';
 
@@ -40,7 +40,7 @@ assert_true($item['completer_name'] === 'Member', 'the completing member is reco
 $users->setPassword((int) $owner['id'], 'een-veilig-wachtwoord');
 $secured = $users->find((int) $owner['id']);
 assert_true(password_verify('een-veilig-wachtwoord', $secured['password_hash']), 'passwords are securely hashed');
-assert_true(base_path() === '/developement', 'subdirectory base path is detected');
+assert_true(base_path() === '/development', 'subdirectory base path is detected');
 
 @unlink($database); @unlink($database . '-wal'); @unlink($database . '-shm');
 echo "All tests passed.\n";
