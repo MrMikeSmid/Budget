@@ -75,3 +75,8 @@
   .form-error{grid-column:2;grid-row:3}.auth-form{grid-column:2;grid-row:4;width:100%;max-width:480px;margin:0;align-self:start}
 }
 @media(min-width:1200px){.list-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* Keep desktop navigation content out of the compact bottom bar. */
+@media(max-width:899px){
+  .bottom-nav .desktop-only{display:none}
+}
