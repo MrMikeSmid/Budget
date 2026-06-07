@@ -1,7 +1,7 @@
 <section class="home-page">
     <header class="topbar">
         <div><span class="eyebrow">Goed je te zien</span><h1>Hoi, <?= e(explode(' ', $user['name'])[0]) ?> <span class="wave">👋</span></h1></div>
-        <a class="avatar" href="<?= e(url('/settings')) ?>"><?= e(mb_strtoupper(mb_substr($user['name'], 0, 1))) ?><span></span></a>
+        <a class="avatar" href="<?= e(url('/settings')) ?>"><?php if ($profileImage = profile_image_url($user)): ?><img src="<?= e($profileImage) ?>" alt="Profielfoto van <?= e($user['name']) ?>"><?php else: ?><?= e(mb_strtoupper(mb_substr($user['name'], 0, 1))) ?><?php endif; ?><span></span></a>
     </header>
     <?php if (!$lists): ?>
         <section class="hero-card">

@@ -24,6 +24,12 @@ function render_lists_index(array $user, array $lists): string {
     return (string) ob_get_clean();
 }
 
+function render_settings(array $user): string {
+    ob_start();
+    require dirname(__DIR__) . '/app/Views/settings/index.php';
+    return (string) ob_get_clean();
+}
+
 $users = new User();
 $owner = $users->findOrCreate('owner@example.nl');
 $member = $users->findOrCreate('member@example.nl');
@@ -55,6 +61,16 @@ $completedState = $lists->liveState($listId);
 assert_true($completedState['stats']['percent'] === 100, 'live state reports completion progress');
 assert_true($completedState['revision'] !== $openState['revision'], 'live state revision changes after an update');
 assert_true(count($completedState['members']) === 2, 'live state includes all list members');
+
+$users->setProfileImage((int) $owner['id'], 'example-profile.png');
+$ownerWithImage = $users->find((int) $owner['id']);
+assert_true($ownerWithImage['profile_image'] === 'example-profile.png', 'a profile image filename can be saved for a user');
+assert_true(str_contains(profile_image_url($ownerWithImage), '/development/settings/profile-image?v='), 'profile image URLs follow the deployment base path');
+$settingsWithImage = render_settings($ownerWithImage);
+assert_true(str_contains($settingsWithImage, 'enctype="multipart/form-data"'), 'the profile form accepts image uploads');
+assert_true(str_contains($settingsWithImage, 'data-avatar-input'), 'the profile page includes an image picker');
+$homeWithProfileImage = render_lists_index($ownerWithImage, []);
+assert_true(str_contains($homeWithProfileImage, '/settings/profile-image?v='), 'the square home avatar uses the uploaded profile image');
 
 $users->setPassword((int) $owner['id'], 'een-veilig-wachtwoord');
 $secured = $users->find((int) $owner['id']);

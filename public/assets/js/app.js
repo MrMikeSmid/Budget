@@ -209,3 +209,24 @@ if (installCard && installButton && !isStandalone) {
   installButton?.remove();
   if (installCopy) installCopy.textContent = 'Samen is geïnstalleerd en opent als zelfstandige app.';
 }
+
+const avatarInput = document.querySelector('[data-avatar-input]');
+const avatarPreview = document.querySelector('[data-avatar-preview]');
+let avatarObjectUrl = null;
+
+avatarInput?.addEventListener('change', () => {
+  const [file] = avatarInput.files;
+  if (!file || !avatarPreview) return;
+
+  if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
+  avatarObjectUrl = URL.createObjectURL(file);
+  const image = avatarPreview.querySelector('img');
+  const initial = avatarPreview.querySelector('strong');
+  image.src = avatarObjectUrl;
+  image.hidden = false;
+  if (initial) initial.hidden = true;
+});
+
+window.addEventListener('pagehide', () => {
+  if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
+}, { once: true });

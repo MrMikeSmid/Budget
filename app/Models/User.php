@@ -40,6 +40,12 @@ final class User
         $stmt->execute([trim($name), $id]);
     }
 
+    public function setProfileImage(int $id, string $filename): void
+    {
+        $stmt = db()->prepare('UPDATE users SET profile_image = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+        $stmt->execute([$filename, $id]);
+    }
+
     public function setPassword(int $id, string $password): void
     {
         $stmt = db()->prepare('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
