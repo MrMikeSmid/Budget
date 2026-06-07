@@ -32,10 +32,16 @@ assert_true($lists->findAccessible($listId, (int) $member['id']) !== null, 'memb
 
 $lists->addItem($listId, (int) $owner['id'], 'Treinkaartjes boeken');
 $item = $lists->items($listId)[0];
+$openState = $lists->liveState($listId);
+assert_true($openState['stats']['open'] === 1, 'live state reports open items');
 $lists->toggleItem((int) $item['id'], $listId, (int) $member['id']);
 $item = $lists->items($listId)[0];
 assert_true((int) $item['is_completed'] === 1, 'a member can complete an item');
 assert_true($item['completer_name'] === 'Member', 'the completing member is recorded');
+$completedState = $lists->liveState($listId);
+assert_true($completedState['stats']['percent'] === 100, 'live state reports completion progress');
+assert_true($completedState['revision'] !== $openState['revision'], 'live state revision changes after an update');
+assert_true(count($completedState['members']) === 2, 'live state includes all list members');
 
 $users->setPassword((int) $owner['id'], 'een-veilig-wachtwoord');
 $secured = $users->find((int) $owner['id']);

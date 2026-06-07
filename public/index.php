@@ -19,6 +19,7 @@ $router->post('/login/password', [AuthController::class, 'password']);
 $router->post('/logout', [AuthController::class, 'logout']);
 $router->post('/lists', [ListController::class, 'create']);
 $router->get('/lists/{id}', [ListController::class, 'show']);
+$router->get('/lists/{id}/state', [ListController::class, 'state']);
 $router->post('/lists/{id}/items', [ListController::class, 'addItem']);
 $router->post('/lists/{listId}/items/{itemId}/toggle', [ListController::class, 'toggle']);
 $router->post('/lists/{id}/share', [ListController::class, 'share']);
