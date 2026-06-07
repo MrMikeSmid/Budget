@@ -244,6 +244,7 @@ if (oneSignalAppId && oneSignalUser) {
   window.OneSignalDeferred.push(async (OneSignal) => {
     const status = pushSettings?.querySelector('[data-push-status]');
     const toggle = pushSettings?.querySelector('[data-push-toggle]');
+    const deleteButton = pushSettings?.querySelector('[data-push-delete]');
     const workerPath = document.body.dataset.onesignalWorker;
     const workerScope = document.body.dataset.onesignalScope;
 
@@ -261,8 +262,10 @@ if (oneSignalAppId && oneSignalUser) {
         const runsStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
         const supported = OneSignal.Notifications.isPushSupported();
         const active = OneSignal.User.PushSubscription.optedIn;
+        const subscriptionId = OneSignal.User.PushSubscription.id;
 
         pushSettings.dataset.pushActive = String(active);
+        if (deleteButton) deleteButton.hidden = !subscriptionId;
         toggle.disabled = false;
         if (active) {
           status.textContent = 'Meldingen staan aan op dit apparaat.';
@@ -293,8 +296,33 @@ if (oneSignalAppId && oneSignalUser) {
           await OneSignal.User.PushSubscription.optOut();
         } else {
           await OneSignal.User.PushSubscription.optIn();
+          await OneSignal.login(oneSignalUser);
         }
         updatePushStatus();
+      });
+
+      deleteButton?.addEventListener('click', async () => {
+        const subscriptionId = OneSignal.User.PushSubscription.id;
+        if (!subscriptionId) return;
+        if (!window.confirm('Pushabonnement van dit apparaat definitief verwijderen?')) return;
+        deleteButton.disabled = true;
+        try {
+          await OneSignal.User.PushSubscription.optOut();
+          const response = await fetch(deleteButton.dataset.endpoint, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+            body: new URLSearchParams({_token: deleteButton.dataset.csrfToken, subscription_id: subscriptionId}),
+          });
+          if (!response.ok) throw new Error('Abonnement verwijderen mislukt.');
+          await OneSignal.logout();
+          status.textContent = 'Het pushabonnement van dit apparaat is verwijderd.';
+        } catch (error) {
+          console.warn('Pushabonnement verwijderen is mislukt.', error);
+          status.textContent = 'Het pushabonnement kon niet worden verwijderd.';
+        } finally {
+          updatePushStatus();
+          deleteButton.disabled = false;
+        }
       });
 
       OneSignal.User.PushSubscription.addEventListener('change', updatePushStatus);
