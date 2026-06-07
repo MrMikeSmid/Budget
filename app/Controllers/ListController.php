@@ -42,6 +42,7 @@ final class ListController extends Controller
             view('errors/404', ['title' => 'Lijst niet gevonden']);
             return;
         }
+        (new User())->touchPresence((int) $user['id']);
         view('lists/show', [
             'title' => $list['title'],
             'user' => $user,
@@ -55,6 +56,7 @@ final class ListController extends Controller
     {
         $user = $this->auth();
         $this->accessible((int) $id, (int) $user['id']);
+        (new User())->touchPresence((int) $user['id']);
         $this->respondWithState((int) $id);
     }
 

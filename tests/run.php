@@ -30,9 +30,16 @@ function render_settings(array $user): string {
     return (string) ob_get_clean();
 }
 
+function render_list_show(array $user, array $list, array $items, array $members): string {
+    ob_start();
+    require dirname(__DIR__) . '/app/Views/lists/show.php';
+    return (string) ob_get_clean();
+}
+
 $users = new User();
 $owner = $users->findOrCreate('owner@example.nl');
 $member = $users->findOrCreate('member@example.nl');
+$outsider = $users->findOrCreate('outsider@example.nl');
 assert_true($owner['name'] === 'Owner', 'account is created from an e-mail address');
 assert_true($users->findOrCreate('OWNER@example.nl')['id'] === $owner['id'], 'e-mail addresses are case-insensitively unique');
 
@@ -48,6 +55,7 @@ assert_true(!str_contains($homeWithLists, 'class="hero-card"'), 'the introductio
 $emptyHome = render_lists_index($member, []);
 assert_true(str_contains($emptyHome, 'class="hero-card"'), 'the introduction card is shown when the user has no lists');
 assert_true($lists->findAccessible($listId, (int) $member['id']) !== null, 'members can access a shared list');
+assert_true($lists->findAccessible($listId, (int) $outsider['id']) === null, 'users outside the shared list cannot access it');
 
 $lists->addItem($listId, (int) $owner['id'], 'Treinkaartjes boeken');
 $item = $lists->items($listId)[0];
@@ -61,6 +69,20 @@ $completedState = $lists->liveState($listId);
 assert_true($completedState['stats']['percent'] === 100, 'live state reports completion progress');
 assert_true($completedState['revision'] !== $openState['revision'], 'live state revision changes after an update');
 assert_true(count($completedState['members']) === 2, 'live state includes all list members');
+assert_true(
+    !in_array((int) $outsider['id'], array_column($completedState['members'], 'id'), true),
+    'live state does not expose presence for users outside the shared list'
+);
+
+$users->touchPresence((int) $owner['id']);
+$presenceState = $lists->liveState($listId);
+$presenceById = array_column($presenceState['members'], null, 'id');
+assert_true($presenceById[$owner['id']]['is_online'] === true, 'a recently active list member is online');
+assert_true($presenceById[$member['id']]['is_online'] === false, 'an inactive list member is offline');
+assert_true($presenceState['revision'] !== $completedState['revision'], 'live state revision changes when presence changes');
+$listView = render_list_show($owner, $lists->findAccessible($listId, (int) $owner['id']), $lists->items($listId), $lists->members($listId));
+assert_true(str_contains($listView, 'member-avatar--online'), 'the shared list marks online members with a status class');
+assert_true(str_contains($listView, 'Owner is online'), 'the shared list exposes an accessible online label');
 
 $users->setProfileImage((int) $owner['id'], 'example-profile.png');
 $ownerWithImage = $users->find((int) $owner['id']);
@@ -81,6 +103,10 @@ $stylesheet = file_get_contents(dirname(__DIR__) . '/public/assets/css/app.css')
 assert_true(
     preg_match('/\.bottom-nav\{[^}]*left:50%;[^}]*transform:translateX\(-50%\)/', $stylesheet) === 1,
     'bottom navigation is centered within the viewport'
+);
+assert_true(
+    str_contains($stylesheet, '.member-stack i.member-avatar--online::after'),
+    'online list members receive a green status indicator'
 );
 assert_true(
     preg_match('/@media\(max-width:899px\)\{\s*\.bottom-nav \.desktop-only\{display:none\}/', $stylesheet) === 1,
