@@ -46,6 +46,11 @@ final class User
         $stmt->execute([$filename, $id]);
     }
 
+    public function touchPresence(int $id): void
+    {
+        db()->prepare('UPDATE users SET last_seen_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$id]);
+    }
+
     public function setPassword(int $id, string $password): void
     {
         $stmt = db()->prepare('UPDATE users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');

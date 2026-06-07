@@ -6,6 +6,8 @@ namespace App\Models;
 
 final class TodoList
 {
+    private const ONLINE_THRESHOLD_SECONDS = 10;
+
     public function forUser(int $userId): array
     {
         $stmt = db()->prepare(<<<'SQL'
@@ -60,13 +62,18 @@ final class TodoList
     public function members(int $listId): array
     {
         $stmt = db()->prepare(<<<'SQL'
-            SELECT u.id, u.name, u.email, 0 AS is_owner FROM list_members m JOIN users u ON u.id = m.user_id WHERE m.list_id = ?
+            SELECT u.id, u.name, u.email, u.last_seen_at, 0 AS is_owner FROM list_members m JOIN users u ON u.id = m.user_id WHERE m.list_id = ?
             UNION ALL
-            SELECT u.id, u.name, u.email, 1 AS is_owner FROM todo_lists l JOIN users u ON u.id = l.owner_id WHERE l.id = ?
+            SELECT u.id, u.name, u.email, u.last_seen_at, 1 AS is_owner FROM todo_lists l JOIN users u ON u.id = l.owner_id WHERE l.id = ?
             ORDER BY is_owner DESC, name ASC
         SQL);
         $stmt->execute([$listId, $listId]);
-        return $stmt->fetchAll();
+        return array_map(static function (array $member): array {
+            $lastSeen = $member['last_seen_at'] ? strtotime($member['last_seen_at'] . ' UTC') : false;
+            $member['is_online'] = $lastSeen !== false && $lastSeen >= time() - self::ONLINE_THRESHOLD_SECONDS;
+            unset($member['last_seen_at']);
+            return $member;
+        }, $stmt->fetchAll());
     }
 
     public function liveState(int $listId): array
@@ -82,6 +89,7 @@ final class TodoList
             'id' => (int) $member['id'],
             'name' => $member['name'],
             'is_owner' => (bool) $member['is_owner'],
+            'is_online' => (bool) $member['is_online'],
         ], $this->members($listId));
         $done = count(array_filter($items, static fn(array $item): bool => $item['is_completed']));
         $total = count($items);

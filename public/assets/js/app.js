@@ -21,7 +21,9 @@ if (liveList) {
 
   const memberAvatar = (member) => {
     const avatar = document.createElement('i');
-    avatar.title = member.name;
+    avatar.className = member.is_online ? 'member-avatar--online' : '';
+    avatar.title = `${member.name} is ${member.is_online ? 'online' : 'offline'}`;
+    avatar.setAttribute('aria-label', avatar.title);
     avatar.textContent = Array.from(member.name.trim().toLocaleUpperCase('nl-NL'))[0] || '?';
     return avatar;
   };

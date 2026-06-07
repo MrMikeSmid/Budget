@@ -89,5 +89,8 @@ final class Database
         if (!in_array('profile_image', $columnNames, true)) {
             $this->pdo->exec('ALTER TABLE users ADD COLUMN profile_image TEXT');
         }
+        if (!in_array('last_seen_at', $columnNames, true)) {
+            $this->pdo->exec('ALTER TABLE users ADD COLUMN last_seen_at TEXT');
+        }
     }
 }

@@ -13,7 +13,7 @@ $isOwner = (int) $list['owner_id'] === (int) $user['id'];
 >
     <header class="detail-header">
         <a class="icon-button icon-button--glass" href="<?= e(url('/')) ?>" aria-label="Terug"><span class="ui-icon ui-icon--arrow-left" aria-hidden="true"></span></a>
-        <div class="member-stack member-stack--large" data-member-stack="header"><?php foreach (array_slice($members, 0, 3) as $member): ?><i title="<?= e($member['name']) ?>"><?= e(mb_strtoupper(mb_substr($member['name'], 0, 1))) ?></i><?php endforeach; ?></div>
+        <div class="member-stack member-stack--large" data-member-stack="header"><?php foreach (array_slice($members, 0, 3) as $member): ?><i class="<?= $member['is_online'] ? 'member-avatar--online' : '' ?>" title="<?= e($member['name']) ?> is <?= $member['is_online'] ? 'online' : 'offline' ?>" aria-label="<?= e($member['name']) ?> is <?= $member['is_online'] ? 'online' : 'offline' ?>"><?= e(mb_strtoupper(mb_substr($member['name'], 0, 1))) ?></i><?php endforeach; ?></div>
         <?php if ($isOwner): ?><button class="icon-button icon-button--glass" type="button" data-open-modal="share-list" aria-label="Delen">↗</button><?php else: ?><span class="icon-button icon-button--glass">♡</span><?php endif; ?>
     </header>
     <div class="detail-title">
@@ -48,7 +48,7 @@ $isOwner = (int) $list['owner_id'] === (int) $user['id'];
         </div>
         <div class="people-row">
             <div><span class="eyebrow">In dit lijstje</span><h3 data-member-count><?= count($members) ?> <?= count($members) === 1 ? 'persoon' : 'personen' ?></h3></div>
-            <div class="member-stack member-stack--large" data-member-stack="people"><?php foreach (array_slice($members, 0, 4) as $member): ?><i title="<?= e($member['name']) ?>"><?= e(mb_strtoupper(mb_substr($member['name'], 0, 1))) ?></i><?php endforeach; ?></div>
+            <div class="member-stack member-stack--large" data-member-stack="people"><?php foreach (array_slice($members, 0, 4) as $member): ?><i class="<?= $member['is_online'] ? 'member-avatar--online' : '' ?>" title="<?= e($member['name']) ?> is <?= $member['is_online'] ? 'online' : 'offline' ?>" aria-label="<?= e($member['name']) ?> is <?= $member['is_online'] ? 'online' : 'offline' ?>"><?= e(mb_strtoupper(mb_substr($member['name'], 0, 1))) ?></i><?php endforeach; ?></div>
         </div>
         <?php if ($isOwner): ?><button type="button" class="share-callout" data-open-modal="share-list"><span class="share-callout__icon">♡</span><span><strong>Nodig iemand uit</strong><small>Samen afvinken is leuker</small></span><span class="ui-icon ui-icon--arrow-right" aria-hidden="true"></span></button><?php endif; ?>
         <?php if ($isOwner): ?><form method="post" action="<?= e(url('/lists/' . $list['id'] . '/delete')) ?>" onsubmit="return confirm('Weet je zeker dat je dit lijstje wilt verwijderen?')" class="delete-form"><input type="hidden" name="_token" value="<?= e(csrf_token()) ?>"><button class="text-link text-link--danger">Lijstje verwijderen</button></form><?php endif; ?>
