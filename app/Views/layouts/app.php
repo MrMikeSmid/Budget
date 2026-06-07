@@ -27,9 +27,15 @@
     <main class="page-content"><?= $content ?></main>
     <?php if ($viewer): ?>
         <nav class="bottom-nav" aria-label="Hoofdnavigatie">
+            <a class="nav-brand desktop-only" href="<?= e(url('/')) ?>" aria-label="Samen home"><span class="brand-mark"><i></i><i></i><i></i></span><strong>Samen</strong></a>
+            <span class="nav-section-label desktop-only">Werkruimte</span>
             <a href="<?= e(url('/')) ?>" class="<?= ($_SERVER['REQUEST_URI'] ?? '') === url('/') ? 'active' : '' ?>"><span class="ui-icon ui-icon--checklist nav-icon" aria-hidden="true"></span><span>Lijstjes</span></a>
-            <button type="button" class="nav-create" data-open-modal="new-list" aria-label="Nieuw lijstje"><span>＋</span></button>
+            <button type="button" class="nav-create" data-open-modal="new-list" aria-label="Nieuw lijstje"><span aria-hidden="true">＋</span><strong class="desktop-only">Nieuw lijstje</strong></button>
             <a href="<?= e(url('/settings')) ?>" class="<?= str_contains($_SERVER['REQUEST_URI'] ?? '', '/settings') ? 'active' : '' ?>"><span class="ui-icon ui-icon--user nav-icon" aria-hidden="true"></span><span>Profiel</span></a>
+            <a class="nav-account desktop-only" href="<?= e(url('/settings')) ?>">
+                <span class="avatar"><?= e(mb_strtoupper(mb_substr($viewer['name'], 0, 1))) ?><i></i></span>
+                <span><strong><?= e($viewer['name']) ?></strong><small><?= e($viewer['email']) ?></small></span>
+            </a>
         </nav>
         <dialog class="modal" id="new-list">
             <form method="post" action="<?= e(url('/lists')) ?>" class="modal-card">
