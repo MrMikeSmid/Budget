@@ -66,6 +66,10 @@ assert_true(
     preg_match('/\.bottom-nav\{[^}]*left:50%;[^}]*transform:translateX\(-50%\)/', $stylesheet) === 1,
     'bottom navigation is centered within the viewport'
 );
+assert_true(
+    preg_match('/@media\(max-width:899px\)\{\s*\.bottom-nav \.desktop-only\{display:none\}/', $stylesheet) === 1,
+    'desktop-only navigation items stay hidden in the mobile bottom bar'
+);
 
 @unlink($database); @unlink($database . '-wal'); @unlink($database . '-shm');
 echo "All tests passed.\n";
