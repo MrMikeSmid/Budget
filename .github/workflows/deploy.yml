@@ -33,4 +33,79 @@ jobs:
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_SERVER_DIR: ${{ secrets.FTP_SERVER_DIR }}
-        run: ./scripts/deploy-ftp.sh
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          required_variables=(
+            FTP_SERVER
+            FTP_USERNAME
+            FTP_PASSWORD
+            FTP_SERVER_DIR
+          )
+
+          normalize_secret() {
+            local variable=$1
+            local value=${!variable:-}
+
+            # Verwijder regeleinden die bij het kopiëren vóór of na de secret zijn beland.
+            while [[ "$value" == $'\n'* || "$value" == $'\r'* ]]; do
+              value=${value:1}
+            done
+
+            while [[ "$value" == *$'\n' || "$value" == *$'\r' ]]; do
+              value=${value::-1}
+            done
+
+            printf -v "$variable" '%s' "$value"
+          }
+
+          escape_lftp_value() {
+            local value=$1
+            value=${value//\\/\\\\}
+            value=${value//\"/\\\"}
+            printf '%s' "$value"
+          }
+
+          for variable in "${required_variables[@]}"; do
+            normalize_secret "$variable"
+
+            if [[ -z "${!variable}" ]]; then
+              printf 'Fout: de omgevingsvariabele %s is niet ingesteld.\n' "$variable" >&2
+              exit 1
+            fi
+
+            if [[ "${!variable}" == *$'\n'* || "${!variable}" == *$'\r'* ]]; then
+              printf 'Fout: de omgevingsvariabele %s bevat een regeleinde midden in de waarde. Controleer de repository secret.\n' "$variable" >&2
+              exit 1
+            fi
+          done
+
+          ftp_server=$(escape_lftp_value "$FTP_SERVER")
+          ftp_username=$(escape_lftp_value "$FTP_USERNAME")
+          ftp_password=$(escape_lftp_value "$FTP_PASSWORD")
+          ftp_server_dir=$(escape_lftp_value "$FTP_SERVER_DIR")
+
+          printf 'Deploy naar %s gestart...\n' "$FTP_SERVER_DIR"
+
+          lftp <<EOF_LFTP
+          set cmd:fail-exit true
+          set net:max-retries 2
+          set net:timeout 20
+          set ftp:passive-mode true
+          set ftp:ssl-allow true
+          set ssl:verify-certificate true
+          open "$ftp_server"
+          user "$ftp_username" "$ftp_password"
+          mirror --reverse \
+            --delete \
+            --verbose \
+            --parallel=4 \
+            --exclude='(^|/)\.git(/|$)' \
+            --exclude='(^|/)\.github(/|$)' \
+            --exclude='(^|/)\.gitkeep$' \
+            ./ "$ftp_server_dir"
+          bye
+          EOF_LFTP
+
+          printf 'Deploy succesvol afgerond.\n'
