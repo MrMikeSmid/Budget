@@ -8,5 +8,7 @@ return [
     'database' => getenv('SAMEN_DATABASE') ?: dirname(__DIR__) . '/storage/app.sqlite',
     'app_url' => rtrim((string) (getenv('SAMEN_APP_URL') ?: ''), '/'),
     'mail_from' => getenv('SAMEN_MAIL_FROM') ?: 'noreply@localhost',
+    'onesignal_app_id' => trim((string) (getenv('SAMEN_ONESIGNAL_APP_ID') ?: '')),
+    'onesignal_api_key' => trim((string) (getenv('SAMEN_ONESIGNAL_API_KEY') ?: '')),
     'session_name' => 'samen_session',
 ];

@@ -29,8 +29,8 @@ final class User
         }
         $local = explode('@', $email)[0];
         $name = ucwords(str_replace(['.', '_', '-'], ' ', $local));
-        $stmt = db()->prepare('INSERT INTO users (email, name) VALUES (?, ?)');
-        $stmt->execute([$email, $name ?: 'Nieuw lid']);
+        $stmt = db()->prepare('INSERT INTO users (email, name, push_external_id) VALUES (?, ?, ?)');
+        $stmt->execute([$email, $name ?: 'Nieuw lid', 'samen-' . bin2hex(random_bytes(24))]);
         return $this->find((int) db()->lastInsertId());
     }
 

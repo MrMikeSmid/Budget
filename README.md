@@ -61,3 +61,36 @@ De webserver moet daarnaast zijn geconfigureerd om uitgaande e-mail van PHP te b
 ```bash
 php tests/run.php
 ```
+
+## Pushnotificaties op iOS en Android
+
+Samen gebruikt **OneSignal Web Push**. Daardoor blijft Samen één PWA en zijn er geen aparte native iOS- en Android-projecten, APNs-code of Firebase-code in deze repository nodig. Meldingen worden verstuurd wanneer een andere deelnemer:
+
+- een taak toevoegt;
+- een taak afvinkt of opnieuw opent;
+- een lijst met iemand deelt.
+
+De gebruiker kan pushnotificaties zelf aan- of uitzetten onder **Instellingen**. Bij uitloggen wordt het apparaat uitgeschreven, zodat meldingen niet bij een volgende gebruiker van hetzelfde apparaat terechtkomen.
+
+### Eenmalige configuratie
+
+1. Maak in [OneSignal](https://onesignal.com) een app aan en voeg het platform **Web** toe.
+2. Kies de configuratie voor een normale website/custom code en vul de publieke HTTPS-URL van Samen in, bijvoorbeeld `https://mikesmid.nl/development`.
+3. Gebruik bij een deployment onder `/development` deze service-workerinstellingen:
+   - pad: `/development/push/onesignal/`
+   - bestandsnaam: `OneSignalSDKWorker.js`
+   - scope: `/development/push/onesignal/`
+4. Neem bij **Settings → Keys & IDs** de App ID en App API Key over naar de serveromgeving:
+
+```bash
+export SAMEN_ONESIGNAL_APP_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+export SAMEN_ONESIGNAL_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+De API key is alleen server-side beschikbaar en wordt nooit naar de browser gestuurd. Na het instellen verschijnt de notificatie-optie automatisch in Samen.
+
+### Gedrag per platform
+
+- **Android:** meldingen werken in ondersteunde browsers; installatie van de PWA geeft de prettigste app-ervaring.
+- **iPhone/iPad:** vereist iOS/iPadOS 16.4 of hoger. De gebruiker moet Samen eerst via Safari met **Zet op beginscherm** installeren, de geïnstalleerde app openen en daar meldingen aanzetten.
+- **Alle platformen:** productie vereist een geldige HTTPS-verbinding. Push werkt niet in een privé-/incognitovenster.

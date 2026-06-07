@@ -92,5 +92,15 @@ final class Database
         if (!in_array('last_seen_at', $columnNames, true)) {
             $this->pdo->exec('ALTER TABLE users ADD COLUMN last_seen_at TEXT');
         }
+        if (!in_array('push_external_id', $columnNames, true)) {
+            $this->pdo->exec('ALTER TABLE users ADD COLUMN push_external_id TEXT');
+        }
+
+        $usersWithoutPushId = $this->pdo->query("SELECT id FROM users WHERE push_external_id IS NULL OR push_external_id = ''")->fetchAll();
+        $setPushId = $this->pdo->prepare('UPDATE users SET push_external_id = ? WHERE id = ?');
+        foreach ($usersWithoutPushId as $user) {
+            $setPushId->execute(['samen-' . bin2hex(random_bytes(24)), $user['id']]);
+        }
+        $this->pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_push_external_id ON users(push_external_id)');
     }
 }

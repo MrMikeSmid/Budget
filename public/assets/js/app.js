@@ -234,3 +234,85 @@ avatarInput?.addEventListener('change', () => {
 window.addEventListener('pagehide', () => {
   if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
 }, { once: true });
+
+const oneSignalAppId = document.body.dataset.onesignalAppId;
+const oneSignalUser = document.body.dataset.onesignalUser;
+const pushSettings = document.querySelector('[data-push-settings]');
+
+if (oneSignalAppId && oneSignalUser) {
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  window.OneSignalDeferred.push(async (OneSignal) => {
+    const status = pushSettings?.querySelector('[data-push-status]');
+    const toggle = pushSettings?.querySelector('[data-push-toggle]');
+    const workerPath = document.body.dataset.onesignalWorker;
+    const workerScope = document.body.dataset.onesignalScope;
+
+    try {
+      await OneSignal.init({
+        appId: oneSignalAppId,
+        serviceWorkerPath: workerPath,
+        serviceWorkerParam: { scope: workerScope },
+      });
+      await OneSignal.login(oneSignalUser);
+
+      const updatePushStatus = () => {
+        if (!pushSettings || !status || !toggle) return;
+        const isIosBrowser = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+        const runsStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        const supported = OneSignal.Notifications.isPushSupported();
+        const active = OneSignal.User.PushSubscription.optedIn;
+
+        pushSettings.dataset.pushActive = String(active);
+        toggle.disabled = false;
+        if (active) {
+          status.textContent = 'Meldingen staan aan op dit apparaat.';
+          toggle.textContent = 'Meldingen uitzetten';
+        } else if (isIosBrowser && !runsStandalone) {
+          status.textContent = 'Installeer Samen eerst op je beginscherm; daarna kun je meldingen aanzetten.';
+          toggle.textContent = 'Bekijk installatiestappen';
+        } else if (!supported) {
+          status.textContent = 'Deze browser ondersteunt helaas geen pushnotificaties.';
+          toggle.textContent = 'Niet beschikbaar';
+          toggle.disabled = true;
+        } else {
+          status.textContent = 'Ontvang een seintje als iemand een gedeeld lijstje bijwerkt.';
+          toggle.textContent = 'Meldingen aanzetten';
+        }
+      };
+
+      toggle?.addEventListener('click', async () => {
+        const isIosBrowser = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+        const runsStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        if (isIosBrowser && !runsStandalone) {
+          document.getElementById('install-help')?.showModal();
+          return;
+        }
+
+        toggle.disabled = true;
+        if (OneSignal.User.PushSubscription.optedIn) {
+          await OneSignal.User.PushSubscription.optOut();
+        } else {
+          await OneSignal.User.PushSubscription.optIn();
+        }
+        updatePushStatus();
+      });
+
+      OneSignal.User.PushSubscription.addEventListener('change', updatePushStatus);
+      OneSignal.Notifications.addEventListener('permissionChange', updatePushStatus);
+      updatePushStatus();
+
+      document.querySelector('[data-logout-form]')?.addEventListener('submit', async (event) => {
+        const form = event.currentTarget;
+        if (form.dataset.pushLogoutDone === 'true') return;
+        event.preventDefault();
+        await OneSignal.User.PushSubscription.optOut();
+        await OneSignal.logout();
+        form.dataset.pushLogoutDone = 'true';
+        form.submit();
+      });
+    } catch (error) {
+      console.warn('Pushnotificaties initialiseren is mislukt.', error);
+      if (status) status.textContent = 'De notificatie-instellingen konden niet worden geladen.';
+    }
+  });
+}

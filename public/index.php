@@ -16,6 +16,7 @@ $router = new Router();
 $router->get('/manifest.webmanifest', [PwaController::class, 'manifest']);
 $router->get('/pwa-icon/{name}', [PwaController::class, 'icon']);
 $router->get('/sw.js', [PwaController::class, 'serviceWorker']);
+$router->get('/push/onesignal/OneSignalSDKWorker.js', [PwaController::class, 'oneSignalWorker']);
 $router->get('/', [HomeController::class, 'index']);
 $router->get('/login', [AuthController::class, 'show']);
 $router->post('/login', [AuthController::class, 'identify']);
