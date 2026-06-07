@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
     <?php if ($pushEnabled): ?><script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script><?php endif; ?>
 </head>
-<body class="<?= $viewer ? 'is-authenticated' : 'is-guest' ?>" data-service-worker="<?= e(url('/sw.js')) ?>" data-app-scope="<?= e(url('/')) ?>"<?php if ($pushEnabled): ?> data-onesignal-app-id="<?= e($oneSignalAppId) ?>" data-onesignal-user="<?= e($viewer['push_external_id']) ?>" data-onesignal-worker="<?= e(ltrim(url('/push/onesignal/OneSignalSDKWorker.js'), '/')) ?>" data-onesignal-scope="<?= e(url('/push/onesignal/')) ?>"<?php endif; ?>>
+<body class="<?= $viewer ? 'is-authenticated' : 'is-guest' ?>" data-service-worker="<?= e(url('/sw.js')) ?>" data-app-scope="<?= e(url('/')) ?>"<?php if ($pushEnabled): ?> data-onesignal-app-id="<?= e($oneSignalAppId) ?>" data-onesignal-user="<?= e($viewer['push_external_id']) ?>" data-onesignal-worker="<?= e(url('/push/onesignal/OneSignalSDKWorker.js')) ?>" data-onesignal-scope="<?= e(url('/push/onesignal/')) ?>"<?php endif; ?>>
 <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
 <div class="app-shell">
     <?php if ($viewer && empty($viewer['password_hash'])): ?>
