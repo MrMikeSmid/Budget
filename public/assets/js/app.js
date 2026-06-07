@@ -256,13 +256,26 @@ if (oneSignalAppId && oneSignalUser) {
       });
       await OneSignal.login(oneSignalUser);
 
+      const nativePermission = () => OneSignal.Notifications.permissionNative
+        || (typeof Notification !== 'undefined' ? Notification.permission : 'default');
+
+      const waitForSubscription = async () => {
+        const deadline = Date.now() + 8000;
+        while (!OneSignal.User.PushSubscription.id && Date.now() < deadline) {
+          await new Promise((resolve) => window.setTimeout(resolve, 250));
+        }
+        return OneSignal.User.PushSubscription.id;
+      };
+
       const updatePushStatus = () => {
         if (!pushSettings || !status || !toggle) return;
         const isIosBrowser = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
         const runsStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
         const supported = OneSignal.Notifications.isPushSupported();
-        const active = OneSignal.User.PushSubscription.optedIn;
+        const permission = nativePermission();
+        const optedIn = OneSignal.User.PushSubscription.optedIn;
         const subscriptionId = OneSignal.User.PushSubscription.id;
+        const active = permission === 'granted' && optedIn && Boolean(subscriptionId);
 
         pushSettings.dataset.pushActive = String(active);
         if (deleteButton) deleteButton.hidden = !subscriptionId;
@@ -277,6 +290,12 @@ if (oneSignalAppId && oneSignalUser) {
           status.textContent = 'Deze browser ondersteunt helaas geen pushnotificaties.';
           toggle.textContent = 'Niet beschikbaar';
           toggle.disabled = true;
+        } else if (permission === 'denied') {
+          status.textContent = 'Notificaties zijn door je browser geblokkeerd. Sta ze toe via de site-instellingen van je browser en probeer opnieuw.';
+          toggle.textContent = 'Opnieuw controleren';
+        } else if (optedIn && !subscriptionId) {
+          status.textContent = 'Het pushabonnement wordt nog aangemaakt. Probeer het over een paar seconden opnieuw.';
+          toggle.textContent = 'Opnieuw proberen';
         } else {
           status.textContent = 'Ontvang een seintje als iemand een gedeeld lijstje bijwerkt.';
           toggle.textContent = 'Meldingen aanzetten';
@@ -292,13 +311,39 @@ if (oneSignalAppId && oneSignalUser) {
         }
 
         toggle.disabled = true;
-        if (OneSignal.User.PushSubscription.optedIn) {
-          await OneSignal.User.PushSubscription.optOut();
-        } else {
-          await OneSignal.User.PushSubscription.optIn();
-          await OneSignal.login(oneSignalUser);
+        status.textContent = 'De notificatie-instellingen worden bijgewerkt…';
+        let errorMessage = '';
+        try {
+          const hasActiveSubscription = nativePermission() === 'granted'
+            && OneSignal.User.PushSubscription.optedIn
+            && Boolean(OneSignal.User.PushSubscription.id);
+
+          if (hasActiveSubscription) {
+            await OneSignal.User.PushSubscription.optOut();
+          } else {
+            if (nativePermission() !== 'granted') {
+              await OneSignal.Notifications.requestPermission();
+            }
+            if (nativePermission() !== 'granted') {
+              updatePushStatus();
+              return;
+            }
+
+            await OneSignal.User.PushSubscription.optIn();
+            const subscriptionId = await waitForSubscription();
+            if (!subscriptionId) {
+              throw new Error('OneSignal heeft geen pushabonnement aangemaakt.');
+            }
+            await OneSignal.login(oneSignalUser);
+          }
+        } catch (error) {
+          console.warn('Pushnotificaties wijzigen is mislukt.', error);
+          errorMessage = 'Meldingen konden niet worden ingeschakeld. Controleer de browsertoestemming en probeer opnieuw.';
+        } finally {
+          updatePushStatus();
+          if (errorMessage) status.textContent = errorMessage;
+          toggle.disabled = false;
         }
-        updatePushStatus();
       });
 
       deleteButton?.addEventListener('click', async () => {
