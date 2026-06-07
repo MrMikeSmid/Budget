@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Controllers\AdminController;
 use App\Controllers\AuthController;
 use App\Controllers\HomeController;
+use App\Controllers\LegalController;
 use App\Controllers\ListController;
 use App\Controllers\PwaController;
 use App\Controllers\SettingsController;
@@ -21,6 +22,9 @@ $router->get('/push/onesignal/OneSignalSDKWorker.js', [PwaController::class, 'on
 $router->get('/', [HomeController::class, 'index']);
 $router->get('/admin', [AdminController::class, 'show']);
 $router->post('/admin/onesignal', [AdminController::class, 'updateOneSignal']);
+$router->post('/admin/invitation-email', [AdminController::class, 'updateInvitationEmail']);
+$router->get('/privacy', [LegalController::class, 'privacy']);
+$router->get('/voorwaarden', [LegalController::class, 'terms']);
 $router->get('/login', [AuthController::class, 'show']);
 $router->post('/login', [AuthController::class, 'identify']);
 $router->post('/login/password', [AuthController::class, 'password']);

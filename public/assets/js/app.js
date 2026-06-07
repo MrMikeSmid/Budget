@@ -316,3 +316,45 @@ if (oneSignalAppId && oneSignalUser) {
     }
   });
 }
+
+
+const emailEditorForm = document.querySelector('[data-email-editor-form]');
+if (emailEditorForm) {
+  const editor = emailEditorForm.querySelector('[data-editor-content]');
+  const input = emailEditorForm.querySelector('[data-editor-input]');
+  const preview = document.querySelector('[data-email-preview]');
+
+  const syncEmailEditor = () => {
+    input.value = editor.innerHTML;
+    const previewMessage = preview?.contentDocument?.getElementById('email-message');
+    if (previewMessage) previewMessage.innerHTML = editor.innerHTML;
+  };
+
+  emailEditorForm.querySelectorAll('[data-editor-command]').forEach((button) => {
+    button.addEventListener('click', () => {
+      editor.focus();
+      document.execCommand(button.dataset.editorCommand, false, button.dataset.editorValue || null);
+      syncEmailEditor();
+    });
+  });
+
+  emailEditorForm.querySelector('[data-editor-link]')?.addEventListener('click', () => {
+    const href = window.prompt('Naar welke URL moet de link verwijzen?', 'https://');
+    if (!href) return;
+    editor.focus();
+    document.execCommand('createLink', false, href);
+    syncEmailEditor();
+  });
+
+  emailEditorForm.querySelectorAll('[data-editor-token]').forEach((button) => {
+    button.addEventListener('click', () => {
+      editor.focus();
+      document.execCommand('insertText', false, button.dataset.editorToken);
+      syncEmailEditor();
+    });
+  });
+
+  editor.addEventListener('input', syncEmailEditor);
+  preview?.addEventListener('load', syncEmailEditor);
+  emailEditorForm.addEventListener('submit', syncEmailEditor);
+}
