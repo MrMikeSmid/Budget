@@ -16,6 +16,7 @@ use App\Models\AppSetting;
 use App\Services\InvitationEmailSettings;
 use App\Services\InvitationMailer;
 use App\Services\OneSignalSettings;
+use App\Services\OneSignalSubscriptionService;
 use App\Services\PushNotificationService;
 
 function assert_true(bool $condition, string $message): void {
@@ -45,6 +46,10 @@ function render_admin(string $onesignal_app_id, bool $onesignal_configured, Invi
         'vriend@voorbeeld.nl'
     );
     $invitation_tokens = InvitationEmailSettings::tokens();
+    $push_users = [];
+    $push_subscriptions = [];
+    $active_push_subscription_count = 0;
+    $push_subscription_error = null;
     ob_start();
     require dirname(__DIR__) . '/app/Views/admin/index.php';
     return (string) ob_get_clean();
@@ -163,6 +168,8 @@ assert_true(str_contains($adminPage, 'data-rich-editor'), 'the admin page contai
 assert_true(str_contains($adminPage, 'Samen team'), 'the admin page renders the saved invitation sender');
 assert_true(str_contains($adminPage, 'data-email-preview'), 'the admin page contains an invitation e-mail preview');
 assert_true(str_contains($adminPage, '/admin/onesignal/test'), 'the admin page offers a direct push delivery test');
+assert_true(str_contains($adminPage, 'pushabonnementen'), 'the admin page contains the push subscription overview');
+assert_true(str_contains($adminPage, 'Selecteer e-mailadres'), 'the admin page can target a manual push test by user');
 $pushRequest = null;
 $push = new PushNotificationService(function (string $url, array $headers, string $payload) use (&$pushRequest): bool {
     $pushRequest = ['url' => $url, 'headers' => $headers, 'payload' => json_decode($payload, true, flags: JSON_THROW_ON_ERROR)];
@@ -173,6 +180,32 @@ assert_true($pushRequest['payload']['include_aliases']['external_id'] === [$memb
 assert_true($pushRequest['payload']['target_channel'] === 'push', 'the OneSignal request selects the push channel');
 assert_true($pushRequest['payload']['url'] === 'http://localhost/development/lists/' . $listId, 'push notifications open the changed list');
 assert_true($pushRequest['headers']['Authorization'] === 'Key test-api-key', 'the OneSignal API key is sent using the required authorization scheme');
+
+$subscriptionRequests = [];
+$subscriptionService = new OneSignalSubscriptionService(function (string $method, string $url, array $headers, ?string $payload) use (&$subscriptionRequests, $member): array {
+    $subscriptionRequests[] = compact('method', 'url', 'headers', 'payload');
+    if ($method === 'GET') {
+        return ['status' => 200, 'body' => json_encode([
+            'properties' => ['last_active' => 1710000000],
+            'identity' => ['external_id' => $member['push_external_id']],
+            'subscriptions' => [[
+                'id' => '22222222-2222-4222-8222-222222222222',
+                'type' => 'ChromePush',
+                'enabled' => true,
+                'device_model' => 'Chrome',
+                'device_os' => 'macOS',
+            ]],
+        ], JSON_THROW_ON_ERROR)];
+    }
+    return ['status' => 202, 'body' => '{}'];
+});
+$subscriptions = $subscriptionService->forUsers([$member]);
+assert_true(count($subscriptions) === 1, 'OneSignal subscriptions are fetched for local users by external ID');
+assert_true($subscriptions[0]['email'] === 'member@example.nl', 'fetched subscriptions stay linked to the local email address');
+assert_true($subscriptions[0]['subscription_id'] === '22222222-2222-4222-8222-222222222222', 'fetched subscriptions expose the OneSignal subscription ID');
+assert_true($subscriptionRequests[0]['method'] === 'GET' && str_contains($subscriptionRequests[0]['url'], '/users/by/external_id/'), 'subscription lookup uses the OneSignal View User API');
+assert_true($subscriptionService->delete('22222222-2222-4222-8222-222222222222'), 'OneSignal subscriptions can be deleted by subscription ID');
+assert_true($subscriptionRequests[1]['method'] === 'DELETE' && str_contains($subscriptionRequests[1]['url'], '/subscriptions/22222222-2222-4222-8222-222222222222'), 'subscription deletion calls the OneSignal Delete Subscription API');
 $acceptedPush = new PushNotificationService(static fn(string $url, array $headers, string $payload): array => [
     'status' => 200,
     'body' => json_encode(['id' => '33333333-3333-4333-8333-333333333333'], JSON_THROW_ON_ERROR),
@@ -261,6 +294,7 @@ assert_true(str_contains($serviceWorker, 'fetch(request).then'), 'app assets are
 assert_true(str_contains($javascript, 'OneSignal.User.PushSubscription.optIn()'), 'the settings button can subscribe the current device to push');
 assert_true(str_contains($javascript, 'await OneSignal.login(oneSignalUser)'), 'push subscriptions are linked to the signed-in user');
 assert_true(str_contains($javascript, "OneSignal.User.PushSubscription.optOut()"), 'users can disable notifications and are opted out on logout');
+assert_true(str_contains($javascript, "data-push-delete"), 'users can delete the current device push subscription from settings');
 assert_true(str_contains($manifestController, 'OneSignalSDK.sw.js'), 'the OneSignal service worker endpoint loads the current web push worker');
 
 assert_true(str_contains($manifestController, 'public function icon(string $name)'), 'PWA icons are generated by a text-only endpoint');

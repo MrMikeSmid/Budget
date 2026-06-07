@@ -56,12 +56,41 @@
             <span><?= !empty($onesignal_configured) ? 'Meldingen gebruiken nu de waarden uit de database.' : 'Vul zowel de App ID als API key in om pushnotificaties te activeren.' ?></span>
         </div>
         <?php if (!empty($onesignal_configured)): ?>
-            <form method="post" action="<?= e(url('/admin/onesignal/test')) ?>">
+            <form method="post" action="<?= e(url('/admin/onesignal/test')) ?>" class="admin-test-form">
                 <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
-                <button class="button button--soft button--wide">Stuur testmelding naar dit account</button>
-                <small>Dit controleert de API key én of OneSignal een actief abonnement aan jouw account heeft gekoppeld.</small>
+                <label class="field"><span>Ontvanger</span><select name="user_id" required><option value="">Selecteer e-mailadres</option><?php foreach (($push_users ?? []) as $pushUser): ?><option value="<?= (int) $pushUser['id'] ?>"><?= e($pushUser['email']) ?> — <?= e($pushUser['push_external_id']) ?></option><?php endforeach; ?></select></label>
+                <label class="field"><span>Testbericht</span><textarea name="message" maxlength="500" rows="3" required>Handmatige testmelding van Samen.</textarea></label>
+                <button class="button button--soft button--wide">Stuur handmatige test</button>
+                <small>De melding wordt gericht verstuurd naar het externe ID van het gekozen e-mailadres.</small>
             </form>
         <?php endif; ?>
+    </div>
+
+    <div class="settings-section admin-card admin-card--subscriptions" id="pushabonnementen">
+        <div class="admin-subscription-heading"><div><span class="eyebrow">Abonnementen</span><h2>Pushapparaten</h2></div><strong class="admin-count"><?= (int) ($active_push_subscription_count ?? 0) ?> actief</strong></div>
+        <p class="section-intro">Actuele OneSignal-abonnementen, gekoppeld aan het e-mailadres en externe ID in Samen.</p>
+        <?php if (!empty($push_subscription_error)): ?><div class="admin-status"><strong>Ophalen niet volledig gelukt</strong><span><?= e($push_subscription_error) ?></span></div><?php endif; ?>
+        <?php if (empty($push_subscriptions)): ?>
+            <div class="admin-empty">Er zijn geen pushabonnementen gevonden voor de bekende gebruikers.</div>
+        <?php else: ?>
+            <div class="subscription-list">
+                <?php foreach ($push_subscriptions as $subscription): ?>
+                    <article class="subscription-item">
+                        <div class="subscription-item__main">
+                            <div><strong><?= e($subscription['email']) ?></strong><span><?= e($subscription['name']) ?> · <?= e($subscription['device']) ?></span></div>
+                            <span class="subscription-state <?= !empty($subscription['enabled']) ? 'subscription-state--active' : '' ?>"><?= !empty($subscription['enabled']) ? 'Actief' : 'Uitgeschakeld' ?></span>
+                        </div>
+                        <dl><div><dt>Extern ID</dt><dd><code><?= e($subscription['external_id']) ?></code></dd></div><div><dt>Abonnement-ID</dt><dd><code><?= e($subscription['subscription_id']) ?></code></dd></div></dl>
+                        <form method="post" action="<?= e(url('/admin/onesignal/subscription/delete')) ?>" onsubmit="return confirm('Dit pushabonnement definitief uit OneSignal verwijderen?')">
+                            <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
+                            <input type="hidden" name="subscription_id" value="<?= e($subscription['subscription_id']) ?>">
+                            <button class="button button--danger button--small">Abonnement verwijderen</button>
+                        </form>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+        <small>Verwijderen is definitief. Een browser kan later wel opnieuw een nieuw abonnement aanmaken als de gebruiker meldingen weer inschakelt.</small>
     </div>
 </div>
 </section>

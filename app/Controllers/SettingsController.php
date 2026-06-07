@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Models\User;
+use App\Services\OneSignalSubscriptionService;
 
 final class SettingsController extends Controller
 {
@@ -79,6 +80,27 @@ final class SettingsController extends Controller
         if ($password !== $confirmation) { flash('error', 'De wachtwoorden zijn niet hetzelfde.'); redirect('/settings'); }
         (new User())->setPassword((int) $user['id'], $password);
         flash('success', 'Mooi! Je account is nu beveiligd met een wachtwoord.'); redirect('/settings');
+    }
+
+
+    public function deletePushSubscription(): void
+    {
+        $user = $this->auth();
+        $this->verifyCsrf();
+
+        $subscriptionId = trim((string) ($_POST['subscription_id'] ?? ''));
+        $subscriptions = new OneSignalSubscriptionService();
+        header('Content-Type: application/json; charset=utf-8');
+        if ($subscriptions->deleteForExternalId((string) $user['push_external_id'], $subscriptionId)) {
+            echo json_encode(['ok' => true], JSON_THROW_ON_ERROR);
+            return;
+        }
+
+        http_response_code(422);
+        echo json_encode([
+            'ok' => false,
+            'message' => $subscriptions->lastError() ?? 'Het abonnement kon niet worden verwijderd.',
+        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
     }
 
     private function storeProfileImage(?array $upload): string|false|null

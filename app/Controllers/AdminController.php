@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Services\InvitationEmailSettings;
 use App\Services\OneSignalSettings;
+use App\Services\OneSignalSubscriptionService;
 use App\Services\PushNotificationService;
 
 final class AdminController extends Controller
@@ -18,6 +19,9 @@ final class AdminController extends Controller
         $invitationEmail = new InvitationEmailSettings();
         $sampleInviter = ['name' => 'Mike', 'email' => 'mike@voorbeeld.nl'];
         $sampleList = ['id' => 1, 'title' => 'Weekendje weg'];
+        $users = db()->query('SELECT id, name, email, push_external_id FROM users ORDER BY email COLLATE NOCASE')->fetchAll();
+        $subscriptionService = new OneSignalSubscriptionService();
+        $pushSubscriptions = $oneSignal->isConfigured() ? $subscriptionService->forUsers($users) : [];
         view('admin/index', [
             'title' => 'Admin',
             'onesignal_app_id' => $oneSignal->appId(),
@@ -27,6 +31,10 @@ final class AdminController extends Controller
             'invitation_message_html' => $invitationEmail->message(),
             'invitation_preview_html' => $invitationEmail->renderEmail($sampleInviter, $sampleList, 'vriend@voorbeeld.nl'),
             'invitation_tokens' => InvitationEmailSettings::tokens(),
+            'push_users' => $users,
+            'push_subscriptions' => $pushSubscriptions,
+            'active_push_subscription_count' => count(array_filter($pushSubscriptions, static fn(array $subscription): bool => $subscription['enabled'])),
+            'push_subscription_error' => $subscriptionService->lastError(),
         ]);
     }
 
@@ -59,16 +67,38 @@ final class AdminController extends Controller
 
     public function testPushNotification(): void
     {
-        $user = $this->admin();
+        $this->admin();
         $this->verifyCsrf();
 
+        $userId = (int) ($_POST['user_id'] ?? 0);
+        $message = trim((string) ($_POST['message'] ?? ''));
+        if ($userId < 1 || $message === '' || mb_strlen($message) > 500) {
+            flash('error', 'Selecteer een gebruiker en vul een testbericht van maximaal 500 tekens in.');
+            redirect('/admin#pushnotificaties');
+        }
+
         $push = new PushNotificationService();
-        if ($push->send([(int) $user['id']], 'Je testmelding van Samen werkt.', '/settings')) {
+        if ($push->send([$userId], $message, '/')) {
             flash('success', 'De testmelding is door OneSignal geaccepteerd.');
         } else {
             flash('error', $push->lastError() ?? 'De testmelding kon niet worden verstuurd.');
         }
         redirect('/admin#pushnotificaties');
+    }
+
+    public function deletePushSubscription(): void
+    {
+        $this->admin();
+        $this->verifyCsrf();
+
+        $subscriptionId = trim((string) ($_POST['subscription_id'] ?? ''));
+        $subscriptions = new OneSignalSubscriptionService();
+        if ($subscriptions->delete($subscriptionId)) {
+            flash('success', 'Het pushabonnement wordt door OneSignal verwijderd.');
+        } else {
+            flash('error', $subscriptions->lastError() ?? 'Het pushabonnement kon niet worden verwijderd.');
+        }
+        redirect('/admin#pushabonnementen');
     }
 
     public function updateOneSignal(): void
