@@ -323,6 +323,10 @@ assert_true(str_contains($javascript, 'OneSignal.User.PushSubscription.token'), 
 assert_true(str_contains($javascript, "permission === 'denied'"), 'blocked browser permissions are explained at user level');
 assert_true(str_contains($javascript, 'OneSignal.User.PushSubscription.optIn()'), 'the settings button can subscribe the current device to push');
 assert_true(str_contains($javascript, 'await OneSignal.login(oneSignalUser)'), 'push subscriptions are linked to the signed-in user');
+assert_true(str_contains($javascript, ".pathname.replace(/^\\/+/, '')"), 'the OneSignal worker path is normalized without dropping a deployment subdirectory');
+assert_true(str_contains($javascript, "PushSubscription.addEventListener('change', async"), 'renewed push subscriptions are linked to the signed-in user again');
+assert_true(str_contains($javascript, 'De notificatieservice reageert niet.'), 'a blocked or unavailable OneSignal SDK no longer leaves the settings screen loading indefinitely');
+assert_true(str_contains($javascript, '!window.isSecureContext'), 'push setup explains when the site is not served over a secure connection');
 assert_true(str_contains($javascript, "OneSignal.User.PushSubscription.optOut()"), 'users can disable notifications and are opted out on logout');
 assert_true(str_contains($javascript, "data-push-delete"), 'users can delete the current device push subscription from settings');
 assert_true(str_contains($manifestController, 'OneSignalSDK.sw.js'), 'the OneSignal service worker endpoint loads the current web push worker');
