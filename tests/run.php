@@ -316,9 +316,10 @@ assert_true(
     !str_contains($layout, "ltrim(url('/push/onesignal/OneSignalSDKWorker.js'), '/')"),
     'the OneSignal worker URL is not converted into a page-relative path'
 );
-assert_true(str_contains($javascript, 'OneSignal.Notifications.requestPermission()'), 'the settings button explicitly asks the browser for notification permission');
+assert_true(!str_contains($javascript, 'OneSignal.Notifications.requestPermission()'), 'the settings button lets optIn handle permission and clear an existing OneSignal opt-out');
 assert_true(str_contains($javascript, 'waitForPermission()'), 'enabling push waits for delayed browser permission state updates');
-assert_true(str_contains($javascript, 'waitForSubscription()'), 'enabling push waits until OneSignal has created a real device subscription');
+assert_true(str_contains($javascript, 'waitForActiveSubscription()'), 'enabling push waits until OneSignal reports a fully active device subscription');
+assert_true(str_contains($javascript, 'OneSignal.User.PushSubscription.token'), 'an active subscription requires a real browser push token');
 assert_true(str_contains($javascript, "permission === 'denied'"), 'blocked browser permissions are explained at user level');
 assert_true(str_contains($javascript, 'OneSignal.User.PushSubscription.optIn()'), 'the settings button can subscribe the current device to push');
 assert_true(str_contains($javascript, 'await OneSignal.login(oneSignalUser)'), 'push subscriptions are linked to the signed-in user');

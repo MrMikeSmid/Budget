@@ -277,8 +277,12 @@ if (oneSignalAppId && oneSignalUser) {
         () => nativePermission() === 'granted',
         5000,
       );
-      const waitForSubscription = () => waitFor(
-        () => OneSignal.User.PushSubscription.id || false,
+      const hasActivePushSubscription = () => nativePermission() === 'granted'
+        && OneSignal.User.PushSubscription.optedIn
+        && Boolean(OneSignal.User.PushSubscription.id)
+        && Boolean(OneSignal.User.PushSubscription.token);
+      const waitForActiveSubscription = () => waitFor(
+        () => hasActivePushSubscription(),
       );
 
       const updatePushStatus = () => {
@@ -289,7 +293,7 @@ if (oneSignalAppId && oneSignalUser) {
         const permission = nativePermission();
         const optedIn = OneSignal.User.PushSubscription.optedIn;
         const subscriptionId = OneSignal.User.PushSubscription.id;
-        const active = permission === 'granted' && optedIn && Boolean(subscriptionId);
+        const active = hasActivePushSubscription();
 
         pushSettings.dataset.pushActive = String(active);
         if (deleteButton) deleteButton.hidden = !subscriptionId;
@@ -328,27 +332,20 @@ if (oneSignalAppId && oneSignalUser) {
         status.textContent = 'De notificatie-instellingen worden bijgewerkt…';
         let errorMessage = '';
         try {
-          const hasActiveSubscription = nativePermission() === 'granted'
-            && OneSignal.User.PushSubscription.optedIn
-            && Boolean(OneSignal.User.PushSubscription.id);
-
-          if (hasActiveSubscription) {
+          if (hasActivePushSubscription()) {
             await OneSignal.User.PushSubscription.optOut();
           } else {
-            if (nativePermission() !== 'granted') {
-              const permissionGranted = await OneSignal.Notifications.requestPermission();
-              if (!permissionGranted && !(await waitForPermission())) {
-                updatePushStatus();
-                return;
-              }
-            }
-
+            // optIn requests browser permission when needed and, unlike
+            // requestPermission alone, also clears OneSignal's opted-out state.
             await OneSignal.User.PushSubscription.optIn();
-            const subscriptionId = await waitForSubscription();
-            if (!subscriptionId) {
-              throw new Error('OneSignal heeft geen pushabonnement aangemaakt.');
+
+            if (nativePermission() !== 'granted' && !(await waitForPermission())) {
+              updatePushStatus();
+              return;
             }
-            await OneSignal.login(oneSignalUser);
+            if (!(await waitForActiveSubscription())) {
+              throw new Error('OneSignal heeft het pushabonnement niet geactiveerd.');
+            }
           }
         } catch (error) {
           console.warn('Pushnotificaties wijzigen is mislukt.', error);
