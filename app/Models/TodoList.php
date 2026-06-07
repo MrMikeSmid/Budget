@@ -69,6 +69,36 @@ final class TodoList
         return $stmt->fetchAll();
     }
 
+    public function liveState(int $listId): array
+    {
+        $items = array_map(static fn(array $item): array => [
+            'id' => (int) $item['id'],
+            'title' => $item['title'],
+            'is_completed' => (bool) $item['is_completed'],
+            'creator_name' => $item['creator_name'],
+            'completer_name' => $item['completer_name'],
+        ], $this->items($listId));
+        $members = array_map(static fn(array $member): array => [
+            'id' => (int) $member['id'],
+            'name' => $member['name'],
+            'is_owner' => (bool) $member['is_owner'],
+        ], $this->members($listId));
+        $done = count(array_filter($items, static fn(array $item): bool => $item['is_completed']));
+        $total = count($items);
+        $state = [
+            'items' => $items,
+            'members' => $members,
+            'stats' => [
+                'done' => $done,
+                'total' => $total,
+                'open' => $total - $done,
+                'percent' => $total > 0 ? (int) round($done / $total * 100) : 0,
+            ],
+        ];
+        $state['revision'] = hash('sha256', json_encode([$items, $members], JSON_THROW_ON_ERROR));
+        return $state;
+    }
+
     public function addItem(int $listId, int $userId, string $title): void
     {
         $stmt = db()->prepare('INSERT INTO todo_items (list_id, created_by, title) VALUES (?, ?, ?)');
