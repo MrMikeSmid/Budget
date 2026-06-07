@@ -3,10 +3,12 @@
         <div><span class="eyebrow">Goed je te zien</span><h1>Hoi, <?= e(explode(' ', $user['name'])[0]) ?> <span class="wave">👋</span></h1></div>
         <a class="avatar" href="<?= e(url('/settings')) ?>"><?= e(mb_strtoupper(mb_substr($user['name'], 0, 1))) ?><span></span></a>
     </header>
-    <section class="hero-card">
-        <div class="hero-card__copy"><span class="pill pill--light">Jullie week</span><h2>Samen wordt alles net wat leuker.</h2><p>Nodig iemand uit en begin aan jullie volgende plan.</p><button type="button" class="button button--light" data-open-modal="new-list">Nieuw lijstje <span>＋</span></button></div>
-        <div class="hero-card__art" aria-hidden="true"><div class="sun-shape"></div><div class="mini-card mini-card-a">✓</div><div class="mini-card mini-card-b">♥</div><div class="hero-person"></div></div>
-    </section>
+    <?php if (!$lists): ?>
+        <section class="hero-card">
+            <div class="hero-card__copy"><span class="pill pill--light">Jullie week</span><h2>Samen wordt alles net wat leuker.</h2><p>Nodig iemand uit en begin aan jullie volgende plan.</p><button type="button" class="button button--light" data-open-modal="new-list">Nieuw lijstje <span>＋</span></button></div>
+            <div class="hero-card__art" aria-hidden="true"><div class="sun-shape"></div><div class="mini-card mini-card-a">✓</div><div class="mini-card mini-card-b">♥</div><div class="hero-person"></div></div>
+        </section>
+    <?php endif; ?>
     <div class="section-heading"><div><span class="eyebrow">Alles bij elkaar</span><h2>Jouw lijstjes</h2></div><span class="count-badge"><?= count($lists) ?></span></div>
     <?php if ($lists): ?>
         <div class="list-grid">

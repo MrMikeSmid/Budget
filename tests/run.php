@@ -18,6 +18,12 @@ function assert_true(bool $condition, string $message): void {
     echo "PASS: {$message}\n";
 }
 
+function render_lists_index(array $user, array $lists): string {
+    ob_start();
+    require dirname(__DIR__) . '/app/Views/lists/index.php';
+    return (string) ob_get_clean();
+}
+
 $users = new User();
 $owner = $users->findOrCreate('owner@example.nl');
 $member = $users->findOrCreate('member@example.nl');
@@ -28,6 +34,13 @@ $lists = new TodoList();
 $listId = $lists->create((int) $owner['id'], 'Vakantie', '✈️', 'coral');
 $lists->share($listId, (int) $owner['id'], (int) $member['id']);
 assert_true(count($lists->forUser((int) $member['id'])) === 1, 'shared lists are visible to members');
+
+$memberLists = $lists->forUser((int) $member['id']);
+$homeWithLists = render_lists_index($member, $memberLists);
+assert_true(!str_contains($homeWithLists, 'class="hero-card"'), 'the introduction card is hidden when the user has a list');
+
+$emptyHome = render_lists_index($member, []);
+assert_true(str_contains($emptyHome, 'class="hero-card"'), 'the introduction card is shown when the user has no lists');
 assert_true($lists->findAccessible($listId, (int) $member['id']) !== null, 'members can access a shared list');
 
 $lists->addItem($listId, (int) $owner['id'], 'Treinkaartjes boeken');
