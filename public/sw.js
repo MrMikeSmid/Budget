@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'samen-shell-v1';
+const CACHE_VERSION = 'samen-shell-v2';
 
 const scopeUrl = new URL(self.registration.scope);
 const appUrl = (path) => new URL(path.replace(/^\//, ''), scopeUrl).toString();
@@ -38,13 +38,13 @@ self.addEventListener('fetch', (event) => {
 
   if (url.pathname.includes('/public/assets/')) {
     event.respondWith(
-      caches.match(request).then((cached) => cached || fetch(request).then((response) => {
+      fetch(request).then((response) => {
         if (response.ok) {
           const copy = response.clone();
           caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
         }
         return response;
-      })),
+      }).catch(() => caches.match(request)),
     );
   }
 });
