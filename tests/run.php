@@ -13,6 +13,7 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 use App\Models\TodoList;
 use App\Models\User;
 use App\Models\AppSetting;
+use App\Services\InvitationEmailSettings;
 use App\Services\InvitationMailer;
 use App\Services\OneSignalSettings;
 use App\Services\PushNotificationService;
@@ -34,7 +35,16 @@ function render_settings(array $user): string {
     return (string) ob_get_clean();
 }
 
-function render_admin(string $onesignal_app_id, bool $onesignal_configured): string {
+function render_admin(string $onesignal_app_id, bool $onesignal_configured, InvitationEmailSettings $emailSettings): string {
+    $invitation_sender_name = $emailSettings->senderName();
+    $invitation_sender_email = $emailSettings->senderEmail();
+    $invitation_message_html = $emailSettings->message();
+    $invitation_preview_html = $emailSettings->renderEmail(
+        ['name' => 'Mike', 'email' => 'mike@voorbeeld.nl'],
+        ['id' => 1, 'title' => 'Weekendje weg'],
+        'vriend@voorbeeld.nl'
+    );
+    $invitation_tokens = InvitationEmailSettings::tokens();
     ob_start();
     require dirname(__DIR__) . '/app/Views/admin/index.php';
     return (string) ob_get_clean();
@@ -113,6 +123,16 @@ $secured = $users->find((int) $owner['id']);
 assert_true(password_verify('een-veilig-wachtwoord', $secured['password_hash']), 'passwords are securely hashed');
 assert_true(base_path() === '/development', 'subdirectory base path is detected');
 
+$invitationEmailSettings = new InvitationEmailSettings();
+$invitationEmailSettings->save(
+    'Samen team',
+    'uitnodigingen@example.nl',
+    '<h2>Kom erbij, {{invitee_email}}!</h2><p><strong>{{inviter_name}}</strong> deelt “{{list_title}}” met je.</p><script>alert(1)</script>'
+);
+assert_true((new AppSetting())->get('invitation_sender_name') === 'Samen team', 'the invitation sender name is persisted');
+assert_true(!str_contains($invitationEmailSettings->message(), '<script'), 'unsafe invitation message elements are removed');
+assert_true(str_contains($invitationEmailSettings->message(), 'alert(1)'), 'text inside unsupported message elements is preserved');
+
 $sentMail = null;
 $mailer = new InvitationMailer(function (string $to, string $subject, string $message, array $headers) use (&$sentMail): bool {
     $sentMail = compact('to', 'subject', 'message', 'headers');
@@ -122,9 +142,13 @@ $mailSent = $mailer->send('invitee@example.nl', $owner, $lists->findAccessible($
 assert_true($mailSent, 'an invitation e-mail reports a successful transport');
 assert_true($sentMail['to'] === 'invitee@example.nl', 'the invitation is sent to the invited e-mail address');
 assert_true(str_contains($sentMail['subject'], 'Vakantie'), 'the invitation subject names the shared list');
-assert_true(str_contains($sentMail['message'], 'Owner (owner@example.nl)'), 'the invitation identifies who shared the list');
+assert_true(str_contains($sentMail['message'], '<strong>Owner</strong>'), 'the HTML invitation identifies who shared the list');
 assert_true(str_contains($sentMail['message'], 'http://localhost/development/lists/' . $listId), 'the invitation includes an absolute link to the shared list');
-assert_true($sentMail['headers']['From'] === 'noreply@localhost', 'the invitation uses the configured sender address');
+assert_true(str_contains($sentMail['message'], 'http://localhost/development/privacy'), 'the invitation footer links to the privacy page');
+assert_true(str_contains($sentMail['message'], 'http://localhost/development/voorwaarden'), 'the invitation footer links to the terms page');
+assert_true(str_contains($sentMail['message'], '/pwa-icon/app-192'), 'the invitation header and footer use the app logo');
+assert_true($sentMail['headers']['From'] === 'Samen team <uitnodigingen@example.nl>', 'the invitation uses the editable sender identity');
+assert_true($sentMail['headers']['Content-Type'] === 'text/html; charset=UTF-8', 'the invitation is sent as an HTML e-mail');
 
 $oneSignalSettings = new OneSignalSettings();
 $oneSignalSettings->save('11111111-1111-4111-8111-111111111111', 'test-api-key');
@@ -132,9 +156,12 @@ assert_true((new AppSetting())->get('onesignal_app_id') === '11111111-1111-4111-
 $oneSignalSettings->save('22222222-2222-4222-8222-222222222222', null);
 assert_true($oneSignalSettings->apiKey() === 'test-api-key', 'leaving the API key blank preserves the stored secret');
 $oneSignalSettings->save('11111111-1111-4111-8111-111111111111', null);
-$adminPage = render_admin($oneSignalSettings->appId(), $oneSignalSettings->isConfigured());
+$adminPage = render_admin($oneSignalSettings->appId(), $oneSignalSettings->isConfigured(), $invitationEmailSettings);
 assert_true(str_contains($adminPage, 'OneSignal REST API Key'), 'the admin page contains the OneSignal credentials form');
 assert_true(!str_contains($adminPage, 'value="test-api-key"'), 'the stored OneSignal API key is never rendered into the admin form');
+assert_true(str_contains($adminPage, 'data-rich-editor'), 'the admin page contains the invitation rich-text editor');
+assert_true(str_contains($adminPage, 'Samen team'), 'the admin page renders the saved invitation sender');
+assert_true(str_contains($adminPage, 'data-email-preview'), 'the admin page contains an invitation e-mail preview');
 $pushRequest = null;
 $push = new PushNotificationService(function (string $url, array $headers, string $payload) use (&$pushRequest): bool {
     $pushRequest = ['url' => $url, 'headers' => $headers, 'payload' => json_decode($payload, true, flags: JSON_THROW_ON_ERROR)];
@@ -181,6 +208,8 @@ assert_true(
 }"),
     'the profile install card stays hidden when Samen is already installed'
 );
+assert_true(str_contains($javascript, "document.execCommand(button.dataset.editorCommand"), 'the invitation editor supports rich-text formatting');
+assert_true(str_contains($javascript, "input.value = editor.innerHTML"), 'the invitation editor synchronizes HTML before saving');
 assert_true(
     !str_contains($javascript, 'install-card--installed'),
     'the installed PWA no longer shows an installation status card'

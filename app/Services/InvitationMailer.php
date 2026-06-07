@@ -20,26 +20,18 @@ final class InvitationMailer
 
     public function send(string $email, array $inviter, array $list): bool
     {
+        $settings = new InvitationEmailSettings();
         $subject = (string) config('name') . ': uitnodiging voor ' . $list['title'];
-        $message = implode("\n", [
-            'Hoi,',
-            '',
-            $inviter['name'] . ' (' . $inviter['email'] . ') heeft je uitgenodigd voor de lijst "' . $list['title'] . '" in ' . config('name') . '.',
-            '',
-            'Open de lijst via:',
-            absolute_url('/lists/' . $list['id']),
-            '',
-            'Log in met dit e-mailadres om mee te doen: ' . $email,
-            '',
-            'Groet,',
-            config('name'),
-        ]);
+        $senderName = str_replace(["\r", "\n"], '', $settings->senderName());
+        $senderEmail = str_replace(["\r", "\n"], '', $settings->senderEmail());
+        $encodedSenderName = mb_encode_mimeheader($senderName, 'UTF-8');
         $headers = [
-            'From' => config('mail_from'),
-            'Content-Type' => 'text/plain; charset=UTF-8',
-            'X-Mailer' => config('name'),
+            'From' => $encodedSenderName . ' <' . $senderEmail . '>',
+            'MIME-Version' => '1.0',
+            'Content-Type' => 'text/html; charset=UTF-8',
+            'X-Mailer' => (string) config('name'),
         ];
 
-        return (bool) ($this->transport)($email, $subject, $message, $headers);
+        return (bool) ($this->transport)($email, $subject, $settings->renderEmail($inviter, $list, $email), $headers);
     }
 }

@@ -47,7 +47,7 @@ De SQLite-database wordt bij het eerste verzoek automatisch aangemaakt in `stora
 
 ## E-mailuitnodigingen
 
-Bij het delen van een lijst verstuurt Samen een tekstmail via de PHP `mail()`-functie. Stel in productie de publieke basis-URL en een geldig afzenderadres in, zodat de link en afzender in de uitnodiging kloppen:
+Bij het delen van een lijst verstuurt Samen een opgemaakte HTML-mail via de PHP `mail()`-functie. Een beheerder kan op `/admin` de afzendernaam, het afzenderadres en de inhoud met een rich-texteditor aanpassen. De branded header, de knop naar het lijstje en de footer met privacy- en voorwaardenlinks worden automatisch toegevoegd. Stel in productie ook de publieke basis-URL en een geldig standaardafzenderadres in:
 
 ```bash
 export SAMEN_APP_URL=https://mikesmid.nl/development
