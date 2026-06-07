@@ -22,6 +22,7 @@ $router->get('/push/onesignal/OneSignalSDKWorker.js', [PwaController::class, 'on
 $router->get('/', [HomeController::class, 'index']);
 $router->get('/admin', [AdminController::class, 'show']);
 $router->post('/admin/onesignal', [AdminController::class, 'updateOneSignal']);
+$router->post('/admin/onesignal/test', [AdminController::class, 'testPushNotification']);
 $router->post('/admin/invitation-email', [AdminController::class, 'updateInvitationEmail']);
 $router->get('/privacy', [LegalController::class, 'privacy']);
 $router->get('/voorwaarden', [LegalController::class, 'terms']);

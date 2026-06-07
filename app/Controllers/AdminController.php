@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Services\InvitationEmailSettings;
 use App\Services\OneSignalSettings;
+use App\Services\PushNotificationService;
 
 final class AdminController extends Controller
 {
@@ -54,6 +55,20 @@ final class AdminController extends Controller
         (new InvitationEmailSettings())->save($senderName, $senderEmail, $message);
         flash('success', 'De uitnodigingsmail is opgeslagen.');
         redirect('/admin#uitnodigingsmail');
+    }
+
+    public function testPushNotification(): void
+    {
+        $user = $this->admin();
+        $this->verifyCsrf();
+
+        $push = new PushNotificationService();
+        if ($push->send([(int) $user['id']], 'Je testmelding van Samen werkt.', '/settings')) {
+            flash('success', 'De testmelding is door OneSignal geaccepteerd.');
+        } else {
+            flash('error', $push->lastError() ?? 'De testmelding kon niet worden verstuurd.');
+        }
+        redirect('/admin#pushnotificaties');
     }
 
     public function updateOneSignal(): void
