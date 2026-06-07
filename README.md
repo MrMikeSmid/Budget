@@ -85,6 +85,8 @@ De gebruiker kan pushnotificaties zelf aan- of uitzetten onder **Instellingen**.
 
 OneSignal kan een verzendaanvraag met HTTP 200 beantwoorden terwijl geen enkel abonnement overeenkomt. Samen controleert daarom ook of de API-respons een notificatie-ID bevat; alleen dan wordt de melding als geaccepteerd beschouwd. Technische details van een afwijzing worden in de PHP-errorlog vastgelegd zonder de API key te loggen.
 
+De browserintegratie normaliseert het service-workerpad volgens de OneSignal Web SDK-eisen en koppelt het apparaat opnieuw aan de ingelogde gebruiker zodra een abonnement wordt aangemaakt of vernieuwd. Blijft de statuspagina een fout tonen, controleer dan ook of een contentblocker `cdn.onesignal.com` blokkeert en of de worker-URL publiek via HTTPS bereikbaar is.
+
 Het oudste bestaande account wordt bij de database-upgrade eenmalig admin. Bij een nieuwe installatie wordt het eerste account admin. Stel voor voorspelbaar beheer bij voorkeur `SAMEN_ADMIN_EMAIL` in; een account met dat e-mailadres krijgt automatisch adminrechten. Een admin moet een wachtwoord hebben voordat `/admin` toegankelijk is.
 
 De eerdere omgevingsvariabelen `SAMEN_ONESIGNAL_APP_ID` en `SAMEN_ONESIGNAL_API_KEY` blijven als fallback werken zolang er nog geen waarden via `/admin` zijn opgeslagen.

@@ -240,21 +240,40 @@ const oneSignalUser = document.body.dataset.onesignalUser;
 const pushSettings = document.querySelector('[data-push-settings]');
 
 if (oneSignalAppId && oneSignalUser) {
+  const status = pushSettings?.querySelector('[data-push-status]');
+  let pushSettingsLoaded = false;
+  const loadingTimeout = window.setTimeout(() => {
+    if (!pushSettingsLoaded && status) {
+      status.textContent = 'De notificatieservice reageert niet. Controleer je internetverbinding of contentblocker en laad de pagina opnieuw.';
+    }
+  }, 10000);
+
   window.OneSignalDeferred = window.OneSignalDeferred || [];
   window.OneSignalDeferred.push(async (OneSignal) => {
-    const status = pushSettings?.querySelector('[data-push-status]');
     const toggle = pushSettings?.querySelector('[data-push-toggle]');
     const deleteButton = pushSettings?.querySelector('[data-push-delete]');
     const workerPath = document.body.dataset.onesignalWorker;
     const workerScope = document.body.dataset.onesignalScope;
 
     try {
+      if (!window.isSecureContext) {
+        throw new Error('Pushnotificaties vereisen een beveiligde HTTPS-verbinding.');
+      }
+
+      // OneSignal expects a path relative to the origin root without a leading
+      // slash. Keep the deployment subdirectory (for example `development/`).
+      const serviceWorkerPath = new URL(workerPath, window.location.origin).pathname.replace(/^\/+/, '');
+      const serviceWorkerScope = new URL(workerScope, window.location.origin).pathname;
       await OneSignal.init({
         appId: oneSignalAppId,
-        serviceWorkerPath: workerPath,
-        serviceWorkerParam: { scope: workerScope },
+        serviceWorkerPath,
+        serviceWorkerParam: { scope: serviceWorkerScope },
       });
-      await OneSignal.login(oneSignalUser);
+
+      const linkSubscriptionToUser = async () => {
+        await OneSignal.login(oneSignalUser);
+      };
+      await linkSubscriptionToUser();
 
       const nativePermission = () => {
         if (typeof Notification !== 'undefined' && Notification.permission) {
@@ -346,6 +365,7 @@ if (oneSignalAppId && oneSignalUser) {
             if (!(await waitForActiveSubscription())) {
               throw new Error('OneSignal heeft het pushabonnement niet geactiveerd.');
             }
+            await linkSubscriptionToUser();
           }
         } catch (error) {
           console.warn('Pushnotificaties wijzigen is mislukt.', error);
@@ -381,8 +401,18 @@ if (oneSignalAppId && oneSignalUser) {
         }
       });
 
-      OneSignal.User.PushSubscription.addEventListener('change', updatePushStatus);
+      OneSignal.User.PushSubscription.addEventListener('change', async () => {
+        updatePushStatus();
+        try {
+          await linkSubscriptionToUser();
+        } catch (error) {
+          console.warn('Pushabonnement opnieuw koppelen is mislukt.', error);
+          if (status) status.textContent = 'Meldingen zijn toegestaan, maar het apparaat kon niet aan je account worden gekoppeld. Laad de pagina opnieuw.';
+        }
+      });
       OneSignal.Notifications.addEventListener('permissionChange', updatePushStatus);
+      pushSettingsLoaded = true;
+      window.clearTimeout(loadingTimeout);
       updatePushStatus();
 
       document.querySelector('[data-logout-form]')?.addEventListener('submit', async (event) => {
@@ -395,8 +425,14 @@ if (oneSignalAppId && oneSignalUser) {
         form.submit();
       });
     } catch (error) {
+      pushSettingsLoaded = true;
+      window.clearTimeout(loadingTimeout);
       console.warn('Pushnotificaties initialiseren is mislukt.', error);
-      if (status) status.textContent = 'De notificatie-instellingen konden niet worden geladen.';
+      if (status) {
+        status.textContent = error instanceof Error && error.message.includes('HTTPS')
+          ? error.message
+          : 'De notificatie-instellingen konden niet worden geladen. Controleer je verbinding, contentblocker en OneSignal-configuratie.';
+      }
     }
   });
 }
