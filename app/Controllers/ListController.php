@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\TodoList;
 use App\Models\User;
+use App\Services\InvitationMailer;
 
 final class ListController extends Controller
 {
@@ -105,7 +106,12 @@ final class ListController extends Controller
         }
         $member = (new User())->findOrCreate($email);
         $this->lists->share((int) $id, (int) $user['id'], (int) $member['id']);
-        flash('success', $member['name'] . ' kan nu meedoen.');
+        $sent = (new InvitationMailer())->send($email, $user, $list);
+        if ($sent) {
+            flash('success', 'De uitnodiging is naar ' . $email . ' verstuurd.');
+        } else {
+            flash('error', $member['name'] . ' kan nu meedoen, maar de e-mail kon niet worden verstuurd.');
+        }
         redirect('/lists/' . $id);
     }
 

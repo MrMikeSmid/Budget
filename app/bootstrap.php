@@ -50,6 +50,13 @@ function base_path(): string {
     return rtrim($base, '/');
 }
 function url(string $path = '/'): string { return base_path() . '/' . ltrim($path, '/'); }
+function absolute_url(string $path = '/'): string {
+    $configuredUrl = (string) config('app_url', '');
+    if ($configuredUrl !== '') { return rtrim($configuredUrl, '/') . '/' . ltrim($path, '/'); }
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = preg_replace('/[^a-z0-9.\-:\[\]]/i', '', (string) ($_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost'));
+    return $scheme . '://' . ($host ?: 'localhost') . url($path);
+}
 function asset(string $path): string {
     $relativePath = ltrim($path, '/');
     $assetPath = dirname(__DIR__) . '/public/assets/' . $relativePath;

@@ -45,6 +45,17 @@ Upload de volledige repository naar de map die publiek bereikbaar is als `/devel
 
 De SQLite-database wordt bij het eerste verzoek automatisch aangemaakt in `storage/app.sqlite`. Maak `storage/` schrijfbaar voor de PHP/Apache-gebruiker, bijvoorbeeld met `chmod 775 storage`.
 
+## E-mailuitnodigingen
+
+Bij het delen van een lijst verstuurt Samen een tekstmail via de PHP `mail()`-functie. Stel in productie de publieke basis-URL en een geldig afzenderadres in, zodat de link en afzender in de uitnodiging kloppen:
+
+```bash
+export SAMEN_APP_URL=https://mikesmid.nl/development
+export SAMEN_MAIL_FROM=noreply@mikesmid.nl
+```
+
+De webserver moet daarnaast zijn geconfigureerd om uitgaande e-mail van PHP te bezorgen. Als verzending mislukt, behoudt de genodigde wel toegang tot de lijst en ziet de uitnodiger een melding.
+
 ## Tests
 
 ```bash
