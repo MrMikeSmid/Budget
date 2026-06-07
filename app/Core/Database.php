@@ -83,5 +83,11 @@ final class Database
             CREATE INDEX IF NOT EXISTS idx_items_list ON todo_items(list_id);
             CREATE INDEX IF NOT EXISTS idx_members_user ON list_members(user_id);
         SQL);
+
+        $columns = $this->pdo->query('PRAGMA table_info(users)')->fetchAll();
+        $columnNames = array_column($columns, 'name');
+        if (!in_array('profile_image', $columnNames, true)) {
+            $this->pdo->exec('ALTER TABLE users ADD COLUMN profile_image TEXT');
+        }
     }
 }

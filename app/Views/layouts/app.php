@@ -41,7 +41,7 @@
             <button type="button" class="nav-create" data-open-modal="new-list" aria-label="Nieuw lijstje"><span aria-hidden="true">＋</span><strong class="desktop-only">Nieuw lijstje</strong></button>
             <a href="<?= e(url('/settings')) ?>" class="<?= str_contains($_SERVER['REQUEST_URI'] ?? '', '/settings') ? 'active' : '' ?>"><span class="ui-icon ui-icon--user nav-icon" aria-hidden="true"></span><span>Profiel</span></a>
             <a class="nav-account desktop-only" href="<?= e(url('/settings')) ?>">
-                <span class="avatar"><?= e(mb_strtoupper(mb_substr($viewer['name'], 0, 1))) ?><i></i></span>
+                <span class="avatar"><?php if ($profileImage = profile_image_url($viewer)): ?><img src="<?= e($profileImage) ?>" alt=""><?php else: ?><?= e(mb_strtoupper(mb_substr($viewer['name'], 0, 1))) ?><?php endif; ?><i></i></span>
                 <span><strong><?= e($viewer['name']) ?></strong><small><?= e($viewer['email']) ?></small></span>
             </a>
         </nav>
