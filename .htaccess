@@ -1,0 +1,11 @@
+Options -Indexes
+RewriteEngine On
+
+# Protect application internals when Apache serves the repository root.
+RewriteRule ^(?:app|config|storage|tests)(?:/|$) - [F,L,NC]
+RewriteRule ^(?:composer\.(?:json|lock)|README\.md)$ - [F,L,NC]
+
+# Existing files (assets) are served directly; all other requests enter the app.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ public/index.php [QSA,L]

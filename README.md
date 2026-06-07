@@ -1,24 +1,42 @@
-# FTP-deployment
+# Samen — gedeelde todo-lijstjes
 
-De applicatie wordt via GitHub Actions naar de FTP-server gedeployed. De workflow draait automatisch na een push naar `main` of `master` en kan ook handmatig worden gestart via **Actions → Deploy via FTP → Run workflow**.
+Een mobiele PHP/SQLite-app waarmee mensen lijstjes maken, delen en samen afvinken. De applicatie gebruikt een klein eigen MVC-framework zonder externe PHP-dependencies en is voorbereid voor plaatsing op `mikesmid.nl/developement`.
 
-## Benodigde repository secrets
+## Functies
 
-Voeg onder **Settings → Secrets and variables → Actions** de volgende repository secrets toe:
+- Inloggen en automatisch registreren met alleen een e-mailadres.
+- Subtiele beveiligingsmelding zolang het account nog geen wachtwoord heeft.
+- Optioneel wachtwoord instellen en wijzigen via Instellingen; daarna is het wachtwoord verplicht bij een nieuwe login.
+- Gedeelde todo-lijsten op basis van het e-mailadres van de andere gebruiker.
+- Taken toevoegen en door iedere deelnemer afvinken, inclusief registratie wie dat deed.
+- Responsive, mobile-first community-interface met bottom navigation.
+- CSRF-beveiliging, gehashte wachtwoorden, prepared statements en escaped HTML-uitvoer.
 
-| Secret | Waarde |
-| --- | --- |
-| `FTP_SERVER` | Alleen de hostnaam of FTP(S)-URL, bijvoorbeeld `ftp.example.nl` of `ftps://ftp.example.nl` |
-| `FTP_USERNAME` | Alleen de FTP-gebruikersnaam |
-| `FTP_PASSWORD` | Alleen het FTP-wachtwoord |
-| `FTP_SERVER_DIR` | Alleen de doelmap op de server, bijvoorbeeld `/public_html/` |
+> De gevraagde e-mail-only login geeft iedereen die een onbeveiligd e-mailadres kent toegang tot dat account. De interface benoemt dit bewust subtiel maar duidelijk en stuurt aan op het instellen van een wachtwoord.
 
-Voer elke waarde in als één regel, zonder aanhalingstekens en zonder de naam van de secret. Voor `FTP_SERVER` is bijvoorbeeld `ftp.example.nl` correct; voer niet `FTP_SERVER=ftp.example.nl` in. Per ongeluk meegekopieerde lege regels vóór of na een waarde worden door de workflow verwijderd. Een regeleinde midden in een waarde blijft een fout en moet in de repository secret worden verwijderd.
+## Vereisten
 
-De deployment spiegelt de volledige inhoud van de repository naar de doelmap. Bestanden die niet meer in de repository staan, worden ook van de server verwijderd. De mappen `.git` en `.github` en het placeholderbestand `.gitkeep` worden niet geüpload.
+- PHP 8.2 of hoger
+- PDO SQLite-extensie
+- Apache met `mod_rewrite` en toegestane `.htaccess` overrides
+- Schrijfrechten voor de map `storage/`
 
-## Deployment starten
+## Lokaal starten
 
-Alle deploylogica staat in `.github/workflows/deploy.yml`; er is geen afzonderlijke `scripts`-map nodig. Start de deployment met een push naar `main` of `master`, of handmatig via het tabblad **Actions** in GitHub.
+```bash
+php -S 127.0.0.1:8080 -t . public/router.php
+```
 
-> Let op: `--delete` houdt de servermap exact gelijk aan de repository. Gebruik daarom een map die uitsluitend voor deze applicatie bestemd is.
+Of gebruik Apache en laat de repository-root als document root dienen. De root-`.htaccess` stuurt applicatieroutes door naar `public/index.php` en beschermt interne directories.
+
+## Deployment in `/developement`
+
+Upload de volledige repository naar de map die publiek bereikbaar is als `/developement`. Er hoeft geen vaste base URL ingesteld te worden: de app leidt `/developement` af uit `SCRIPT_NAME`, waardoor routes en assets automatisch het goede prefix gebruiken. Zorg dat Apache `mod_rewrite` actief is en `AllowOverride All` voor de doelmap toestaat.
+
+De SQLite-database wordt bij het eerste verzoek automatisch aangemaakt in `storage/app.sqlite`. Maak `storage/` schrijfbaar voor de PHP/Apache-gebruiker, bijvoorbeeld met `chmod 775 storage`.
+
+## Tests
+
+```bash
+php tests/run.php
+```
