@@ -42,5 +42,11 @@ $secured = $users->find((int) $owner['id']);
 assert_true(password_verify('een-veilig-wachtwoord', $secured['password_hash']), 'passwords are securely hashed');
 assert_true(base_path() === '/development', 'subdirectory base path is detected');
 
+$stylesheet = file_get_contents(dirname(__DIR__) . '/public/assets/css/app.css');
+assert_true(
+    preg_match('/\.bottom-nav\{[^}]*left:50%;[^}]*transform:translateX\(-50%\)/', $stylesheet) === 1,
+    'bottom navigation is centered within the viewport'
+);
+
 @unlink($database); @unlink($database . '-wal'); @unlink($database . '-shm');
 echo "All tests passed.\n";
