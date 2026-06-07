@@ -107,6 +107,18 @@ final class TodoList
         return $state;
     }
 
+    /** @return list<int> */
+    public function participantIdsExcept(int $listId, int $userId): array
+    {
+        $stmt = db()->prepare(<<<'SQL'
+            SELECT owner_id AS user_id FROM todo_lists WHERE id = :list_id AND owner_id != :user_id
+            UNION
+            SELECT user_id FROM list_members WHERE list_id = :list_id AND user_id != :user_id
+        SQL);
+        $stmt->execute(['list_id' => $listId, 'user_id' => $userId]);
+        return array_map('intval', array_column($stmt->fetchAll(), 'user_id'));
+    }
+
     public function addItem(int $listId, int $userId, string $title): void
     {
         $stmt = db()->prepare('INSERT INTO todo_items (list_id, created_by, title) VALUES (?, ?, ?)');
@@ -114,7 +126,7 @@ final class TodoList
         db()->prepare('UPDATE todo_lists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$listId]);
     }
 
-    public function toggleItem(int $itemId, int $listId, int $userId): void
+    public function toggleItem(int $itemId, int $listId, int $userId): ?array
     {
         $stmt = db()->prepare(<<<'SQL'
             UPDATE todo_items SET
@@ -125,6 +137,9 @@ final class TodoList
         SQL);
         $stmt->execute([$userId, $itemId, $listId]);
         db()->prepare('UPDATE todo_lists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$listId]);
+        $item = db()->prepare('SELECT id, title, is_completed FROM todo_items WHERE id = ? AND list_id = ?');
+        $item->execute([$itemId, $listId]);
+        return $item->fetch() ?: null;
     }
 
     public function share(int $listId, int $ownerId, int $memberId): void

@@ -23,6 +23,14 @@
         <button type="button" class="button button--soft button--wide" data-close-modal>Begrepen</button>
     </div>
 </dialog>
+<?php if (config('onesignal_app_id', '') !== ''): ?>
+<div class="settings-section notification-settings" data-push-settings>
+    <span class="eyebrow">Op de hoogte blijven</span><h2>Pushnotificaties</h2>
+    <p class="section-intro" data-push-status>De notificatie-instellingen worden geladen…</p>
+    <button type="button" class="button button--primary" data-push-toggle disabled>Meldingen aanzetten</button>
+    <small class="notification-settings__hint">Je krijgt alleen een melding wanneer iemand anders iets wijzigt in een gedeeld lijstje.</small>
+</div>
+<?php endif; ?>
 <div class="settings-section">
     <span class="eyebrow">Over jou</span><h2>Profiel</h2>
     <form method="post" action="<?= e(url('/settings/profile')) ?>" enctype="multipart/form-data">
@@ -40,5 +48,5 @@
     </form>
 </div>
 <div class="settings-section" id="wachtwoord"><span class="eyebrow">Beveiliging</span><h2><?= $user['password_hash'] ? 'Wachtwoord wijzigen' : 'Wachtwoord aanmaken' ?></h2><p class="section-intro"><?= $user['password_hash'] ? 'Kies een nieuw wachtwoord van minimaal 8 tekens.' : 'Hierna vragen we bij iedere nieuwe login naast je e-mailadres ook om dit wachtwoord.' ?></p><form method="post" action="<?= e(url('/settings/password')) ?>"><input type="hidden" name="_token" value="<?= e(csrf_token()) ?>"><label class="field"><span>Nieuw wachtwoord</span><input type="password" name="password" minlength="8" autocomplete="new-password" placeholder="Minimaal 8 tekens" required></label><label class="field"><span>Nog een keer</span><input type="password" name="password_confirmation" minlength="8" autocomplete="new-password" placeholder="Herhaal je wachtwoord" required></label><button class="button button--primary"><?= $user['password_hash'] ? 'Wachtwoord wijzigen' : 'Account beveiligen' ?> <span class="ui-icon ui-icon--arrow-right" aria-hidden="true"></span></button></form></div>
-<form method="post" action="<?= e(url('/logout')) ?>" class="logout-form"><input type="hidden" name="_token" value="<?= e(csrf_token()) ?>"><button class="button button--outline button--wide">Uitloggen</button></form>
+<form method="post" action="<?= e(url('/logout')) ?>" class="logout-form" data-logout-form><input type="hidden" name="_token" value="<?= e(csrf_token()) ?>"><button class="button button--outline button--wide">Uitloggen</button></form>
 </section>

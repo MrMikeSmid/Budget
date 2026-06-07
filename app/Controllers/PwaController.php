@@ -119,4 +119,11 @@ final class PwaController extends Controller
             . $data
             . pack('H*', hash('crc32b', $type . $data));
     }
+
+    public function oneSignalWorker(): void
+    {
+        header('Content-Type: application/javascript; charset=utf-8');
+        header('Cache-Control: public, max-age=3600');
+        echo 'importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");';
+    }
 }

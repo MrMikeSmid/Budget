@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Models\TodoList;
 use App\Models\User;
 use App\Services\InvitationMailer;
+use App\Services\PushNotificationService;
 
 final class ListController extends Controller
 {
@@ -69,6 +70,11 @@ final class ListController extends Controller
         $title = trim((string) ($_POST['title'] ?? ''));
         if ($title !== '' && mb_strlen($title) <= 160) {
             $this->lists->addItem((int) $id, (int) $user['id'], $title);
+            $this->notifyParticipants(
+                (int) $id,
+                (int) $user['id'],
+                $user['name'] . ' voegde “' . $title . '” toe.',
+            );
         }
         if ($this->wantsJson()) {
             $this->respondWithState((int) $id);
@@ -82,7 +88,16 @@ final class ListController extends Controller
         $user = $this->auth();
         $this->verifyCsrf();
         $this->accessible((int) $listId, (int) $user['id']);
-        $this->lists->toggleItem((int) $itemId, (int) $listId, (int) $user['id']);
+        $item = $this->lists->toggleItem((int) $itemId, (int) $listId, (int) $user['id']);
+        if ($item !== null) {
+            $action = (bool) $item['is_completed'] ? 'vinkte' : 'zette';
+            $ending = (bool) $item['is_completed'] ? 'af' : 'weer open';
+            $this->notifyParticipants(
+                (int) $listId,
+                (int) $user['id'],
+                $user['name'] . ' ' . $action . ' “' . $item['title'] . '” ' . $ending . '.',
+            );
+        }
         if ($this->wantsJson()) {
             $this->respondWithState((int) $listId);
             return;
@@ -106,6 +121,11 @@ final class ListController extends Controller
         }
         $member = (new User())->findOrCreate($email);
         $this->lists->share((int) $id, (int) $user['id'], (int) $member['id']);
+        (new PushNotificationService())->send(
+            [(int) $member['id']],
+            $user['name'] . ' deelde de lijst “' . $list['title'] . '” met je.',
+            '/lists/' . $id,
+        );
         $sent = (new InvitationMailer())->send($email, $user, $list);
         if ($sent) {
             flash('success', 'De uitnodiging is naar ' . $email . ' verstuurd.');
@@ -122,6 +142,15 @@ final class ListController extends Controller
         $this->lists->delete((int) $id, (int) $user['id']);
         flash('success', 'Het lijstje is verwijderd.');
         redirect('/');
+    }
+
+    private function notifyParticipants(int $listId, int $userId, string $message): void
+    {
+        (new PushNotificationService())->send(
+            $this->lists->participantIdsExcept($listId, $userId),
+            $message,
+            '/lists/' . $listId,
+        );
     }
 
     private function accessible(int $id, int $userId): array
