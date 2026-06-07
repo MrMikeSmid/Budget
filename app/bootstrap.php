@@ -50,7 +50,13 @@ function base_path(): string {
     return rtrim($base, '/');
 }
 function url(string $path = '/'): string { return base_path() . '/' . ltrim($path, '/'); }
-function asset(string $path): string { return url('/public/assets/' . ltrim($path, '/')); }
+function asset(string $path): string {
+    $relativePath = ltrim($path, '/');
+    $assetPath = dirname(__DIR__) . '/public/assets/' . $relativePath;
+    $version = is_file($assetPath) ? (string) filemtime($assetPath) : '';
+    $assetUrl = url('/public/assets/' . $relativePath);
+    return $version !== '' ? $assetUrl . '?v=' . rawurlencode($version) : $assetUrl;
+}
 function profile_image_url(array $user): ?string {
     if (empty($user['profile_image'])) { return null; }
     return url('/settings/profile-image') . '?v=' . rawurlencode((string) $user['profile_image']);
