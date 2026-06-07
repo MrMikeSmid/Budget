@@ -86,6 +86,10 @@ assert_true(
     preg_match('/@media\(max-width:899px\)\{\s*\.bottom-nav \.desktop-only\{display:none\}/', $stylesheet) === 1,
     'desktop-only navigation items stay hidden in the mobile bottom bar'
 );
+assert_true(
+    str_contains($stylesheet, '@media(min-width:900px){.settings-page>.install-card{display:none}'),
+    'the profile install notification stays hidden on desktop'
+);
 
 
 assert_true(
