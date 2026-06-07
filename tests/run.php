@@ -307,6 +307,9 @@ assert_true(str_contains($serviceWorker, "request.mode === 'navigate'"), 'the se
 assert_true(str_contains($serviceWorker, 'public/offline.html'), 'the service worker precaches an offline fallback');
 assert_true(str_contains($serviceWorker, "CACHE_VERSION = 'samen-shell-v2'"), 'the service worker cache version is refreshed');
 assert_true(str_contains($serviceWorker, 'fetch(request).then'), 'app assets are refreshed from the network before using the offline cache');
+assert_true(str_contains($javascript, 'OneSignal.Notifications.requestPermission()'), 'the settings button explicitly asks the browser for notification permission');
+assert_true(str_contains($javascript, 'waitForSubscription()'), 'enabling push waits until OneSignal has created a real device subscription');
+assert_true(str_contains($javascript, "permission === 'denied'"), 'blocked browser permissions are explained at user level');
 assert_true(str_contains($javascript, 'OneSignal.User.PushSubscription.optIn()'), 'the settings button can subscribe the current device to push');
 assert_true(str_contains($javascript, 'await OneSignal.login(oneSignalUser)'), 'push subscriptions are linked to the signed-in user');
 assert_true(str_contains($javascript, "OneSignal.User.PushSubscription.optOut()"), 'users can disable notifications and are opted out on logout');
