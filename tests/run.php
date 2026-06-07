@@ -307,7 +307,17 @@ assert_true(str_contains($serviceWorker, "request.mode === 'navigate'"), 'the se
 assert_true(str_contains($serviceWorker, 'public/offline.html'), 'the service worker precaches an offline fallback');
 assert_true(str_contains($serviceWorker, "CACHE_VERSION = 'samen-shell-v2'"), 'the service worker cache version is refreshed');
 assert_true(str_contains($serviceWorker, 'fetch(request).then'), 'app assets are refreshed from the network before using the offline cache');
+$layout = file_get_contents(dirname(__DIR__) . '/app/Views/layouts/app.php');
+assert_true(
+    str_contains($layout, "data-onesignal-worker=\"<?= e(url('/push/onesignal/OneSignalSDKWorker.js')) ?>\""),
+    'the OneSignal worker URL remains root-relative when Samen is deployed in a subdirectory'
+);
+assert_true(
+    !str_contains($layout, "ltrim(url('/push/onesignal/OneSignalSDKWorker.js'), '/')"),
+    'the OneSignal worker URL is not converted into a page-relative path'
+);
 assert_true(str_contains($javascript, 'OneSignal.Notifications.requestPermission()'), 'the settings button explicitly asks the browser for notification permission');
+assert_true(str_contains($javascript, 'waitForPermission()'), 'enabling push waits for delayed browser permission state updates');
 assert_true(str_contains($javascript, 'waitForSubscription()'), 'enabling push waits until OneSignal has created a real device subscription');
 assert_true(str_contains($javascript, "permission === 'denied'"), 'blocked browser permissions are explained at user level');
 assert_true(str_contains($javascript, 'OneSignal.User.PushSubscription.optIn()'), 'the settings button can subscribe the current device to push');

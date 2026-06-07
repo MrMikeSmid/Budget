@@ -256,16 +256,30 @@ if (oneSignalAppId && oneSignalUser) {
       });
       await OneSignal.login(oneSignalUser);
 
-      const nativePermission = () => OneSignal.Notifications.permissionNative
-        || (typeof Notification !== 'undefined' ? Notification.permission : 'default');
-
-      const waitForSubscription = async () => {
-        const deadline = Date.now() + 8000;
-        while (!OneSignal.User.PushSubscription.id && Date.now() < deadline) {
-          await new Promise((resolve) => window.setTimeout(resolve, 250));
+      const nativePermission = () => {
+        if (typeof Notification !== 'undefined' && Notification.permission) {
+          return Notification.permission;
         }
-        return OneSignal.User.PushSubscription.id;
+        return OneSignal.Notifications.permissionNative || 'default';
       };
+
+      const waitFor = async (readValue, timeout = 15000) => {
+        const deadline = Date.now() + timeout;
+        let value = readValue();
+        while (!value && Date.now() < deadline) {
+          await new Promise((resolve) => window.setTimeout(resolve, 250));
+          value = readValue();
+        }
+        return value;
+      };
+
+      const waitForPermission = () => waitFor(
+        () => nativePermission() === 'granted',
+        5000,
+      );
+      const waitForSubscription = () => waitFor(
+        () => OneSignal.User.PushSubscription.id || false,
+      );
 
       const updatePushStatus = () => {
         if (!pushSettings || !status || !toggle) return;
@@ -322,11 +336,11 @@ if (oneSignalAppId && oneSignalUser) {
             await OneSignal.User.PushSubscription.optOut();
           } else {
             if (nativePermission() !== 'granted') {
-              await OneSignal.Notifications.requestPermission();
-            }
-            if (nativePermission() !== 'granted') {
-              updatePushStatus();
-              return;
+              const permissionGranted = await OneSignal.Notifications.requestPermission();
+              if (!permissionGranted && !(await waitForPermission())) {
+                updatePushStatus();
+                return;
+              }
             }
 
             await OneSignal.User.PushSubscription.optIn();
