@@ -12,6 +12,7 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 
 use App\Models\TodoList;
 use App\Models\User;
+use App\Services\InvitationMailer;
 
 function assert_true(bool $condition, string $message): void {
     if (!$condition) { fwrite(STDERR, "FAIL: {$message}\n"); exit(1); }
@@ -98,6 +99,19 @@ $users->setPassword((int) $owner['id'], 'een-veilig-wachtwoord');
 $secured = $users->find((int) $owner['id']);
 assert_true(password_verify('een-veilig-wachtwoord', $secured['password_hash']), 'passwords are securely hashed');
 assert_true(base_path() === '/development', 'subdirectory base path is detected');
+
+$sentMail = null;
+$mailer = new InvitationMailer(function (string $to, string $subject, string $message, array $headers) use (&$sentMail): bool {
+    $sentMail = compact('to', 'subject', 'message', 'headers');
+    return true;
+});
+$mailSent = $mailer->send('invitee@example.nl', $owner, $lists->findAccessible($listId, (int) $owner['id']));
+assert_true($mailSent, 'an invitation e-mail reports a successful transport');
+assert_true($sentMail['to'] === 'invitee@example.nl', 'the invitation is sent to the invited e-mail address');
+assert_true(str_contains($sentMail['subject'], 'Vakantie'), 'the invitation subject names the shared list');
+assert_true(str_contains($sentMail['message'], 'Owner (owner@example.nl)'), 'the invitation identifies who shared the list');
+assert_true(str_contains($sentMail['message'], 'http://localhost/development/lists/' . $listId), 'the invitation includes an absolute link to the shared list');
+assert_true($sentMail['headers']['From'] === 'noreply@localhost', 'the invitation uses the configured sender address');
 
 $stylesheet = file_get_contents(dirname(__DIR__) . '/public/assets/css/app.css');
 assert_true(
