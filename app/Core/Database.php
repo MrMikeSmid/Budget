@@ -82,6 +82,12 @@ final class Database
 
             CREATE INDEX IF NOT EXISTS idx_items_list ON todo_items(list_id);
             CREATE INDEX IF NOT EXISTS idx_members_user ON list_members(user_id);
+
+            CREATE TABLE IF NOT EXISTS app_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
         SQL);
 
         $columns = $this->pdo->query('PRAGMA table_info(users)')->fetchAll();
@@ -95,6 +101,9 @@ final class Database
         if (!in_array('push_external_id', $columnNames, true)) {
             $this->pdo->exec('ALTER TABLE users ADD COLUMN push_external_id TEXT');
         }
+        if (!in_array('is_admin', $columnNames, true)) {
+            $this->pdo->exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+        }
 
         $usersWithoutPushId = $this->pdo->query("SELECT id FROM users WHERE push_external_id IS NULL OR push_external_id = ''")->fetchAll();
         $setPushId = $this->pdo->prepare('UPDATE users SET push_external_id = ? WHERE id = ?');
@@ -102,5 +111,20 @@ final class Database
             $setPushId->execute(['samen-' . bin2hex(random_bytes(24)), $user['id']]);
         }
         $this->pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_push_external_id ON users(push_external_id)');
+        $this->promoteInitialAdmin();
+    }
+
+    private function promoteInitialAdmin(): void
+    {
+        $adminEmail = mb_strtolower(trim((string) (getenv('SAMEN_ADMIN_EMAIL') ?: '')));
+        if ($adminEmail !== '') {
+            $stmt = $this->pdo->prepare('UPDATE users SET is_admin = 1 WHERE email = ? COLLATE NOCASE');
+            $stmt->execute([$adminEmail]);
+        }
+
+        $hasAdmin = (int) $this->pdo->query('SELECT COUNT(*) FROM users WHERE is_admin = 1')->fetchColumn() > 0;
+        if (!$hasAdmin) {
+            $this->pdo->exec('UPDATE users SET is_admin = 1 WHERE id = (SELECT id FROM users ORDER BY id ASC LIMIT 1)');
+        }
     }
 }

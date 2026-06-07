@@ -10,5 +10,6 @@ return [
     'mail_from' => getenv('SAMEN_MAIL_FROM') ?: 'noreply@localhost',
     'onesignal_app_id' => trim((string) (getenv('SAMEN_ONESIGNAL_APP_ID') ?: '')),
     'onesignal_api_key' => trim((string) (getenv('SAMEN_ONESIGNAL_API_KEY') ?: '')),
+    'admin_email' => mb_strtolower(trim((string) (getenv('SAMEN_ADMIN_EMAIL') ?: ''))),
     'session_name' => 'samen_session',
 ];

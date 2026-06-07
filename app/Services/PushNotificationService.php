@@ -18,7 +18,7 @@ final class PushNotificationService
 
     public function isConfigured(): bool
     {
-        return config('onesignal_app_id', '') !== '' && config('onesignal_api_key', '') !== '';
+        return (new OneSignalSettings())->isConfigured();
     }
 
     /** @param list<int> $userIds */
@@ -34,8 +34,9 @@ final class PushNotificationService
             return false;
         }
 
+        $oneSignal = new OneSignalSettings();
         $payload = json_encode([
-            'app_id' => config('onesignal_app_id'),
+            'app_id' => $oneSignal->appId(),
             'include_aliases' => [
                 'external_id' => $externalIds,
             ],
@@ -46,7 +47,7 @@ final class PushNotificationService
         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
 
         $headers = [
-            'Authorization' => 'Key ' . config('onesignal_api_key'),
+            'Authorization' => 'Key ' . $oneSignal->apiKey(),
             'Content-Type' => 'application/json; charset=utf-8',
         ];
 

@@ -30,4 +30,10 @@ final class Auth
         $id = $_SESSION['user_id'] ?? null;
         return $id ? (new User())->find((int) $id) : null;
     }
+
+    public static function isAdmin(?array $user = null): bool
+    {
+        $user ??= self::user();
+        return $user !== null && (int) ($user['is_admin'] ?? 0) === 1;
+    }
 }

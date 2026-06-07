@@ -1,4 +1,4 @@
-<?php $viewer = current_user(); $flashes = pull_flashes(); $pushEnabled = $viewer && config('onesignal_app_id', '') !== ''; ?>
+<?php $viewer = current_user(); $flashes = pull_flashes(); $oneSignal = new \App\Services\OneSignalSettings(); $oneSignalAppId = $oneSignal->appId(); $pushEnabled = $viewer && $oneSignalAppId !== ''; ?>
 <!doctype html>
 <html lang="nl">
 <head>
@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
     <?php if ($pushEnabled): ?><script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script><?php endif; ?>
 </head>
-<body class="<?= $viewer ? 'is-authenticated' : 'is-guest' ?>" data-service-worker="<?= e(url('/sw.js')) ?>" data-app-scope="<?= e(url('/')) ?>"<?php if ($pushEnabled): ?> data-onesignal-app-id="<?= e(config('onesignal_app_id')) ?>" data-onesignal-user="<?= e($viewer['push_external_id']) ?>" data-onesignal-worker="<?= e(ltrim(url('/push/onesignal/OneSignalSDKWorker.js'), '/')) ?>" data-onesignal-scope="<?= e(url('/push/onesignal/')) ?>"<?php endif; ?>>
+<body class="<?= $viewer ? 'is-authenticated' : 'is-guest' ?>" data-service-worker="<?= e(url('/sw.js')) ?>" data-app-scope="<?= e(url('/')) ?>"<?php if ($pushEnabled): ?> data-onesignal-app-id="<?= e($oneSignalAppId) ?>" data-onesignal-user="<?= e($viewer['push_external_id']) ?>" data-onesignal-worker="<?= e(ltrim(url('/push/onesignal/OneSignalSDKWorker.js'), '/')) ?>" data-onesignal-scope="<?= e(url('/push/onesignal/')) ?>"<?php endif; ?>>
 <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
 <div class="app-shell">
     <?php if ($viewer && empty($viewer['password_hash'])): ?>
@@ -41,6 +41,7 @@
             <a href="<?= e(url('/')) ?>" class="<?= ($_SERVER['REQUEST_URI'] ?? '') === url('/') ? 'active' : '' ?>"><span class="ui-icon ui-icon--checklist nav-icon" aria-hidden="true"></span><span>Lijstjes</span></a>
             <button type="button" class="nav-create" data-open-modal="new-list" aria-label="Nieuw lijstje"><span aria-hidden="true">＋</span><strong class="desktop-only">Nieuw lijstje</strong></button>
             <a href="<?= e(url('/settings')) ?>" class="<?= str_contains($_SERVER['REQUEST_URI'] ?? '', '/settings') ? 'active' : '' ?>"><span class="ui-icon ui-icon--user nav-icon" aria-hidden="true"></span><span>Profiel</span></a>
+            <?php if (\App\Core\Auth::isAdmin($viewer)): ?><a class="desktop-only" href="<?= e(url('/admin')) ?>"><span aria-hidden="true">⚙</span><span>Admin</span></a><?php endif; ?>
             <a class="nav-account desktop-only" href="<?= e(url('/settings')) ?>">
                 <span class="avatar"><?php if ($profileImage = profile_image_url($viewer)): ?><img src="<?= e($profileImage) ?>" alt=""><?php else: ?><?= e(mb_strtoupper(mb_substr($viewer['name'], 0, 1))) ?><?php endif; ?><i></i></span>
                 <span><strong><?= e($viewer['name']) ?></strong><small><?= e($viewer['email']) ?></small></span>

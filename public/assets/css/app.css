@@ -91,3 +91,4 @@
 
 /* Push notification preferences */
 .notification-settings{position:relative;overflow:hidden}.notification-settings::after{content:'🔔';position:absolute;right:22px;top:20px;font-size:30px;opacity:.16}.notification-settings .button{margin-top:18px}.notification-settings__hint{display:block;margin-top:13px;color:var(--muted);font-size:10px;line-height:1.5}.notification-settings[data-push-active="true"]::after{opacity:.8}
+/* Admin */.admin-page{padding:28px 24px 40px}.admin-page .settings-section{margin:0}.admin-card{border-top:4px solid var(--violet)}.admin-check{display:flex;align-items:center;gap:10px;margin:-3px 0 20px;color:var(--muted);font-size:13px}.admin-check input{width:18px;height:18px;accent-color:var(--violet)}.admin-status{display:flex;flex-direction:column;gap:4px;margin-top:20px;padding:14px 16px;border-radius:15px;background:#fff3ee;color:#8a493c;font-size:12px}.admin-status--ok{background:#eaf8f2;color:#277b62}.admin-status strong{font-size:13px}

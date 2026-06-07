@@ -23,7 +23,7 @@
         <button type="button" class="button button--soft button--wide" data-close-modal>Begrepen</button>
     </div>
 </dialog>
-<?php if (config('onesignal_app_id', '') !== ''): ?>
+<?php if ((new \App\Services\OneSignalSettings())->appId() !== ''): ?>
 <div class="settings-section notification-settings" data-push-settings>
     <span class="eyebrow">Op de hoogte blijven</span><h2>Pushnotificaties</h2>
     <p class="section-intro" data-push-status>De notificatie-instellingen worden geladen…</p>
