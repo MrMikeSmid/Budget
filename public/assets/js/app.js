@@ -238,8 +238,13 @@ window.addEventListener('pagehide', () => {
 const oneSignalAppId = document.body.dataset.onesignalAppId;
 const oneSignalUser = document.body.dataset.onesignalUser;
 const pushSettings = document.querySelector('[data-push-settings]');
+let oneSignalRuntimeReady = null;
 
 if (oneSignalAppId && oneSignalUser) {
+  let settleOneSignalRuntime;
+  oneSignalRuntimeReady = new Promise((resolve) => {
+    settleOneSignalRuntime = resolve;
+  });
   const status = pushSettings?.querySelector('[data-push-status]');
   let pushSettingsLoaded = false;
   const loadingTimeout = window.setTimeout(() => {
@@ -457,6 +462,7 @@ if (oneSignalAppId && oneSignalUser) {
       } catch (error) {
         console.warn('Pushabonnement automatisch herstellen is mislukt.', error);
       }
+      settleOneSignalRuntime({ OneSignal, error: null });
       pushSettingsLoaded = true;
       window.clearTimeout(loadingTimeout);
       updatePushStatus();
@@ -471,6 +477,7 @@ if (oneSignalAppId && oneSignalUser) {
         form.submit();
       });
     } catch (error) {
+      settleOneSignalRuntime({ OneSignal: null, error });
       pushSettingsLoaded = true;
       window.clearTimeout(loadingTimeout);
       console.warn('Pushnotificaties initialiseren is mislukt.', error);
@@ -642,19 +649,30 @@ if (pushDebug) {
   if (oneSignalAppId && oneSignalUser) {
     const sdkTimeout = window.setTimeout(() => {
       if (!results.has('sdk')) {
-        setCheck('sdk', 'error', 'Niet geladen binnen 12 seconden', 'Mogelijk blokkeert een contentblocker cdn.onesignal.com.');
+        setCheck('sdk', 'error', 'Niet gereed binnen 60 seconden', 'De SDK is geblokkeerd of de pushregistratie blijft hangen.');
         ['supported', 'external-id', 'opted-in', 'subscription-id', 'push-token'].forEach((key) => setCheck(key, 'error', 'Niet beschikbaar', 'De SDK is niet geladen.'));
         setBadge('[data-debug-onesignal-badge]', 'Geblokkeerd', 'error');
-        addLog('OneSignal SDK-time-out na 12 seconden.');
+        addLog('OneSignal runtime-time-out na 60 seconden.');
         completeSummary();
       }
-    }, 12000);
+    }, 60000);
 
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async (OneSignal) => {
+    (async () => {
+      const runtime = await oneSignalRuntimeReady;
       window.clearTimeout(sdkTimeout);
-      addLog('OneSignal SDK is beschikbaar; runtimewaarden worden uitgelezen.');
-      setCheck('sdk', 'ok', 'Geladen', 'OneSignal Web SDK v16 reageert.');
+      if (runtime.error) {
+        const message = runtime.error instanceof Error ? runtime.error.message : String(runtime.error);
+        addLog(`OneSignal initialiseren mislukt: ${message}`);
+        setCheck('sdk', 'error', 'Initialisatie mislukt', message);
+        ['supported', 'external-id', 'opted-in', 'subscription-id', 'push-token'].forEach((key) => setCheck(key, 'error', 'Niet beschikbaar', 'De OneSignal-runtime is niet gereed.'));
+        setBadge('[data-debug-onesignal-badge]', 'Fout', 'error');
+        completeSummary();
+        return;
+      }
+
+      const { OneSignal } = runtime;
+      addLog('OneSignal is volledig geïnitialiseerd; runtimewaarden worden uitgelezen.');
+      setCheck('sdk', 'ok', 'Geïnitialiseerd', 'OneSignal Web SDK v16 is gereed.');
       try {
         const withTimeout = async (promise, timeout = 8000) => {
           let timer;
@@ -669,18 +687,6 @@ if (pushDebug) {
             window.clearTimeout(timer);
           }
         };
-        const waitFor = async (readValue, timeout = 12000) => {
-          const deadline = Date.now() + timeout;
-          let value = readValue();
-          while (!value && Date.now() < deadline) {
-            await new Promise((resolve) => window.setTimeout(resolve, 250));
-            value = readValue();
-          }
-          return value;
-        };
-        await withTimeout(OneSignal.login(oneSignalUser), 10000);
-        await waitFor(() => OneSignal.User.externalId === oneSignalUser, 5000);
-
         const supported = OneSignal.Notifications.isPushSupported();
         setCheck('supported', supported ? 'ok' : 'error', supported ? 'Ja' : 'Nee', 'Resultaat van OneSignal.Notifications.isPushSupported().');
         const externalId = OneSignal.User.externalId;
