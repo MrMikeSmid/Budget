@@ -252,12 +252,24 @@ if (beamsPush) {
 
   const deviceInterest = (deviceId) => `samen_device_${String(deviceId || '').replace(/[^A-Za-z0-9_\-=@,.;]/g, '_').slice(0, 150)}`;
 
+  const readJsonResponse = async (response) => {
+    const text = await response.text();
+    if (!text.trim()) {
+      throw new Error(response.ok ? 'De server gaf geen antwoord terug.' : `Opslaan mislukt (${response.status}).`);
+    }
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      throw new Error(response.ok ? 'De server gaf geen geldige JSON terug.' : `Opslaan mislukt (${response.status}).`);
+    }
+  };
+
   const postToken = async (endpoint, token) => {
     const body = new FormData();
     body.append('_token', csrfToken);
     body.append('token', token);
     const response = await fetch(endpoint, { method: 'POST', headers: { Accept: 'application/json' }, body });
-    const result = await response.json();
+    const result = await readJsonResponse(response);
     if (!response.ok || !result.ok) throw new Error(result.message || 'Opslaan mislukt.');
     return result;
   };

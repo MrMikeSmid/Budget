@@ -122,7 +122,11 @@ assert_true(str_contains($javascript, 'PusherPushNotifications.Client'), 'the br
 assert_true(str_contains($javascript, 'client.start()'), 'the browser can register itself with Beams');
 assert_true(str_contains($javascript, 'client.addDeviceInterest'), 'the browser creates a device-specific Beams interest');
 assert_true(str_contains($javascript, 'client.stop()'), 'the browser can revoke its Beams registration');
+assert_true(str_contains($javascript, 'readJsonResponse'), 'the browser handles empty Beams registration responses gracefully');
 assert_true(str_contains($javascript, 'navigator.serviceWorker.ready'), 'Beams reuses the existing root-scoped PWA service worker');
+
+$controllerBase = file_get_contents(dirname(__DIR__) . '/app/Core/Controller.php');
+assert_true(str_contains($controllerBase, 'protected function json'), 'controllers can send JSON responses for Beams registration');
 
 $manifestController = file_get_contents(dirname(__DIR__) . '/app/Controllers/PwaController.php');
 assert_true(str_contains($manifestController, 'beams/service-worker.js'), 'the PWA service worker imports Pusher Beams');
