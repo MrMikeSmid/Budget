@@ -43,6 +43,10 @@ $outsider = $users->findOrCreate('outsider@example.nl');
 assert_true($owner['name'] === 'Owner', 'account is created from an e-mail address');
 assert_true((int) $owner['is_admin'] === 1, 'the first account becomes the initial administrator');
 assert_true((int) $member['is_admin'] === 0, 'later accounts do not receive administrator access');
+$adminProfilePage = render_view('settings/index', ['user' => $owner]);
+$memberProfilePage = render_view('settings/index', ['user' => $member]);
+assert_true(str_contains($adminProfilePage, 'href="/development/admin"'), 'the administrator profile links to the admin page');
+assert_true(!str_contains($memberProfilePage, 'href="/development/admin"'), 'regular profiles do not expose the admin page link');
 assert_true($users->findOrCreate('OWNER@example.nl')['id'] === $owner['id'], 'e-mail addresses are case-insensitively unique');
 assert_true(!array_key_exists('push_external_id', $owner), 'new user records no longer expose the legacy provider identifier');
 

@@ -104,3 +104,5 @@
 
 /* Push notification consent */
 .push-consent{position:fixed;z-index:80;left:50%;bottom:calc(88px + env(safe-area-inset-bottom));width:min(92vw,520px);transform:translateX(-50%);display:flex;align-items:center;gap:16px;padding:16px;border:1px solid rgba(109,74,255,.18);border-radius:20px;background:rgba(255,255,255,.97);box-shadow:0 18px 50px rgba(40,29,64,.2);backdrop-filter:blur(16px)}.push-consent[hidden]{display:none}.push-consent>div{min-width:0;display:flex;flex:1;flex-direction:column;gap:3px}.push-consent strong{font:800 13px Manrope,sans-serif}.push-consent span{color:var(--muted);font-size:10px;line-height:1.45}.push-consent .button{flex:0 0 auto}@media(min-width:900px){.push-consent{left:auto;right:28px;bottom:28px;transform:none}}
+.profile-card--admin{flex-wrap:wrap}
+.profile-card__admin-link{flex-basis:100%;margin-top:5px}
