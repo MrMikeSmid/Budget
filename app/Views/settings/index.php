@@ -1,13 +1,19 @@
-<?php $profileImage = profile_image_url($user); ?>
+<?php
+$profileImage = profile_image_url($user);
+$isAdmin = \App\Core\Auth::isAdmin($user);
+?>
 <section class="settings-page">
 <header class="topbar"><div><span class="eyebrow">Jouw plek</span><h1>Instellingen</h1></div><a class="icon-button" href="<?= e(url('/')) ?>">×</a></header>
-<div class="profile-card">
+<div class="profile-card <?= $isAdmin ? 'profile-card--admin' : '' ?>">
     <div class="avatar avatar--large">
         <?php if ($profileImage): ?><img src="<?= e($profileImage) ?>" alt="Profielfoto van <?= e($user['name']) ?>"><?php else: ?><?= e(mb_strtoupper(mb_substr($user['name'], 0, 1))) ?><?php endif; ?>
         <span></span>
     </div>
     <div><h2><?= e($user['name']) ?></h2><p><?= e($user['email']) ?></p></div>
     <span class="status-chip <?= $user['password_hash'] ? 'status-chip--safe' : '' ?>"><?= $user['password_hash'] ? 'Beveiligd' : 'Open account' ?></span>
+    <?php if ($isAdmin): ?>
+        <a class="button button--soft button--wide profile-card__admin-link" href="<?= e(url('/admin')) ?>">Naar de adminpagina <span class="ui-icon ui-icon--arrow-right" aria-hidden="true"></span></a>
+    <?php endif; ?>
 </div>
 <?php if(empty($user['password_hash'])): ?><div class="security-card" id="beveiliging"><div class="security-card__icon">♢</div><div><span class="eyebrow">Een kleine aanbeveling</span><h2>Bewaar je lijstjes veilig</h2><p>Je kunt Samen nu gewoon gebruiken. Zonder wachtwoord kan iedereen die jouw e-mailadres kent echter inloggen. Stel er één in voordat je sessie verloopt.</p></div></div><?php endif; ?>
 <section class="install-card" data-pwa-install hidden>
