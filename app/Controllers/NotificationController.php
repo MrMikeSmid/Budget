@@ -43,19 +43,19 @@ final class NotificationController extends Controller
 
     public function subscribe(): void
     {
-        $user = $this->admin();
+        $user = $this->auth();
         $this->verifyCsrf();
         $interest = trim((string) ($_POST['token'] ?? ''));
         if (!preg_match('/^[A-Za-z0-9_\-=@,.;]{1,164}$/', $interest)) {
             $this->json(['ok' => false, 'message' => 'Pusher Beams gaf geen geldige apparaatregistratie terug.'], 422);
         }
         (new PushSubscriptionService())->save((int) $user['id'], $interest, (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
-        $this->json(['ok' => true, 'message' => 'Meldingen zijn op dit apparaat geactiveerd.']);
+        $this->json(['ok' => true, 'message' => 'Meldingen zijn op dit apparaat geactiveerd. Je ontvangt nu updates van gedeelde lijstjes.']);
     }
 
     public function unsubscribe(): void
     {
-        $user = $this->admin();
+        $user = $this->auth();
         $this->verifyCsrf();
         $interest = trim((string) ($_POST['token'] ?? ''));
         if ($interest !== '') {

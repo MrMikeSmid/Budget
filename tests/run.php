@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Services\BeamsSettings;
 use App\Services\InvitationEmailSettings;
 use App\Services\InvitationMailer;
+use App\Services\ListNotificationService;
 use App\Services\PushNotificationService;
 use App\Services\PushSubscriptionService;
 
@@ -85,6 +86,9 @@ $subscriptions->save((int) $owner['id'], 'samen_device_web_1234', 'Updated Brows
 $storedSubscriptions = $subscriptions->forUser((int) $owner['id']);
 assert_true(count($storedSubscriptions) === 1, 'a Beams device interest is stored locally without duplicates');
 assert_true($storedSubscriptions[0]['user_agent'] === 'Updated Browser', 'a repeated Beams registration refreshes its device metadata');
+$subscriptions->save((int) $member['id'], 'samen_device_member_5678', 'Member Browser');
+$subscriptions->save((int) $outsider['id'], 'samen_device_outsider_9012', 'Outsider Browser');
+assert_true($subscriptions->tokensForUsers([(int) $member['id']]) === ['samen_device_member_5678'], 'device interests can be selected for notification recipients');
 
 $requests = [];
 $push = new PushNotificationService(function (string $method, string $url, array $headers, ?string $payload) use (&$requests): array {
@@ -98,6 +102,23 @@ assert_true(in_array('Authorization: Bearer secret-456', $requests[0]['headers']
 $pushPayload = json_decode($requests[0]['payload'], true, 32, JSON_THROW_ON_ERROR);
 assert_true($pushPayload['interests'] === ['samen_device_web_1234'], 'the notification targets the selected device interest');
 assert_true($pushPayload['web']['notification']['deep_link'] === 'http://localhost/development/admin/notifications', 'notification clicks return to the test page');
+
+$list = $lists->findAccessible($listId, (int) $owner['id']);
+$notifications = new ListNotificationService($push, $lists);
+assert_true($notifications->taskCreated($list, $owner, 'Paspoorten meenemen'), 'shared-list notifications are accepted by Beams');
+$listPayload = json_decode($requests[1]['payload'], true, 32, JSON_THROW_ON_ERROR);
+assert_true($listPayload['interests'] === ['samen_device_member_5678'], 'only other participants receive a list notification');
+assert_true($listPayload['web']['notification']['title'] === 'Vakantie', 'list notifications use the list title');
+assert_true(str_contains($listPayload['web']['notification']['body'], 'Owner heeft “Paspoorten meenemen” toegevoegd.'), 'new-task notifications identify the actor and task');
+assert_true($listPayload['web']['notification']['deep_link'] === 'http://localhost/development/lists/' . $listId, 'list notification clicks open the changed list');
+
+assert_true($notifications->taskCompleted($list, $member, 'Treinkaartjes boeken'), 'completed-task notifications are accepted by Beams');
+$completedPayload = json_decode($requests[2]['payload'], true, 32, JSON_THROW_ON_ERROR);
+assert_true($completedPayload['interests'] === ['samen_device_web_1234'], 'the actor does not receive their own completed-task notification');
+assert_true(str_contains($completedPayload['web']['notification']['body'], 'Member heeft “Treinkaartjes boeken” afgerond.'), 'completed-task notifications describe the completion');
+assert_true($notifications->taskChanged($list, $member, 'Treinkaartjes boeken'), 'changed-task notifications are accepted by Beams');
+$changedPayload = json_decode($requests[3]['payload'], true, 32, JSON_THROW_ON_ERROR);
+assert_true(str_contains($changedPayload['web']['notification']['body'], 'Member heeft “Treinkaartjes boeken” gewijzigd en weer geopend.'), 'changed-task notifications describe a reopened task');
 
 $notificationPage = render_view('admin/notifications', [
     'beams' => $beams,
@@ -124,6 +145,8 @@ assert_true(str_contains($javascript, 'client.addDeviceInterest'), 'the browser 
 assert_true(str_contains($javascript, 'client.stop()'), 'the browser can revoke its Beams registration');
 assert_true(str_contains($javascript, 'readJsonResponse'), 'the browser handles empty Beams registration responses gracefully');
 assert_true(str_contains($javascript, 'navigator.serviceWorker.ready'), 'Beams reuses the existing root-scoped PWA service worker');
+assert_true(str_contains($javascript, 'Notification.permission'), 'the browser asks for notification permission only when needed');
+assert_true(str_contains($javascript, 'registerDevice(false)'), 'previously granted devices are synchronized automatically in the background');
 
 $controllerBase = file_get_contents(dirname(__DIR__) . '/app/Core/Controller.php');
 assert_true(str_contains($controllerBase, 'protected function json'), 'controllers can send JSON responses for Beams registration');
@@ -133,6 +156,7 @@ assert_true(str_contains($manifestController, 'beams/service-worker.js'), 'the P
 assert_true(str_contains($manifestController, "'display' => 'standalone'"), 'the web app manifest enables standalone display');
 $routes = file_get_contents(dirname(__DIR__) . '/public/index.php');
 assert_true(str_contains($routes, "'/admin/notifications'"), 'the notification test has a dedicated admin route');
+assert_true(str_contains($routes, "'/notifications/subscribe'"), 'all signed-in users can register a notification device');
 $repositoryText = '';
 foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__DIR__), FilesystemIterator::SKIP_DOTS)) as $file) {
     $path = $file->getPathname();

@@ -9,6 +9,7 @@ Een mobiele PHP/SQLite-app waarmee mensen lijstjes maken, delen en samen afvinke
 - Optioneel wachtwoord instellen en wijzigen via Instellingen; daarna is het wachtwoord verplicht bij een nieuwe login.
 - Gedeelde todo-lijsten op basis van het e-mailadres van de andere gebruiker.
 - Taken toevoegen en door iedere deelnemer afvinken, inclusief registratie wie dat deed.
+- Automatische pushmeldingen voor andere deelnemers wanneer een taak wordt toegevoegd, afgerond of opnieuw geopend.
 - Responsive, mobile-first community-interface met bottom navigation.
 - Installeerbare PWA voor iOS en Android, met app-iconen, standalone-weergave en een offline terugvalscherm.
 - CSRF-beveiliging, gehashte wachtwoorden, prepared statements en escaped HTML-uitvoer.
@@ -64,7 +65,7 @@ php tests/run.php
 
 ## Pushnotificaties testen met Pusher Beams
 
-Samen gebruikt **Pusher Beams** voor de eenvoudige testopzet. Het gratis Sandbox-abonnement ondersteunt maximaal 1.000 apparaten. Automatische meldingen bij lijstwijzigingen zijn voorlopig uitgeschakeld; een beheerder kan via `/admin/notifications` een apparaat registreren en handmatig een testmelding sturen.
+Samen gebruikt **Pusher Beams** voor pushmeldingen. Het gratis Sandbox-abonnement ondersteunt maximaal 1.000 apparaten. Na de configuratie ziet iedere ingelogde gebruiker één verzoek om notificaties toe te staan. Na toestemming registreert en synchroniseert Samen het apparaat automatisch. Andere deelnemers aan een gedeeld lijstje ontvangen vervolgens een melding wanneer iemand een taak toevoegt, afrondt of opnieuw opent. Een beheerder kan via `/admin/notifications` de configuratie beheren en een handmatige testmelding sturen.
 
 ### Eenmalige configuratie
 
