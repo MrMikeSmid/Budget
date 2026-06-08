@@ -12,12 +12,12 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 use App\Models\AppSetting;
 use App\Models\TodoList;
 use App\Models\User;
-use App\Services\BeamsSettings;
+use App\Services\OneSignalSettings;
 use App\Services\InvitationEmailSettings;
 use App\Services\InvitationMailer;
 use App\Services\ListNotificationService;
-use App\Services\PushNotificationService;
-use App\Services\PushSubscriptionService;
+use App\Services\OneSignalNotificationService;
+use App\Services\NotificationSubscriptionService;
 
 function assert_true(bool $condition, string $message): void
 {
@@ -73,60 +73,62 @@ $mailer = new InvitationMailer(function (string $to, string $subject, string $me
 assert_true($mailer->send('invitee@example.nl', $owner, $lists->findAccessible($listId, (int) $owner['id'])), 'invitation mail uses the injected transport');
 assert_true(str_contains($sentMail['message'], 'http://localhost/development/lists/' . $listId), 'invitation mail contains an absolute list URL');
 
-$beams = new BeamsSettings();
-$beams->save('123e4567-e89b-42d3-a456-426614174000', 'secret-456');
-assert_true($beams->isConfigured(), 'Pusher Beams is configured with an instance ID and secret key');
-assert_true((new AppSetting())->get('beams_instance_id') === '123e4567-e89b-42d3-a456-426614174000', 'the Beams instance ID is stored in the database');
-$beams->save('123e4567-e89b-42d3-a456-426614174000', null);
-assert_true($beams->secretKey() === 'secret-456', 'leaving the Beams secret blank preserves the stored key');
+$oneSignal = new OneSignalSettings();
+$oneSignal->save('123e4567-e89b-42d3-a456-426614174000', 'os-rest-key-456');
+assert_true($oneSignal->isConfigured(), 'OneSignal is configured with an App ID and REST API key');
+assert_true((new AppSetting())->get('onesignal_app_id') === '123e4567-e89b-42d3-a456-426614174000', 'the OneSignal App ID is stored in the database');
+$oneSignal->save('123e4567-e89b-42d3-a456-426614174000', null);
+assert_true($oneSignal->restApiKey() === 'os-rest-key-456', 'leaving the OneSignal REST API key blank preserves the stored key');
 
-$subscriptions = new PushSubscriptionService();
-$subscriptions->save((int) $owner['id'], 'samen_device_web_1234', 'Test Browser');
-$subscriptions->save((int) $owner['id'], 'samen_device_web_1234', 'Updated Browser');
+$subscriptions = new NotificationSubscriptionService();
+$subscriptions->save((int) $owner['id'], '11111111-1111-4111-8111-111111111111', 'Test Browser');
+$subscriptions->save((int) $owner['id'], '11111111-1111-4111-8111-111111111111', 'Updated Browser');
 $storedSubscriptions = $subscriptions->forUser((int) $owner['id']);
-assert_true(count($storedSubscriptions) === 1, 'a Beams device interest is stored locally without duplicates');
-assert_true($storedSubscriptions[0]['user_agent'] === 'Updated Browser', 'a repeated Beams registration refreshes its device metadata');
-$subscriptions->save((int) $member['id'], 'samen_device_member_5678', 'Member Browser');
-$subscriptions->save((int) $outsider['id'], 'samen_device_outsider_9012', 'Outsider Browser');
-assert_true($subscriptions->tokensForUsers([(int) $member['id']]) === ['samen_device_member_5678'], 'device interests can be selected for notification recipients');
+assert_true(count($storedSubscriptions) === 1, 'a OneSignal subscription is stored locally without duplicates');
+assert_true($storedSubscriptions[0]['user_agent'] === 'Updated Browser', 'a repeated OneSignal registration refreshes its device metadata');
+$subscriptions->save((int) $member['id'], '22222222-2222-4222-8222-222222222222', 'Member Browser');
+$subscriptions->save((int) $outsider['id'], '33333333-3333-4333-8333-333333333333', 'Outsider Browser');
+assert_true($subscriptions->idsForUsers([(int) $member['id']]) === ['22222222-2222-4222-8222-222222222222'], 'subscription IDs can be selected for notification recipients');
 
 $requests = [];
-$push = new PushNotificationService(function (string $method, string $url, array $headers, ?string $payload) use (&$requests): array {
+$push = new OneSignalNotificationService(function (string $method, string $url, array $headers, ?string $payload) use (&$requests): array {
     $requests[] = compact('method', 'url', 'headers', 'payload');
-    return ['status' => 200, 'body' => json_encode(['publishId' => 'publish-123'], JSON_THROW_ON_ERROR)];
+    return ['status' => 200, 'body' => json_encode(['id' => 'notification-123'], JSON_THROW_ON_ERROR)];
 });
-assert_true($push->sendToken('samen_device_web_1234', 'Handmatige test', '/admin/notifications'), 'Pusher Beams accepts a successful test message response');
-assert_true(count($requests) === 1, 'sending through Beams needs a single provider request');
-assert_true(str_contains($requests[0]['url'], '123e4567-e89b-42d3-a456-426614174000.pushnotifications.pusher.com'), 'the Beams instance endpoint is used');
-assert_true(in_array('Authorization: Bearer secret-456', $requests[0]['headers'], true), 'the Beams request uses the server-side secret key');
+assert_true($push->sendSubscription('11111111-1111-4111-8111-111111111111', 'Handmatige test', '/admin/notifications'), 'OneSignal accepts a successful test message response');
+assert_true(count($requests) === 1, 'sending through OneSignal needs a single provider request');
+assert_true($requests[0]['url'] === 'https://api.onesignal.com/notifications', 'the OneSignal notification endpoint is used');
+assert_true(in_array('Authorization: Key os-rest-key-456', $requests[0]['headers'], true), 'the OneSignal request uses the server-side REST API key');
 $pushPayload = json_decode($requests[0]['payload'], true, 32, JSON_THROW_ON_ERROR);
-assert_true($pushPayload['interests'] === ['samen_device_web_1234'], 'the notification targets the selected device interest');
-assert_true($pushPayload['web']['notification']['deep_link'] === 'http://localhost/development/admin/notifications', 'notification clicks return to the test page');
+assert_true($pushPayload['app_id'] === '123e4567-e89b-42d3-a456-426614174000', 'the notification uses the configured OneSignal App ID');
+assert_true($pushPayload['include_subscription_ids'] === ['11111111-1111-4111-8111-111111111111'], 'the notification targets the selected subscription');
+assert_true($pushPayload['url'] === 'http://localhost/development/admin/notifications', 'notification clicks return to the test page');
 
 $list = $lists->findAccessible($listId, (int) $owner['id']);
 $notifications = new ListNotificationService($push, $lists);
-assert_true($notifications->taskCreated($list, $owner, 'Paspoorten meenemen'), 'shared-list notifications are accepted by Beams');
+assert_true($notifications->taskCreated($list, $owner, 'Paspoorten meenemen'), 'shared-list notifications are accepted by OneSignal');
 $listPayload = json_decode($requests[1]['payload'], true, 32, JSON_THROW_ON_ERROR);
-assert_true($listPayload['interests'] === ['samen_device_member_5678'], 'only other participants receive a list notification');
-assert_true($listPayload['web']['notification']['title'] === 'Vakantie', 'list notifications use the list title');
-assert_true(str_contains($listPayload['web']['notification']['body'], 'Owner heeft “Paspoorten meenemen” toegevoegd.'), 'new-task notifications identify the actor and task');
-assert_true($listPayload['web']['notification']['deep_link'] === 'http://localhost/development/lists/' . $listId, 'list notification clicks open the changed list');
+assert_true($listPayload['include_subscription_ids'] === ['22222222-2222-4222-8222-222222222222'], 'only other participants receive a list notification');
+assert_true($listPayload['headings']['en'] === 'Vakantie', 'list notifications use the list title');
+assert_true(str_contains($listPayload['contents']['en'], 'Owner heeft “Paspoorten meenemen” toegevoegd.'), 'new-task notifications identify the actor and task');
+assert_true($listPayload['url'] === 'http://localhost/development/lists/' . $listId, 'list notification clicks open the changed list');
 
-assert_true($notifications->taskCompleted($list, $member, 'Treinkaartjes boeken'), 'completed-task notifications are accepted by Beams');
+assert_true($notifications->taskCompleted($list, $member, 'Treinkaartjes boeken'), 'completed-task notifications are accepted by OneSignal');
 $completedPayload = json_decode($requests[2]['payload'], true, 32, JSON_THROW_ON_ERROR);
-assert_true($completedPayload['interests'] === ['samen_device_web_1234'], 'the actor does not receive their own completed-task notification');
-assert_true(str_contains($completedPayload['web']['notification']['body'], 'Member heeft “Treinkaartjes boeken” afgerond.'), 'completed-task notifications describe the completion');
-assert_true($notifications->taskChanged($list, $member, 'Treinkaartjes boeken'), 'changed-task notifications are accepted by Beams');
+assert_true($completedPayload['include_subscription_ids'] === ['11111111-1111-4111-8111-111111111111'], 'the actor does not receive their own completed-task notification');
+assert_true(str_contains($completedPayload['contents']['en'], 'Member heeft “Treinkaartjes boeken” afgerond.'), 'completed-task notifications describe the completion');
+assert_true($notifications->taskChanged($list, $member, 'Treinkaartjes boeken'), 'changed-task notifications are accepted by OneSignal');
 $changedPayload = json_decode($requests[3]['payload'], true, 32, JSON_THROW_ON_ERROR);
-assert_true(str_contains($changedPayload['web']['notification']['body'], 'Member heeft “Treinkaartjes boeken” gewijzigd en weer geopend.'), 'changed-task notifications describe a reopened task');
+assert_true(str_contains($changedPayload['contents']['en'], 'Member heeft “Treinkaartjes boeken” gewijzigd en weer geopend.'), 'changed-task notifications describe a reopened task');
 
 $notificationPage = render_view('admin/notifications', [
-    'beams' => $beams,
+    'oneSignal' => $oneSignal,
     'subscriptions' => $storedSubscriptions,
 ]);
-assert_true(str_contains($notificationPage, 'data-beams-push'), 'the isolated admin test page exposes the Beams client hook');
+assert_true(str_contains($notificationPage, 'data-notification-push'), 'the admin test page exposes the OneSignal client hook');
 assert_true(str_contains($notificationPage, 'Stuur testmelding'), 'the test page offers manual delivery');
-assert_true(!str_contains($notificationPage, 'secret-456'), 'the stored Beams secret is never rendered into the page');
+assert_true(str_contains($notificationPage, 'iOS 16.4 of nieuwer'), 'the test page documents the iOS installation requirement');
+assert_true(!str_contains($notificationPage, 'os-rest-key-456'), 'the stored OneSignal REST API key is never rendered into the page');
 
 $adminPage = render_view('admin/index', [
     'invitation_sender_name' => $invitationSettings->senderName(),
@@ -135,28 +137,27 @@ $adminPage = render_view('admin/index', [
     'invitation_preview_html' => $invitationSettings->renderEmail($owner, ['id' => $listId, 'title' => 'Vakantie'], 'invitee@example.nl'),
     'invitation_tokens' => InvitationEmailSettings::tokens(),
 ]);
-assert_true(str_contains($adminPage, '/admin/notifications'), 'the admin page links to the isolated notification test');
+assert_true(str_contains($adminPage, 'OneSignal-testomgeving'), 'the admin page links to the OneSignal notification test');
 assert_true(str_contains($adminPage, 'data-rich-editor'), 'the invitation rich-text editor remains available');
 
 $javascript = file_get_contents(dirname(__DIR__) . '/public/assets/js/app.js');
-assert_true(str_contains($javascript, 'PusherPushNotifications.Client'), 'the browser initializes the Pusher Beams client');
-assert_true(str_contains($javascript, 'client.start()'), 'the browser can register itself with Beams');
-assert_true(str_contains($javascript, 'client.addDeviceInterest'), 'the browser creates a device-specific Beams interest');
-assert_true(str_contains($javascript, 'client.stop()'), 'the browser can revoke its Beams registration');
-assert_true(str_contains($javascript, 'readJsonResponse'), 'the browser handles empty Beams registration responses gracefully');
-assert_true(str_contains($javascript, 'navigator.serviceWorker.ready'), 'Beams reuses the existing root-scoped PWA service worker');
-assert_true(str_contains($javascript, 'Notification.permission'), 'the browser asks for notification permission only when needed');
+assert_true(str_contains($javascript, 'OneSignal.init'), 'the browser initializes the OneSignal web SDK');
+assert_true(str_contains($javascript, 'User.PushSubscription.optIn()'), 'the browser can subscribe through OneSignal');
+assert_true(str_contains($javascript, 'User.PushSubscription.optOut()'), 'the browser can unsubscribe through OneSignal');
+assert_true(str_contains($javascript, "addEventListener('change'"), 'OneSignal subscription changes are synchronized automatically');
+assert_true(str_contains($javascript, 'serviceWorkerPath: serviceWorkerUrl'), 'OneSignal reuses the existing PWA service worker');
+assert_true(str_contains($javascript, 'iOS 16.4'), 'iOS users receive the required home-screen installation instructions');
 assert_true(str_contains($javascript, 'registerDevice(false)'), 'previously granted devices are synchronized automatically in the background');
 
-$controllerBase = file_get_contents(dirname(__DIR__) . '/app/Core/Controller.php');
-assert_true(str_contains($controllerBase, 'protected function json'), 'controllers can send JSON responses for Beams registration');
-
 $manifestController = file_get_contents(dirname(__DIR__) . '/app/Controllers/PwaController.php');
-assert_true(str_contains($manifestController, 'beams/service-worker.js'), 'the PWA service worker imports Pusher Beams');
+assert_true(str_contains($manifestController, 'OneSignalSDK.sw.js'), 'the PWA service worker imports the OneSignal worker');
 assert_true(str_contains($manifestController, "'display' => 'standalone'"), 'the web app manifest enables standalone display');
 $routes = file_get_contents(dirname(__DIR__) . '/public/index.php');
-assert_true(str_contains($routes, "'/admin/notifications'"), 'the notification test has a dedicated admin route');
-assert_true(str_contains($routes, "'/notifications/subscribe'"), 'all signed-in users can register a notification device');
+assert_true(str_contains($routes, "'/notifications/subscribe'"), 'signed-in users can register a OneSignal subscription');
+assert_true(str_contains($routes, "'/notifications/unsubscribe'"), 'signed-in users can remove a OneSignal subscription');
+$readme = file_get_contents(dirname(__DIR__) . '/README.md');
+assert_true(str_contains($readme, 'iOS/iPadOS 16.4'), 'the README documents iOS web-push requirements');
+
 $repositoryText = '';
 foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__DIR__), FilesystemIterator::SKIP_DOTS)) as $file) {
     $path = $file->getPathname();
@@ -164,8 +165,10 @@ foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__
         $repositoryText .= file_get_contents($path);
     }
 }
-$removedProviderName = 'fire' . 'base';
-assert_true(stripos($repositoryText, $removedProviderName) === false, 'the previous notification provider is absent from application code and documentation');
+$removedProviderNames = ['fire' . 'base', 'push' . 'er', 'Be' . 'ams'];
+foreach ($removedProviderNames as $removedProviderName) {
+    assert_true(stripos($repositoryText, $removedProviderName) === false, 'a removed notification provider is absent from application code and documentation');
+}
 
 $deploymentWorkflow = file_get_contents(dirname(__DIR__) . '/.github/workflows/deploy.yml');
 assert_true(str_contains($deploymentWorkflow, "--exclude='^storage(/|$)'"), 'FTP deployments preserve the remote SQLite database');

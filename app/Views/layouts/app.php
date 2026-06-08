@@ -1,8 +1,8 @@
 <?php
 $viewer = current_user();
 $flashes = pull_flashes();
-$beams = $viewer ? new \App\Services\BeamsSettings() : null;
-$pushEnabled = $beams?->isConfigured() ?? false;
+$oneSignal = $viewer ? new \App\Services\OneSignalSettings() : null;
+$pushEnabled = $oneSignal?->isConfigured() ?? false;
 ?>
 <!doctype html>
 <html lang="nl">
@@ -24,7 +24,7 @@ $pushEnabled = $beams?->isConfigured() ?? false;
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
 </head>
-<body class="<?= $viewer ? 'is-authenticated' : 'is-guest' ?>" data-service-worker="<?= e(url('/sw.js')) ?>" data-app-scope="<?= e(url('/')) ?>"<?php if ($pushEnabled): ?> data-push-notifications data-push-instance-id="<?= e($beams->instanceId()) ?>" data-push-subscribe-endpoint="<?= e(url('/notifications/subscribe')) ?>" data-push-unsubscribe-endpoint="<?= e(url('/notifications/unsubscribe')) ?>" data-csrf-token="<?= e(csrf_token()) ?>"<?php endif; ?>>
+<body class="<?= $viewer ? 'is-authenticated' : 'is-guest' ?>" data-service-worker="<?= e(url('/sw.js')) ?>" data-app-scope="<?= e(url('/')) ?>"<?php if ($pushEnabled): ?> data-push-notifications data-onesignal-app-id="<?= e($oneSignal->appId()) ?>" data-push-subscribe-endpoint="<?= e(url('/notifications/subscribe')) ?>" data-push-unsubscribe-endpoint="<?= e(url('/notifications/unsubscribe')) ?>" data-csrf-token="<?= e(csrf_token()) ?>"<?php endif; ?>>
 <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
 <div class="app-shell">
     <?php if ($viewer && empty($viewer['password_hash'])): ?>
@@ -74,7 +74,8 @@ $pushEnabled = $beams?->isConfigured() ?? false;
     <?php endif; ?>
 </div>
 <?php if ($pushEnabled): ?>
-<script src="https://js.pusher.com/beams/1.0/push-notifications-cdn.js" defer></script>
+<script>window.OneSignalDeferred = window.OneSignalDeferred || [];</script>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <?php endif; ?>
 <script src="<?= e(asset('js/app.js')) ?>" defer></script>
 </body></html>

@@ -40,8 +40,8 @@
     </div>
 
     <div class="settings-section admin-card">
-        <span class="eyebrow">Pushnotificaties</span><h2>Pusher Beams-testomgeving</h2>
-        <p class="section-intro">De nieuwe notificatie-integratie staat bewust los van de gewone app. Vul twee Pusher Beams-sleutels in, registreer dit apparaat en stuur een handmatige testmelding.</p>
+        <span class="eyebrow">Pushnotificaties</span><h2>OneSignal-testomgeving</h2>
+        <p class="section-intro">Stel OneSignal eenmalig in, registreer dit apparaat en stuur een handmatige testmelding naar iOS, Android of desktop.</p>
         <a class="button button--primary button--wide" href="<?= e(url('/admin/notifications')) ?>">Open notificatietest</a>
     </div>
 </div>

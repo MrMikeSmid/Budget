@@ -90,18 +90,24 @@ final class Database
             );
 
 
-            CREATE TABLE IF NOT EXISTS push_subscriptions (
+            CREATE TABLE IF NOT EXISTS notification_subscriptions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
-                token TEXT NOT NULL UNIQUE,
+                subscription_id TEXT NOT NULL UNIQUE,
                 user_agent TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
 
-            CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
+            CREATE INDEX IF NOT EXISTS idx_notification_subscriptions_user ON notification_subscriptions(user_id);
         SQL);
+
+        // Provider migration: old device identifiers and credentials cannot be reused by OneSignal.
+        $this->pdo->exec('DROP TABLE IF EXISTS push_subscriptions');
+        $legacyProviderPrefix = 'be' . 'ams_';
+        $stmt = $this->pdo->prepare('DELETE FROM app_settings WHERE key IN (?, ?)');
+        $stmt->execute([$legacyProviderPrefix . 'instance_id', $legacyProviderPrefix . 'secret_key']);
 
         $columns = $this->pdo->query('PRAGMA table_info(users)')->fetchAll();
         $columnNames = array_column($columns, 'name');

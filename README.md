@@ -63,25 +63,25 @@ De webserver moet daarnaast zijn geconfigureerd om uitgaande e-mail van PHP te b
 php tests/run.php
 ```
 
-## Pushnotificaties testen met Pusher Beams
+## Pushnotificaties testen met OneSignal
 
-Samen gebruikt **Pusher Beams** voor pushmeldingen. Het gratis Sandbox-abonnement ondersteunt maximaal 1.000 apparaten. Na de configuratie ziet iedere ingelogde gebruiker één verzoek om notificaties toe te staan. Na toestemming registreert en synchroniseert Samen het apparaat automatisch. Andere deelnemers aan een gedeeld lijstje ontvangen vervolgens een melding wanneer iemand een taak toevoegt, afrondt of opnieuw opent. Een beheerder kan via `/admin/notifications` de configuratie beheren en een handmatige testmelding sturen.
+Samen gebruikt **OneSignal** voor pushmeldingen. Het gratis abonnement ondersteunt webpush en maximaal 10.000 abonnees per verzending. Na de configuratie ziet iedere ingelogde gebruiker één verzoek om notificaties toe te staan. Na toestemming registreert en synchroniseert Samen het apparaat automatisch. Andere deelnemers aan een gedeeld lijstje ontvangen vervolgens een melding wanneer iemand een taak toevoegt, afrondt of opnieuw opent. Een beheerder kan via `/admin/notifications` de configuratie beheren en een handmatige testmelding sturen.
 
 ### Eenmalige configuratie
 
-1. Maak via [Pusher](https://dashboard.pusher.com/) een gratis account.
-2. Kies **Beams**, maak een nieuwe instance aan en kies **Web**.
-3. Vul als websiteadres de HTTPS-oorsprong in, bijvoorbeeld `https://mikesmid.nl`.
-4. Open in de Beams-instance het tabblad **Credentials** of **Keys**.
-5. Kopieer de **Instance ID** en **Secret Key**.
+1. Maak via [OneSignal](https://onesignal.com/) een gratis account en app aan.
+2. Open **Settings → Push & In-App → Web** en activeer Web Push.
+3. Kies **Custom Code** en vul als Site URL de HTTPS-oorsprong in, bijvoorbeeld `https://mikesmid.nl`.
+4. Stel het service-workerpad in op het deploymentpad, bijvoorbeeld `/development/sw.js`, met scope `/development/`.
+5. Open **Settings → Keys & IDs** en kopieer de **App ID** en **REST API Key**.
 6. Log in als beheerder, open `/admin/notifications`, vul beide waarden in en sla ze op.
 7. Activeer meldingen op het testapparaat en stuur daarna een handmatige test.
 
-De Instance ID wordt naar de browser gestuurd. De Secret Key blijft uitsluitend server-side in de SQLite-database. Als alternatief kunnen de waarden via omgevingsvariabelen worden ingesteld:
+De App ID wordt naar de browser gestuurd. De REST API Key blijft uitsluitend server-side in de SQLite-database. Als alternatief kunnen de waarden via omgevingsvariabelen worden ingesteld:
 
 ```bash
-export SAMEN_BEAMS_INSTANCE_ID=...
-export SAMEN_BEAMS_SECRET_KEY=...
+export SAMEN_ONESIGNAL_APP_ID=...
+export SAMEN_ONESIGNAL_REST_API_KEY=...
 ```
 
-Web-push vereist in productie HTTPS. Op iPhone en iPad moet Samen eerst via Safari aan het beginscherm worden toegevoegd voordat de geïnstalleerde PWA om notificatietoestemming kan vragen.
+Webpush vereist in productie HTTPS. Android en ondersteunde desktopbrowsers kunnen rechtstreeks toestemming geven. Op iPhone en iPad is minimaal iOS/iPadOS 16.4 vereist: voeg Samen eerst via Safari aan het beginscherm toe, open vervolgens de geïnstalleerde PWA en activeer daar de meldingen.
