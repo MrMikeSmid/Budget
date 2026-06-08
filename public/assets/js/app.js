@@ -268,6 +268,7 @@ if (oneSignalAppId && oneSignalUser) {
         appId: oneSignalAppId,
         serviceWorkerPath,
         serviceWorkerParam: { scope: serviceWorkerScope },
+        autoResubscribe: true,
       });
 
       const linkSubscriptionToUser = async () => {
@@ -303,6 +304,15 @@ if (oneSignalAppId && oneSignalUser) {
       const waitForActiveSubscription = () => waitFor(
         () => hasActivePushSubscription(),
       );
+      const repairPushSubscription = async () => {
+        const pushSubscription = OneSignal.User.PushSubscription;
+        if (nativePermission() !== 'granted' || !pushSubscription.optedIn || pushSubscription.token) return;
+
+        // A restored OneSignal ID can briefly exist without a browser token.
+        // optIn() recreates that token when permission was already granted.
+        await pushSubscription.optIn();
+        await waitForActiveSubscription();
+      };
 
       const updatePushStatus = () => {
         if (!pushSettings || !status || !toggle) return;
@@ -411,6 +421,11 @@ if (oneSignalAppId && oneSignalUser) {
         }
       });
       OneSignal.Notifications.addEventListener('permissionChange', updatePushStatus);
+      try {
+        await repairPushSubscription();
+      } catch (error) {
+        console.warn('Pushabonnement automatisch herstellen is mislukt.', error);
+      }
       pushSettingsLoaded = true;
       window.clearTimeout(loadingTimeout);
       updatePushStatus();
@@ -608,12 +623,47 @@ if (pushDebug) {
         } else {
           setCheck('external-id', 'warning', 'Niet teruggegeven', `Verwacht Samen-ID: ${redact(oneSignalUser)}.`);
         }
-        const optedIn = Boolean(OneSignal.User.PushSubscription.optedIn);
+        const readPushSubscription = (state = OneSignal.User.PushSubscription) => ({
+          optedIn: Boolean(state.optedIn),
+          id: state.id || null,
+          token: state.token || null,
+        });
+        const waitForPushSubscription = (predicate, timeout = 12000) => new Promise((resolve) => {
+          const initial = readPushSubscription();
+          if (predicate(initial)) {
+            resolve(initial);
+            return;
+          }
+
+          let settled = false;
+          const finish = (state) => {
+            if (settled) return;
+            settled = true;
+            window.clearTimeout(timer);
+            OneSignal.User.PushSubscription.removeEventListener('change', handleChange);
+            resolve(state);
+          };
+          const handleChange = (event) => {
+            const current = readPushSubscription(event.current);
+            if (predicate(current)) finish(current);
+          };
+          const timer = window.setTimeout(() => finish(readPushSubscription()), timeout);
+          OneSignal.User.PushSubscription.addEventListener('change', handleChange);
+        });
+
+        let pushSubscription = readPushSubscription();
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && pushSubscription.optedIn && !pushSubscription.token) {
+          addLog('Push token ontbreekt; automatische herregistratie wordt uitgevoerd.');
+          await OneSignal.User.PushSubscription.optIn();
+          pushSubscription = await waitForPushSubscription((state) => Boolean(state.token));
+        } else if (pushSubscription.optedIn && !pushSubscription.token) {
+          pushSubscription = await waitForPushSubscription((state) => Boolean(state.token), 5000);
+        }
+
+        const { optedIn, id: subscriptionId, token } = pushSubscription;
         setCheck('opted-in', optedIn ? 'ok' : 'warning', optedIn ? 'Ja' : 'Nee', optedIn ? 'Dit apparaat is bij OneSignal aangemeld.' : 'Zet meldingen aan via Instellingen.');
-        const subscriptionId = OneSignal.User.PushSubscription.id;
         setCheck('subscription-id', subscriptionId ? 'ok' : 'error', redact(subscriptionId), subscriptionId ? 'Er bestaat een abonnement-ID voor dit apparaat.' : 'OneSignal heeft nog geen abonnement aangemaakt.');
-        const token = OneSignal.User.PushSubscription.token;
-        setCheck('push-token', token ? 'ok' : 'error', redact(token), token ? 'Er is een browser push token (gedeeltelijk verborgen).' : 'Zonder token kan de pushprovider dit apparaat niet bereiken.');
+        setCheck('push-token', token ? 'ok' : 'error', redact(token), token ? 'Er is een browser push token (gedeeltelijk verborgen).' : 'Automatische herregistratie leverde geen token op; controleer browser- of apparaatbeperkingen.');
         setBadge('[data-debug-onesignal-badge]', subscriptionId && token && optedIn ? 'Actief' : 'Onvolledig', subscriptionId && token && optedIn ? 'ok' : 'warning');
       } catch (error) {
         addLog(`OneSignal uitlezen mislukt: ${error.message}`);
