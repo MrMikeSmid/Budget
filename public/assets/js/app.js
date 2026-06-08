@@ -271,16 +271,18 @@ if (oneSignalAppId && oneSignalUser) {
         autoResubscribe: true,
       });
 
-      const linkSubscriptionToUser = async () => {
-        await OneSignal.login(oneSignalUser);
-      };
-      await linkSubscriptionToUser();
-
-      const nativePermission = () => {
-        if (typeof Notification !== 'undefined' && Notification.permission) {
-          return Notification.permission;
+      const withTimeout = async (promise, timeout = 8000) => {
+        let timer;
+        try {
+          return await Promise.race([
+            promise,
+            new Promise((resolve) => {
+              timer = window.setTimeout(() => resolve(undefined), timeout);
+            }),
+          ]);
+        } finally {
+          window.clearTimeout(timer);
         }
-        return OneSignal.Notifications.permissionNative || 'default';
       };
 
       const waitFor = async (readValue, timeout = 15000) => {
@@ -291,6 +293,19 @@ if (oneSignalAppId && oneSignalUser) {
           value = readValue();
         }
         return value;
+      };
+
+      const linkSubscriptionToUser = async () => {
+        await withTimeout(OneSignal.login(oneSignalUser), 10000);
+        return waitFor(() => OneSignal.User.externalId === oneSignalUser, 5000);
+      };
+      await linkSubscriptionToUser();
+
+      const nativePermission = () => {
+        if (typeof Notification !== 'undefined' && Notification.permission) {
+          return Notification.permission;
+        }
+        return OneSignal.Notifications.permissionNative || 'default';
       };
 
       const waitForPermission = () => waitFor(
@@ -310,7 +325,7 @@ if (oneSignalAppId && oneSignalUser) {
 
         // A restored OneSignal ID can briefly exist without a browser token.
         // optIn() recreates that token when permission was already granted.
-        await pushSubscription.optIn();
+        await withTimeout(pushSubscription.optIn(), 8000);
         await waitForActiveSubscription();
       };
 
@@ -366,7 +381,7 @@ if (oneSignalAppId && oneSignalUser) {
           } else {
             // optIn requests browser permission when needed and, unlike
             // requestPermission alone, also clears OneSignal's opted-out state.
-            await OneSignal.User.PushSubscription.optIn();
+            await withTimeout(OneSignal.User.PushSubscription.optIn(), 8000);
 
             if (nativePermission() !== 'granted' && !(await waitForPermission())) {
               updatePushStatus();
@@ -615,6 +630,31 @@ if (pushDebug) {
       addLog('OneSignal SDK is beschikbaar; runtimewaarden worden uitgelezen.');
       setCheck('sdk', 'ok', 'Geladen', 'OneSignal Web SDK v16 reageert.');
       try {
+        const withTimeout = async (promise, timeout = 8000) => {
+          let timer;
+          try {
+            return await Promise.race([
+              promise,
+              new Promise((resolve) => {
+                timer = window.setTimeout(() => resolve(undefined), timeout);
+              }),
+            ]);
+          } finally {
+            window.clearTimeout(timer);
+          }
+        };
+        const waitFor = async (readValue, timeout = 12000) => {
+          const deadline = Date.now() + timeout;
+          let value = readValue();
+          while (!value && Date.now() < deadline) {
+            await new Promise((resolve) => window.setTimeout(resolve, 250));
+            value = readValue();
+          }
+          return value;
+        };
+        await withTimeout(OneSignal.login(oneSignalUser), 10000);
+        await waitFor(() => OneSignal.User.externalId === oneSignalUser, 5000);
+
         const supported = OneSignal.Notifications.isPushSupported();
         setCheck('supported', supported ? 'ok' : 'error', supported ? 'Ja' : 'Nee', 'Resultaat van OneSignal.Notifications.isPushSupported().');
         const externalId = OneSignal.User.externalId;
@@ -654,7 +694,7 @@ if (pushDebug) {
         let pushSubscription = readPushSubscription();
         if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && pushSubscription.optedIn && !pushSubscription.token) {
           addLog('Push token ontbreekt; automatische herregistratie wordt uitgevoerd.');
-          await OneSignal.User.PushSubscription.optIn();
+          await withTimeout(OneSignal.User.PushSubscription.optIn(), 8000);
           pushSubscription = await waitForPushSubscription((state) => Boolean(state.token));
         } else if (pushSubscription.optedIn && !pushSubscription.token) {
           pushSubscription = await waitForPushSubscription((state) => Boolean(state.token), 5000);
