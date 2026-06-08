@@ -12,6 +12,83 @@ use App\Services\PushNotificationService;
 
 final class AdminController extends Controller
 {
+    public function debug(): void
+    {
+        $user = $this->admin();
+        $oneSignal = new OneSignalSettings();
+        $databasePath = (string) config('database');
+        $databaseDirectory = dirname($databasePath);
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+
+        $checks = [
+            [
+                'label' => 'OneSignal App ID',
+                'status' => $oneSignal->appId() !== '' ? 'ok' : 'error',
+                'value' => $oneSignal->appId() !== '' ? $this->maskIdentifier($oneSignal->appId()) : 'Niet ingesteld',
+                'help' => 'De publieke App ID moet overeenkomen met de Web Push-app in OneSignal.',
+            ],
+            [
+                'label' => 'OneSignal REST API key',
+                'status' => $oneSignal->apiKey() !== '' ? 'ok' : 'error',
+                'value' => $oneSignal->apiKey() !== '' ? 'Aanwezig (verborgen)' : 'Niet ingesteld',
+                'help' => 'De sleutel wordt bewust nooit op deze pagina getoond.',
+            ],
+            [
+                'label' => 'Beveiligde verbinding',
+                'status' => $https ? 'ok' : 'error',
+                'value' => $https ? 'HTTPS actief' : 'Geen HTTPS gedetecteerd',
+                'help' => 'Web Push werkt in productie alleen vanuit een secure context.',
+            ],
+            [
+                'label' => 'Publieke applicatie-URL',
+                'status' => str_starts_with((string) absolute_url('/'), 'https://') ? 'ok' : 'warning',
+                'value' => absolute_url('/'),
+                'help' => 'Controleer vooral het deploymentpad en het gebruikte protocol.',
+            ],
+            [
+                'label' => 'OneSignal worker-URL',
+                'status' => 'info',
+                'value' => absolute_url('/push/onesignal/OneSignalSDKWorker.js'),
+                'help' => 'Deze URL moet publiek bereikbaar zijn en JavaScript teruggeven.',
+            ],
+            [
+                'label' => 'OneSignal worker-scope',
+                'status' => 'info',
+                'value' => url('/push/onesignal/'),
+                'help' => 'Deze scope moet gelijk zijn aan de configuratie in OneSignal.',
+            ],
+            [
+                'label' => 'Database en opslag',
+                'status' => is_writable($databasePath) && is_writable($databaseDirectory) ? 'ok' : 'warning',
+                'value' => (is_writable($databasePath) ? 'database schrijfbaar' : 'database niet schrijfbaar')
+                    . ' · ' . (is_writable($databaseDirectory) ? 'map schrijfbaar' : 'map niet schrijfbaar'),
+                'help' => $databasePath,
+            ],
+            [
+                'label' => 'PHP runtime',
+                'status' => version_compare(PHP_VERSION, '8.2.0', '>=') ? 'ok' : 'warning',
+                'value' => PHP_VERSION . ' · ' . PHP_SAPI,
+                'help' => 'Samen verwacht PHP 8.2 of nieuwer.',
+            ],
+        ];
+
+        view('admin/debug', [
+            'title' => 'Push debug',
+            'debug_checks' => $checks,
+            'debug_user' => $user,
+            'onesignal_configured' => $oneSignal->isConfigured(),
+            'generated_at' => date(DATE_ATOM),
+        ]);
+    }
+
+    private function maskIdentifier(string $value): string
+    {
+        if (mb_strlen($value) < 13) {
+            return str_repeat('•', max(4, mb_strlen($value)));
+        }
+        return mb_substr($value, 0, 8) . '…' . mb_substr($value, -4);
+    }
     public function show(): void
     {
         $this->admin();

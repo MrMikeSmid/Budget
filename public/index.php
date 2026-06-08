@@ -21,6 +21,7 @@ $router->get('/sw.js', [PwaController::class, 'serviceWorker']);
 $router->get('/push/onesignal/OneSignalSDKWorker.js', [PwaController::class, 'oneSignalWorker']);
 $router->get('/', [HomeController::class, 'index']);
 $router->get('/admin', [AdminController::class, 'show']);
+$router->get('/admin/debug', [AdminController::class, 'debug']);
 $router->post('/admin/onesignal', [AdminController::class, 'updateOneSignal']);
 $router->post('/admin/onesignal/test', [AdminController::class, 'testPushNotification']);
 $router->post('/admin/onesignal/subscription/delete', [AdminController::class, 'deletePushSubscription']);
