@@ -9,7 +9,7 @@ use App\Models\TodoList;
 final class ListNotificationService
 {
     public function __construct(
-        private readonly ?PushNotificationService $push = null,
+        private readonly ?OneSignalNotificationService $push = null,
         private readonly ?TodoList $lists = null,
     ) {
     }
@@ -49,7 +49,7 @@ final class ListNotificationService
             return true;
         }
 
-        return ($this->push ?? new PushNotificationService())->sendUsers(
+        return ($this->push ?? new OneSignalNotificationService())->sendUsers(
             $recipientIds,
             (string) $list['title'],
             $message,

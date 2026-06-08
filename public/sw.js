@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'samen-shell-v2';
+const CACHE_VERSION = 'samen-shell-v3';
 
 const scopeUrl = new URL(self.registration.scope);
 const appUrl = (path) => new URL(path.replace(/^\//, ''), scopeUrl).toString();

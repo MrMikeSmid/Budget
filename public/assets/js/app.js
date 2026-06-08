@@ -237,17 +237,17 @@ window.addEventListener('pagehide', () => {
 
 
 const pushRoot = document.body.matches('[data-push-notifications]') ? document.body : null;
-const beamsPush = document.querySelector('[data-beams-push]');
+const notificationPanel = document.querySelector('[data-notification-push]');
 const consentCard = document.querySelector('[data-push-consent]');
 const consentButton = document.querySelector('[data-push-consent-button]');
 const consentText = document.querySelector('[data-push-consent-text]');
 
 if (pushRoot) {
-  const status = beamsPush?.querySelector('[data-beams-status]');
-  const subscribeButton = beamsPush?.querySelector('[data-beams-subscribe]');
-  const unsubscribeButton = beamsPush?.querySelector('[data-beams-unsubscribe]');
-  let beamsClient = null;
-  let currentInterest = '';
+  const status = notificationPanel?.querySelector('[data-notification-status]');
+  const subscribeButton = notificationPanel?.querySelector('[data-notification-subscribe]');
+  const unsubscribeButton = notificationPanel?.querySelector('[data-notification-unsubscribe]');
+  let oneSignalClient = null;
+  let currentSubscriptionId = '';
 
   const setStatus = (message, isError = false) => {
     if (status) {
@@ -257,21 +257,15 @@ if (pushRoot) {
     if (consentText && message) consentText.textContent = message;
   };
 
-  const notificationPermission = () => ('Notification' in window ? Notification.permission : 'unsupported');
-
   const setControls = (registered) => {
     if (subscribeButton) subscribeButton.hidden = Boolean(registered);
     if (unsubscribeButton) unsubscribeButton.hidden = !registered;
-    if (consentCard) consentCard.hidden = Boolean(registered || notificationPermission() === 'denied');
+    if (consentCard) consentCard.hidden = Boolean(registered || ('Notification' in window && Notification.permission === 'denied'));
   };
-
-  const deviceInterest = (deviceId) => `samen_device_${String(deviceId || '').replace(/[^A-Za-z0-9_\-=@,.;]/g, '_').slice(0, 150)}`;
 
   const readJsonResponse = async (response) => {
     const text = await response.text();
-    if (!text.trim()) {
-      throw new Error(response.ok ? 'De server gaf geen antwoord terug.' : `Opslaan mislukt (${response.status}).`);
-    }
+    if (!text.trim()) throw new Error(response.ok ? 'De server gaf geen antwoord terug.' : `Opslaan mislukt (${response.status}).`);
     try {
       return JSON.parse(text);
     } catch (error) {
@@ -279,94 +273,105 @@ if (pushRoot) {
     }
   };
 
-  const postToken = async (endpoint, token) => {
+  const postSubscription = async (endpoint, subscriptionId) => {
     const body = new FormData();
     body.append('_token', pushRoot.dataset.csrfToken);
-    body.append('token', token);
+    body.append('subscription_id', subscriptionId);
     const response = await fetch(endpoint, { method: 'POST', headers: { Accept: 'application/json' }, body });
     const result = await readJsonResponse(response);
     if (!response.ok || !result.ok) throw new Error(result.message || 'Opslaan mislukt.');
     return result;
   };
 
-  const initializeBeams = async () => {
-    if (!window.isSecureContext) throw new Error('Pushnotificaties vereisen HTTPS.');
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) throw new Error('Deze browser ondersteunt geen web-push.');
-    if (!window.PusherPushNotifications?.Client) throw new Error('De Pusher Beams SDK kon niet worden geladen.');
-    const serviceWorkerRegistration = await navigator.serviceWorker.ready;
-    beamsClient = beamsClient || new window.PusherPushNotifications.Client({
-      instanceId: pushRoot.dataset.pushInstanceId,
-      serviceWorkerRegistration,
+  const iosInstallMessage = 'Op iPhone/iPad werkt push vanaf iOS 16.4 nadat je Samen via Safari aan het beginscherm hebt toegevoegd. Open daarna die geïnstalleerde app.';
+
+  const initializeOneSignal = () => new Promise((resolve, reject) => {
+    if (!window.isSecureContext) {
+      reject(new Error('Pushnotificaties vereisen HTTPS.'));
+      return;
+    }
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async (OneSignal) => {
+      try {
+        if (!oneSignalClient) {
+          await OneSignal.init({
+            appId: pushRoot.dataset.onesignalAppId,
+            serviceWorkerPath: serviceWorkerUrl,
+            serviceWorkerParam: { scope: appScope },
+            notifyButton: { enable: false },
+            autoResubscribe: true,
+          });
+          oneSignalClient = OneSignal;
+        }
+        resolve(oneSignalClient);
+      } catch (error) {
+        reject(error);
+      }
     });
-    return beamsClient;
-  };
+  });
 
-  const registerDevice = async (allowPrompt = false) => {
-    const client = await initializeBeams();
-    if (notificationPermission() === 'denied') {
-      setStatus('Notificaties zijn in de browser geblokkeerd. Pas de site-instellingen aan om updates te ontvangen.', true);
+  const syncSubscription = async (OneSignal) => {
+    const subscriptionId = OneSignal.User.PushSubscription.id || '';
+    const optedIn = Boolean(OneSignal.User.PushSubscription.optedIn);
+    if (!subscriptionId || !optedIn) {
       setControls(false);
       return false;
     }
-
-    if (!allowPrompt && notificationPermission() !== 'granted') {
-      setStatus('Tik één keer op toestaan om updates van gedeelde lijstjes te ontvangen.');
-      setControls(false);
-      return false;
-    }
-
-    await client.start();
-    const deviceId = await client.getDeviceId();
-    if (!deviceId) throw new Error('Pusher Beams kon geen apparaat-ID aanmaken.');
-    currentInterest = deviceInterest(deviceId);
-    const interests = await client.getDeviceInterests().catch(() => []);
-    if (!interests.includes(currentInterest)) {
-      await client.addDeviceInterest(currentInterest);
-    }
-    const result = await postToken(pushRoot.dataset.pushSubscribeEndpoint, currentInterest);
+    currentSubscriptionId = subscriptionId;
+    const result = await postSubscription(pushRoot.dataset.pushSubscribeEndpoint, subscriptionId);
     setStatus(result.message || 'Meldingen zijn actief op dit apparaat.');
     setControls(true);
     return true;
   };
 
+  const registerDevice = async (allowPrompt = false) => {
+    if (isIos && !isInstalledApp) throw new Error(iosInstallMessage);
+    const OneSignal = await initializeOneSignal();
+    if (!OneSignal.Notifications.isPushSupported()) {
+      throw new Error(isIos && !isInstalledApp ? iosInstallMessage : 'Deze browser ondersteunt geen web-push.');
+    }
+    if (Notification.permission === 'denied') {
+      setStatus('Notificaties zijn geblokkeerd. Pas de browser- of app-instellingen aan om updates te ontvangen.', true);
+      setControls(false);
+      return false;
+    }
+    if (!allowPrompt && !OneSignal.Notifications.permission) {
+      setStatus(isIos && !isInstalledApp ? iosInstallMessage : 'Tik één keer op toestaan om updates van gedeelde lijstjes te ontvangen.');
+      setControls(false);
+      return false;
+    }
+    if (!OneSignal.User.PushSubscription.optedIn) {
+      await OneSignal.User.PushSubscription.optIn();
+    }
+    return syncSubscription(OneSignal);
+  };
+
   const unregisterDevice = async () => {
-    const client = await initializeBeams();
-    if (!currentInterest) {
-      const deviceId = await client.getDeviceId().catch(() => '');
-      currentInterest = deviceId ? deviceInterest(deviceId) : '';
+    const OneSignal = await initializeOneSignal();
+    currentSubscriptionId = currentSubscriptionId || OneSignal.User.PushSubscription.id || '';
+    if (currentSubscriptionId) {
+      await postSubscription(pushRoot.dataset.pushUnsubscribeEndpoint, currentSubscriptionId);
     }
-    if (currentInterest) {
-      await client.removeDeviceInterest(currentInterest).catch(() => {});
-      await postToken(pushRoot.dataset.pushUnsubscribeEndpoint, currentInterest);
-    }
-    await client.stop();
-    currentInterest = '';
+    await OneSignal.User.PushSubscription.optOut();
+    currentSubscriptionId = '';
     setStatus('Dit apparaat is afgemeld.');
     setControls(false);
   };
 
-  consentButton?.addEventListener('click', async () => {
-    consentButton.disabled = true;
+  const runRegistration = async (button) => {
+    button.disabled = true;
     try {
       await registerDevice(true);
     } catch (error) {
       setStatus(error.message, true);
+      setControls(false);
     } finally {
-      consentButton.disabled = false;
+      button.disabled = false;
     }
-  });
+  };
 
-  subscribeButton?.addEventListener('click', async () => {
-    subscribeButton.disabled = true;
-    try {
-      await registerDevice(true);
-    } catch (error) {
-      setStatus(error.message, true);
-    } finally {
-      subscribeButton.disabled = false;
-    }
-  });
-
+  consentButton?.addEventListener('click', () => runRegistration(consentButton));
+  subscribeButton?.addEventListener('click', () => runRegistration(subscribeButton));
   unsubscribeButton?.addEventListener('click', async () => {
     unsubscribeButton.disabled = true;
     try {
@@ -378,13 +383,26 @@ if (pushRoot) {
     }
   });
 
-  window.addEventListener('load', () => {
-    registerDevice(false).catch((error) => {
+  window.addEventListener('load', async () => {
+    if (isIos && !isInstalledApp) {
+      setStatus(iosInstallMessage);
+      setControls(false);
+      return;
+    }
+    try {
+      const OneSignal = await initializeOneSignal();
+      OneSignal.User.PushSubscription.addEventListener('change', (event) => {
+        if (event.current.optedIn && event.current.id) {
+          syncSubscription(OneSignal).catch((error) => setStatus(error.message, true));
+        }
+      });
+      await registerDevice(false);
+    } catch (error) {
       setStatus(error.message, true);
       setControls(false);
-    });
+    }
   });
-} else if (beamsPush) {
-  const status = beamsPush.querySelector('[data-beams-status]');
-  if (status) status.textContent = 'Configureer Pusher Beams voordat je apparaten kunt registreren.';
+} else if (notificationPanel) {
+  const status = notificationPanel.querySelector('[data-notification-status]');
+  if (status) status.textContent = 'Configureer OneSignal voordat je apparaten kunt registreren.';
 }

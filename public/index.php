@@ -25,8 +25,6 @@ $router->get('/admin/notifications', [NotificationController::class, 'show']);
 $router->post('/admin/notifications/settings', [NotificationController::class, 'updateSettings']);
 $router->post('/notifications/subscribe', [NotificationController::class, 'subscribe']);
 $router->post('/notifications/unsubscribe', [NotificationController::class, 'unsubscribe']);
-$router->post('/admin/notifications/subscribe', [NotificationController::class, 'subscribe']);
-$router->post('/admin/notifications/unsubscribe', [NotificationController::class, 'unsubscribe']);
 $router->post('/admin/notifications/test', [NotificationController::class, 'sendTest']);
 $router->post('/admin/invitation-email', [AdminController::class, 'updateInvitationEmail']);
 $router->get('/privacy', [LegalController::class, 'privacy']);

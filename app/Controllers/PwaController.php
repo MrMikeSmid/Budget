@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
-use App\Services\BeamsSettings;
+use App\Services\OneSignalSettings;
 
 final class PwaController extends Controller
 {
@@ -77,8 +77,8 @@ final class PwaController extends Controller
         header('Content-Type: application/javascript; charset=utf-8');
         header('Cache-Control: no-cache');
         header('Service-Worker-Allowed: ' . url('/'));
-        if ((new BeamsSettings())->isConfigured()) {
-            echo 'importScripts("https://js.pusher.com/beams/service-worker.js");' . "\n";
+        if ((new OneSignalSettings())->isConfigured()) {
+            echo 'importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");' . "\n";
         }
         readfile(dirname(__DIR__, 2) . '/public/sw.js');
     }
