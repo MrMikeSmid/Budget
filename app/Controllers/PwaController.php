@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
-use App\Services\FirebaseSettings;
+use App\Services\BeamsSettings;
 
 final class PwaController extends Controller
 {
@@ -77,11 +77,8 @@ final class PwaController extends Controller
         header('Content-Type: application/javascript; charset=utf-8');
         header('Cache-Control: no-cache');
         header('Service-Worker-Allowed: ' . url('/'));
-        $firebase = new FirebaseSettings();
-        if ($firebase->isClientConfigured()) {
-            echo 'importScripts("https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js", "https://www.gstatic.com/firebasejs/11.10.0/firebase-messaging-compat.js");' . "\n";
-            echo 'firebase.initializeApp(' . json_encode($firebase->publicConfig(), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . ');' . "\n";
-            echo 'firebase.messaging();' . "\n";
+        if ((new BeamsSettings())->isConfigured()) {
+            echo 'importScripts("https://js.pusher.com/beams/service-worker.js");' . "\n";
         }
         readfile(dirname(__DIR__, 2) . '/public/sw.js');
     }

@@ -115,7 +115,6 @@ final class Database
             $this->pdo->exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
         }
 
-        $this->pdo->exec("DELETE FROM app_settings WHERE key IN ('one' || 'signal_app_id', 'one' || 'signal_api_key')");
         $legacyPushColumn = 'push_' . 'external_id';
         if (in_array($legacyPushColumn, $columnNames, true)) {
             $this->pdo->exec('DROP INDEX IF EXISTS idx_users_' . $legacyPushColumn);

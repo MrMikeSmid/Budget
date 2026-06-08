@@ -62,28 +62,25 @@ De webserver moet daarnaast zijn geconfigureerd om uitgaande e-mail van PHP te b
 php tests/run.php
 ```
 
-## Pushnotificaties testen met Firebase
+## Pushnotificaties testen met Pusher Beams
 
-Samen gebruikt voor de nieuwe, eenvoudige testopzet **Firebase Cloud Messaging (FCM)**. Automatische meldingen bij lijstwijzigingen zijn voorlopig uitgeschakeld. Een beheerder kan via `/admin/notifications` één apparaat registreren en daar handmatig een testmelding naartoe sturen.
+Samen gebruikt **Pusher Beams** voor de eenvoudige testopzet. Het gratis Sandbox-abonnement ondersteunt maximaal 1.000 apparaten. Automatische meldingen bij lijstwijzigingen zijn voorlopig uitgeschakeld; een beheerder kan via `/admin/notifications` een apparaat registreren en handmatig een testmelding sturen.
 
 ### Eenmalige configuratie
 
-1. Maak een Firebase-project en voeg daarin een **Web app** toe.
-2. Open **Project settings → General** en kopieer Project ID, Web API key, Messaging sender ID en App ID.
-3. Open **Project settings → Cloud Messaging → Web Push certificates**, maak een sleutel aan en kopieer de publieke VAPID-key.
-4. Maak via **Project settings → Service accounts** een private key en download het JSON-bestand.
-5. Log in als beheerder, open `/admin/notifications`, vul de waarden in en plak de volledige serviceaccount-JSON.
-6. Open dezelfde pagina via HTTPS op het testapparaat, activeer meldingen en stuur daarna een handmatige test.
+1. Maak via [Pusher](https://dashboard.pusher.com/) een gratis account.
+2. Kies **Beams**, maak een nieuwe instance aan en kies **Web**.
+3. Vul als websiteadres de HTTPS-oorsprong in, bijvoorbeeld `https://mikesmid.nl`.
+4. Open in de Beams-instance het tabblad **Credentials** of **Keys**.
+5. Kopieer de **Instance ID** en **Secret Key**.
+6. Log in als beheerder, open `/admin/notifications`, vul beide waarden in en sla ze op.
+7. Activeer meldingen op het testapparaat en stuur daarna een handmatige test.
 
-De publieke webconfiguratie en VAPID-key worden naar de browser gestuurd. De serviceaccount-JSON blijft uitsluitend server-side in de SQLite-database. Als alternatief kunnen de waarden via deze omgevingsvariabelen worden gezet:
+De Instance ID wordt naar de browser gestuurd. De Secret Key blijft uitsluitend server-side in de SQLite-database. Als alternatief kunnen de waarden via omgevingsvariabelen worden ingesteld:
 
 ```bash
-export SAMEN_FIREBASE_PROJECT_ID=voorbeeld-project
-export SAMEN_FIREBASE_API_KEY=...
-export SAMEN_FIREBASE_MESSAGING_SENDER_ID=...
-export SAMEN_FIREBASE_APP_ID=...
-export SAMEN_FIREBASE_VAPID_PUBLIC_KEY=...
-export SAMEN_FIREBASE_SERVICE_ACCOUNT_JSON='{"type":"service_account",...}'
+export SAMEN_BEAMS_INSTANCE_ID=...
+export SAMEN_BEAMS_SECRET_KEY=...
 ```
 
 Web-push vereist in productie HTTPS. Op iPhone en iPad moet Samen eerst via Safari aan het beginscherm worden toegevoegd voordat de geïnstalleerde PWA om notificatietoestemming kan vragen.

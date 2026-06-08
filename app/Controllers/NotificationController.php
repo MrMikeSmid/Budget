@@ -5,21 +5,19 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
-use App\Services\FirebaseSettings;
+use App\Services\BeamsSettings;
 use App\Services\PushNotificationService;
 use App\Services\PushSubscriptionService;
-use JsonException;
 
 final class NotificationController extends Controller
 {
     public function show(): void
     {
         $user = $this->admin();
-        $settings = new FirebaseSettings();
+        $settings = new BeamsSettings();
         view('admin/notifications', [
             'title' => 'Notificatietest',
-            'firebase' => $settings,
-            'firebase_public_config' => $settings->publicConfig(),
+            'beams' => $settings,
             'subscriptions' => (new PushSubscriptionService())->forUser((int) $user['id']),
         ]);
     }
@@ -28,31 +26,18 @@ final class NotificationController extends Controller
     {
         $this->admin();
         $this->verifyCsrf();
-        $serviceAccount = trim((string) ($_POST['service_account_json'] ?? ''));
-        $clearServiceAccount = ($_POST['clear_service_account'] ?? '') === '1';
-
-        if ($serviceAccount !== '') {
-            try {
-                $decoded = json_decode($serviceAccount, true, 32, JSON_THROW_ON_ERROR);
-            } catch (JsonException) {
-                flash('error', 'Het serviceaccount is geen geldige JSON-export.');
-                redirect('/admin/notifications');
-            }
-            if (!is_array($decoded) || empty($decoded['client_email']) || empty($decoded['private_key'])) {
-                flash('error', 'De JSON mist client_email of private_key. Gebruik een Firebase-serviceaccount.');
-                redirect('/admin/notifications');
-            }
+        $instanceId = trim((string) ($_POST['instance_id'] ?? ''));
+        $secretKey = trim((string) ($_POST['secret_key'] ?? ''));
+        $clearSecret = ($_POST['clear_secret_key'] ?? '') === '1';
+        if (preg_match('/^[0-9a-f-]{36}$/i', $instanceId) !== 1) {
+            flash('error', 'De Instance ID is ongeldig. Kopieer de volledige waarde uit Pusher Beams → Credentials.');
+            redirect('/admin/notifications');
         }
-
-        (new FirebaseSettings())->save([
-            'project_id' => $_POST['project_id'] ?? '',
-            'api_key' => $_POST['api_key'] ?? '',
-            'messaging_sender_id' => $_POST['messaging_sender_id'] ?? '',
-            'app_id' => $_POST['app_id'] ?? '',
-            'vapid_public_key' => $_POST['vapid_public_key'] ?? '',
-        ], $clearServiceAccount ? '' : ($serviceAccount === '' ? null : $serviceAccount));
-
-        flash('success', 'De Firebase-instellingen zijn opgeslagen.');
+        (new BeamsSettings())->save(
+            $instanceId,
+            $clearSecret ? '' : ($secretKey !== '' ? $secretKey : null),
+        );
+        flash('success', 'De Pusher Beams-instellingen zijn opgeslagen.');
         redirect('/admin/notifications');
     }
 
@@ -60,56 +45,46 @@ final class NotificationController extends Controller
     {
         $user = $this->admin();
         $this->verifyCsrf();
-        $token = trim((string) ($_POST['token'] ?? ''));
-        if ($token === '' || mb_strlen($token) > 4096) {
-            $this->json(['ok' => false, 'message' => 'Firebase gaf geen geldig apparaattoken terug.'], 422);
-            return;
+        $interest = trim((string) ($_POST['token'] ?? ''));
+        if (!preg_match('/^[A-Za-z0-9_\-=@,.;]{1,164}$/', $interest)) {
+            $this->json(['ok' => false, 'message' => 'Pusher Beams gaf geen geldige apparaatregistratie terug.'], 422);
         }
-        (new PushSubscriptionService())->save((int) $user['id'], $token, (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
-        $this->json(['ok' => true, 'message' => 'Dit apparaat is klaar voor een testmelding.']);
+        (new PushSubscriptionService())->save((int) $user['id'], $interest, (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
+        $this->json(['ok' => true, 'message' => 'Meldingen zijn op dit apparaat geactiveerd.']);
     }
 
     public function unsubscribe(): void
     {
         $user = $this->admin();
         $this->verifyCsrf();
-        $token = trim((string) ($_POST['token'] ?? ''));
-        if ($token !== '') {
-            (new PushSubscriptionService())->delete((int) $user['id'], $token);
+        $interest = trim((string) ($_POST['token'] ?? ''));
+        if ($interest !== '') {
+            (new PushSubscriptionService())->delete((int) $user['id'], $interest);
         }
-        $this->json(['ok' => true, 'message' => 'Het lokale apparaattoken is verwijderd.']);
+        $this->json(['ok' => true, 'message' => 'Dit apparaat is afgemeld.']);
     }
 
     public function sendTest(): void
     {
         $user = $this->admin();
         $this->verifyCsrf();
-        $subscriptionId = filter_var($_POST['subscription_id'] ?? null, FILTER_VALIDATE_INT);
+        $subscriptionId = filter_input(INPUT_POST, 'subscription_id', FILTER_VALIDATE_INT);
         $message = trim((string) ($_POST['message'] ?? ''));
-        if (!$subscriptionId || $message === '' || mb_strlen($message) > 500) {
-            flash('error', 'Kies een apparaat en vul een testbericht van maximaal 500 tekens in.');
+        if (!$subscriptionId || $message === '') {
+            flash('error', 'Kies een apparaat en vul een bericht in.');
             redirect('/admin/notifications#testmelding');
         }
-
         $subscription = (new PushSubscriptionService())->findForUser((int) $user['id'], (int) $subscriptionId);
         if (!$subscription) {
-            flash('error', 'Het gekozen apparaattoken bestaat niet meer.');
+            flash('error', 'Dit apparaat is niet gevonden.');
             redirect('/admin/notifications#testmelding');
         }
-
         $push = new PushNotificationService();
         if ($push->sendToken($subscription['token'], $message, '/admin/notifications')) {
-            flash('success', 'Firebase heeft de testmelding geaccepteerd.');
+            flash('success', 'Pusher Beams heeft de testmelding geaccepteerd.');
         } else {
             flash('error', $push->lastError() ?? 'De testmelding kon niet worden verstuurd.');
         }
         redirect('/admin/notifications#testmelding');
-    }
-
-    private function json(array $payload, int $status = 200): void
-    {
-        http_response_code($status);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     }
 }
