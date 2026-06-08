@@ -4,22 +4,21 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use RuntimeException;
+
 final class PushNotificationService
 {
-    private const ENDPOINT = 'https://api.onesignal.com/notifications?c=push';
-
-    /** @var callable(string, array<string, string>, string): (bool|array{status: int, body: string}) */
     private $transport;
     private ?string $lastError = null;
 
     public function __construct(?callable $transport = null)
     {
-        $this->transport = $transport ?? [$this, 'post'];
+        $this->transport = $transport ?? [$this, 'request'];
     }
 
     public function isConfigured(): bool
     {
-        return (new OneSignalSettings())->isConfigured();
+        return (new FirebaseSettings())->isConfigured();
     }
 
     public function lastError(): ?string
@@ -27,141 +26,128 @@ final class PushNotificationService
         return $this->lastError;
     }
 
-    /** @param list<int> $userIds */
-    public function send(array $userIds, string $message, string $path = '/'): bool
+    public function sendToken(string $token, string $message, string $path = '/'): bool
     {
         $this->lastError = null;
-        $userIds = array_values(array_unique(array_filter($userIds, static fn(int $id): bool => $id > 0)));
-        if (!$this->isConfigured()) {
-            return $this->fail('De OneSignal App ID of API key ontbreekt.');
+        $settings = new FirebaseSettings();
+        if (!$settings->isServerConfigured()) {
+            return $this->fail('Firebase is server-side nog niet volledig ingesteld.');
         }
-        if ($userIds === []) {
-            return $this->fail('Er zijn geen ontvangers geselecteerd.');
+        if (trim($token) === '') {
+            return $this->fail('Dit apparaat heeft geen geldig Firebase-token.');
         }
-
-        $externalIds = $this->externalIdsForUsers($userIds);
-        if ($externalIds === []) {
-            return $this->fail('De geselecteerde gebruikers hebben geen push-ID.');
-        }
-
-        $oneSignal = new OneSignalSettings();
-        $payload = json_encode([
-            'app_id' => $oneSignal->appId(),
-            'include_aliases' => [
-                'external_id' => $externalIds,
-            ],
-            'target_channel' => 'push',
-            'headings' => ['en' => 'Samen'],
-            'contents' => ['en' => $message],
-            'url' => absolute_url($path),
-        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-
-        $headers = [
-            'Authorization' => 'Key ' . $oneSignal->apiKey(),
-            'Content-Type' => 'application/json; charset=utf-8',
-        ];
 
         try {
-            $result = ($this->transport)(self::ENDPOINT, $headers, $payload);
-            if (is_bool($result)) {
-                return $result || $this->fail('De verbinding met OneSignal is mislukt.');
-            }
-            return $this->responseWasAccepted($result['status'], $result['body']);
+            $accessToken = $this->accessToken($settings->serviceAccount());
+            $payload = json_encode([
+                'message' => [
+                    'token' => $token,
+                    'notification' => [
+                        'title' => 'Samen',
+                        'body' => mb_substr(trim($message), 0, 500),
+                    ],
+                    'webpush' => [
+                        'fcm_options' => ['link' => absolute_url($path)],
+                        'notification' => ['icon' => absolute_url('/pwa-icon/app-192')],
+                    ],
+                ],
+            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            $response = ($this->transport)(
+                'POST',
+                'https://fcm.googleapis.com/v1/projects/' . rawurlencode($settings->projectId()) . '/messages:send',
+                ['Authorization: Bearer ' . $accessToken, 'Content-Type: application/json'],
+                $payload,
+            );
         } catch (\Throwable $exception) {
-            error_log('Samen push notification failed: ' . $exception->getMessage());
-            return $this->fail('De verbinding met OneSignal is mislukt.');
+            error_log('Samen Firebase push failed: ' . $exception->getMessage());
+            return $this->fail('Firebase kon niet worden bereikt of geverifieerd.');
         }
+
+        $status = (int) ($response['status'] ?? 0);
+        $body = json_decode((string) ($response['body'] ?? ''), true);
+        if ($status >= 200 && $status < 300 && !empty($body['name'])) {
+            return true;
+        }
+
+        error_log('Samen Firebase push rejected (HTTP ' . $status . '): ' . mb_substr((string) ($response['body'] ?? ''), 0, 1000));
+        if ($status === 401 || $status === 403) {
+            return $this->fail('Firebase heeft het serviceaccount geweigerd.');
+        }
+        if ($status === 404) {
+            return $this->fail('Het Firebase-project of apparaat-token is niet gevonden.');
+        }
+        return $this->fail('Firebase heeft de testmelding geweigerd (HTTP ' . $status . ').');
     }
 
-    /** @param list<int> $userIds
-     *  @return list<string>
-     */
-    private function externalIdsForUsers(array $userIds): array
+    private function accessToken(array $account): string
     {
-        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
-        $stmt = db()->prepare("SELECT push_external_id FROM users WHERE id IN ($placeholders)");
-        $stmt->execute($userIds);
-        return array_values(array_filter(array_column($stmt->fetchAll(), 'push_external_id')));
+        $issuedAt = time();
+        $header = $this->base64Url(json_encode(['alg' => 'RS256', 'typ' => 'JWT'], JSON_THROW_ON_ERROR));
+        $claims = $this->base64Url(json_encode([
+            'iss' => $account['client_email'] ?? '',
+            'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
+            'aud' => 'https://oauth2.googleapis.com/token',
+            'iat' => $issuedAt,
+            'exp' => $issuedAt + 3600,
+        ], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+        $unsigned = $header . '.' . $claims;
+        $signature = '';
+        if (!openssl_sign($unsigned, $signature, (string) ($account['private_key'] ?? ''), OPENSSL_ALGO_SHA256)) {
+            throw new RuntimeException('Het serviceaccount kon de OAuth-aanvraag niet ondertekenen.');
+        }
+
+        $response = ($this->transport)(
+            'POST',
+            'https://oauth2.googleapis.com/token',
+            ['Content-Type: application/x-www-form-urlencoded'],
+            http_build_query([
+                'grant_type' => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                'assertion' => $unsigned . '.' . $this->base64Url($signature),
+            ]),
+        );
+        $body = json_decode((string) ($response['body'] ?? ''), true);
+        if ((int) ($response['status'] ?? 0) !== 200 || empty($body['access_token'])) {
+            throw new RuntimeException('Google OAuth gaf geen toegangstoken terug.');
+        }
+        return (string) $body['access_token'];
     }
 
-    /** @param array<string, string> $headers
-     *  @return array{status: int, body: string}
-     */
-    private function post(string $url, array $headers, string $payload): array
+    private function base64Url(string $value): string
+    {
+        return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+    }
+
+    private function request(string $method, string $url, array $headers, ?string $payload): array
     {
         if (function_exists('curl_init')) {
             $curl = curl_init($url);
             curl_setopt_array($curl, [
-                CURLOPT_POST => true,
-                CURLOPT_HTTPHEADER => array_map(
-                    static fn(string $name, string $value): string => $name . ': ' . $value,
-                    array_keys($headers),
-                    array_values($headers),
-                ),
+                CURLOPT_CUSTOMREQUEST => $method,
+                CURLOPT_HTTPHEADER => $headers,
                 CURLOPT_POSTFIELDS => $payload,
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_CONNECTTIMEOUT => 5,
-                CURLOPT_TIMEOUT => 10,
+                CURLOPT_TIMEOUT => 20,
             ]);
-            $response = curl_exec($curl);
-            $status = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
-            if ($response === false) {
-                $error = curl_error($curl);
-                curl_close($curl);
-                throw new \RuntimeException($error);
+            $body = curl_exec($curl);
+            if ($body === false) {
+                throw new RuntimeException(curl_error($curl));
             }
+            $status = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
             curl_close($curl);
-            return ['status' => $status, 'body' => $response];
+            return ['status' => $status, 'body' => $body];
         }
 
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'POST',
-                'header' => implode("\r\n", array_map(
-                    static fn(string $name, string $value): string => $name . ': ' . $value,
-                    array_keys($headers),
-                    array_values($headers),
-                )),
-                'content' => $payload,
-                'timeout' => 10,
-                'ignore_errors' => true,
-            ],
-        ]);
-
-        $response = @file_get_contents($url, false, $context);
+        $context = stream_context_create(['http' => [
+            'method' => $method,
+            'header' => implode("\r\n", $headers),
+            'content' => $payload ?? '',
+            'ignore_errors' => true,
+            'timeout' => 20,
+        ]]);
+        $body = file_get_contents($url, false, $context);
         $statusLine = $http_response_header[0] ?? '';
-        if ($response === false) {
-            throw new \RuntimeException('OneSignal gaf geen antwoord.');
-        }
         preg_match('/\s(\d{3})\s/', $statusLine, $matches);
-        return ['status' => (int) ($matches[1] ?? 0), 'body' => $response];
-    }
-
-    private function responseWasAccepted(int $status, string $body): bool
-    {
-        try {
-            $response = json_decode($body, true, flags: JSON_THROW_ON_ERROR);
-        } catch (\JsonException) {
-            error_log('Samen push notification failed: invalid OneSignal response (HTTP ' . $status . ').');
-            return $this->fail('OneSignal gaf een ongeldig antwoord.');
-        }
-
-        if ($status >= 200 && $status < 300 && is_string($response['id'] ?? null) && $response['id'] !== '') {
-            return true;
-        }
-
-        $details = $response['errors'] ?? $response['warnings'] ?? $response['message'] ?? null;
-        $encodedDetails = is_string($details) ? $details : json_encode($details, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        $logDetails = $encodedDetails ? ': ' . mb_substr($encodedDetails, 0, 1000) : '';
-        error_log('Samen push notification rejected (HTTP ' . $status . ')' . $logDetails);
-
-        if ($status === 401 || $status === 403) {
-            return $this->fail('OneSignal heeft de API key geweigerd. Controleer de App API Key.');
-        }
-        if ($status >= 200 && $status < 300) {
-            return $this->fail('OneSignal vond geen actief pushabonnement voor deze gebruiker.');
-        }
-        return $this->fail('OneSignal heeft de melding geweigerd (HTTP ' . $status . ').');
+        return ['status' => (int) ($matches[1] ?? 0), 'body' => $body === false ? '' : $body];
     }
 
     private function fail(string $message): false

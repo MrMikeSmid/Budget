@@ -23,15 +23,7 @@
         <button type="button" class="button button--soft button--wide" data-close-modal>Begrepen</button>
     </div>
 </dialog>
-<?php if ((new \App\Services\OneSignalSettings())->appId() !== ''): ?>
-<div class="settings-section notification-settings" data-push-settings>
-    <span class="eyebrow">Op de hoogte blijven</span><h2>Pushnotificaties</h2>
-    <p class="section-intro" data-push-status>De notificatie-instellingen worden geladen…</p>
-    <button type="button" class="button button--primary" data-push-toggle disabled>Meldingen aanzetten</button>
-    <button type="button" class="button button--outline" data-push-delete hidden data-endpoint="<?= e(url('/settings/push/subscription/delete')) ?>" data-csrf-token="<?= e(csrf_token()) ?>">Abonnement van dit apparaat verwijderen</button>
-    <small class="notification-settings__hint">Je krijgt alleen een melding wanneer iemand anders iets wijzigt in een gedeeld lijstje. Verwijderen wist de koppeling voor dit apparaat definitief uit OneSignal.</small>
-</div>
-<?php endif; ?>
+
 <div class="settings-section">
     <span class="eyebrow">Over jou</span><h2>Profiel</h2>
     <form method="post" action="<?= e(url('/settings/profile')) ?>" enctype="multipart/form-data">

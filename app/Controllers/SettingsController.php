@@ -6,7 +6,6 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Models\User;
-use App\Services\OneSignalSubscriptionService;
 
 final class SettingsController extends Controller
 {
@@ -83,25 +82,7 @@ final class SettingsController extends Controller
     }
 
 
-    public function deletePushSubscription(): void
-    {
-        $user = $this->auth();
-        $this->verifyCsrf();
 
-        $subscriptionId = trim((string) ($_POST['subscription_id'] ?? ''));
-        $subscriptions = new OneSignalSubscriptionService();
-        header('Content-Type: application/json; charset=utf-8');
-        if ($subscriptions->deleteForExternalId((string) $user['push_external_id'], $subscriptionId)) {
-            echo json_encode(['ok' => true], JSON_THROW_ON_ERROR);
-            return;
-        }
-
-        http_response_code(422);
-        echo json_encode([
-            'ok' => false,
-            'message' => $subscriptions->lastError() ?? 'Het abonnement kon niet worden verwijderd.',
-        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
-    }
 
     private function storeProfileImage(?array $upload): string|false|null
     {

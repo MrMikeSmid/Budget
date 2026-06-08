@@ -1,4 +1,4 @@
-<?php $viewer = current_user(); $flashes = pull_flashes(); $oneSignal = new \App\Services\OneSignalSettings(); $oneSignalAppId = $oneSignal->appId(); $pushEnabled = $viewer && $oneSignalAppId !== ''; ?>
+<?php $viewer = current_user(); $flashes = pull_flashes(); ?>
 <!doctype html>
 <html lang="nl">
 <head>
@@ -18,9 +18,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
-    <?php if ($pushEnabled): ?><script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script><?php endif; ?>
 </head>
-<body class="<?= $viewer ? 'is-authenticated' : 'is-guest' ?>" data-service-worker="<?= e(url('/sw.js')) ?>" data-app-scope="<?= e(url('/')) ?>"<?php if ($pushEnabled): ?> data-onesignal-app-id="<?= e($oneSignalAppId) ?>" data-onesignal-user="<?= e($viewer['push_external_id']) ?>" data-onesignal-worker="<?= e(url('/push/onesignal/OneSignalSDKWorker.js')) ?>" data-onesignal-scope="<?= e(url('/push/onesignal/')) ?>"<?php endif; ?>>
+<body class="<?= $viewer ? 'is-authenticated' : 'is-guest' ?>" data-service-worker="<?= e(url('/sw.js')) ?>" data-app-scope="<?= e(url('/')) ?>">
 <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
 <div class="app-shell">
     <?php if ($viewer && empty($viewer['password_hash'])): ?>

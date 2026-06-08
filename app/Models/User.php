@@ -30,8 +30,8 @@ final class User
         $local = explode('@', $email)[0];
         $name = ucwords(str_replace(['.', '_', '-'], ' ', $local));
         $isAdmin = $this->shouldCreateAsAdmin($email) ? 1 : 0;
-        $stmt = db()->prepare('INSERT INTO users (email, name, push_external_id, is_admin) VALUES (?, ?, ?, ?)');
-        $stmt->execute([$email, $name ?: 'Nieuw lid', 'samen-' . bin2hex(random_bytes(24)), $isAdmin]);
+        $stmt = db()->prepare('INSERT INTO users (email, name, is_admin) VALUES (?, ?, ?)');
+        $stmt->execute([$email, $name ?: 'Nieuw lid', $isAdmin]);
         return $this->find((int) db()->lastInsertId());
     }
 

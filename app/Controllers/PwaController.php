@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Services\FirebaseSettings;
 
 final class PwaController extends Controller
 {
@@ -76,6 +77,12 @@ final class PwaController extends Controller
         header('Content-Type: application/javascript; charset=utf-8');
         header('Cache-Control: no-cache');
         header('Service-Worker-Allowed: ' . url('/'));
+        $firebase = new FirebaseSettings();
+        if ($firebase->isClientConfigured()) {
+            echo 'importScripts("https://www.gstatic.com/firebasejs/11.10.0/firebase-app-compat.js", "https://www.gstatic.com/firebasejs/11.10.0/firebase-messaging-compat.js");' . "\n";
+            echo 'firebase.initializeApp(' . json_encode($firebase->publicConfig(), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . ');' . "\n";
+            echo 'firebase.messaging();' . "\n";
+        }
         readfile(dirname(__DIR__, 2) . '/public/sw.js');
     }
 
@@ -118,12 +125,5 @@ final class PwaController extends Controller
             . $type
             . $data
             . pack('H*', hash('crc32b', $type . $data));
-    }
-
-    public function oneSignalWorker(): void
-    {
-        header('Content-Type: application/javascript; charset=utf-8');
-        header('Cache-Control: public, max-age=3600');
-        echo 'importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");';
     }
 }
