@@ -322,6 +322,8 @@ assert_true(str_contains($javascript, 'waitForActiveSubscription()'), 'enabling 
 assert_true(str_contains($javascript, 'OneSignal.User.PushSubscription.token'), 'an active subscription requires a real browser push token');
 assert_true(str_contains($javascript, 'autoResubscribe: true'), 'OneSignal automatically restores browser push subscriptions');
 assert_true(str_contains($javascript, 'repairPushSubscription'), 'an opted-in subscription without a token is repaired automatically');
+assert_true(str_contains($javascript, 'resubscribePushSubscription'), 'stale opted-in subscriptions can be forced through a fresh opt-in cycle');
+assert_true(str_contains($javascript, 'pushSubscription.optOut(), 5000'), 'token recovery briefly opts out before rebuilding an already opted-in subscription');
 assert_true(str_contains($javascript, "permission === 'denied'"), 'blocked browser permissions are explained at user level');
 assert_true(str_contains($javascript, 'OneSignal.User.PushSubscription.optIn()'), 'the settings button can subscribe the current device to push');
 assert_true(str_contains($javascript, 'withTimeout(OneSignal.login(oneSignalUser)'), 'push subscriptions are linked to the signed-in user without hanging indefinitely');
@@ -340,6 +342,9 @@ assert_true(str_contains($adminController, 'public function debug(): void'), 'th
 assert_true(!str_contains($debugView, 'apiKey()'), 'the diagnostics view never renders the OneSignal API key');
 assert_true(str_contains($debugView, 'data-debug-report'), 'the diagnostics page provides a copyable report');
 assert_true(str_contains($javascript, 'navigator.serviceWorker.getRegistrations()'), 'push diagnostics inspect browser service worker registrations');
+assert_true(str_contains($debugView, 'browser-push'), 'push diagnostics show the browser PushManager subscription separately');
+assert_true(str_contains($javascript, 'pushManager.getSubscription()'), 'push diagnostics compare OneSignal state with the native browser push subscription');
+assert_true(str_contains($javascript, 'opt-in-refresh'), 'push diagnostics explain the forced token recovery step');
 assert_true(str_contains($javascript, "Notification.permission"), 'push diagnostics expose the native browser permission');
 assert_true(str_contains($javascript, "OneSignal.User.PushSubscription.token"), 'push diagnostics inspect the OneSignal push token');
 assert_true(str_contains($javascript, 'event.current'), 'push diagnostics wait for the current subscription-change state');

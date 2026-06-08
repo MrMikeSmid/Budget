@@ -30,7 +30,7 @@
         <section class="settings-section admin-card debug-card">
             <div class="debug-card__heading"><div><span class="eyebrow">Dit apparaat</span><h2>Browser & PWA</h2></div><span class="debug-badge" data-debug-browser-badge>Bezig</span></div>
             <div class="debug-check-list" data-debug-browser-checks>
-                <?php foreach (['secure-context' => 'Secure context', 'notification-api' => 'Notification API', 'permission' => 'Browsertoestemming', 'standalone' => 'PWA-installatie', 'service-worker' => 'Service worker', 'worker-endpoint' => 'OneSignal worker-endpoint'] as $key => $label): ?>
+                <?php foreach (['secure-context' => 'Secure context', 'notification-api' => 'Notification API', 'permission' => 'Browsertoestemming', 'standalone' => 'PWA-installatie', 'service-worker' => 'Service worker', 'worker-endpoint' => 'OneSignal worker-endpoint', 'browser-push' => 'Browser push-abonnement'] as $key => $label): ?>
                     <article class="debug-check debug-check--pending" data-debug-check="<?= e($key) ?>"><span class="debug-check__icon" aria-hidden="true"></span><div><strong><?= e($label) ?></strong><code>Controleren…</code><small></small></div></article>
                 <?php endforeach; ?>
             </div>
