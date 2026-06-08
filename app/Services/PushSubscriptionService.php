@@ -32,6 +32,20 @@ final class PushSubscriptionService
         return $stmt->fetchAll();
     }
 
+    /** @param list<int> $userIds @return list<string> */
+    public function tokensForUsers(array $userIds): array
+    {
+        $userIds = array_values(array_unique(array_filter(array_map('intval', $userIds), static fn(int $id): bool => $id > 0)));
+        if ($userIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+        $stmt = db()->prepare('SELECT token FROM push_subscriptions WHERE user_id IN (' . $placeholders . ') ORDER BY id ASC');
+        $stmt->execute($userIds);
+        return array_values(array_column($stmt->fetchAll(), 'token'));
+    }
+
     public function findForUser(int $userId, int $subscriptionId): ?array
     {
         $stmt = db()->prepare('SELECT id, token FROM push_subscriptions WHERE id = ? AND user_id = ?');

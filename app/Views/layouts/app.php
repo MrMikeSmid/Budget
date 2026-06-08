@@ -1,4 +1,9 @@
-<?php $viewer = current_user(); $flashes = pull_flashes(); ?>
+<?php
+$viewer = current_user();
+$flashes = pull_flashes();
+$beams = $viewer ? new \App\Services\BeamsSettings() : null;
+$pushEnabled = $beams?->isConfigured() ?? false;
+?>
 <!doctype html>
 <html lang="nl">
 <head>
@@ -19,7 +24,7 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
 </head>
-<body class="<?= $viewer ? 'is-authenticated' : 'is-guest' ?>" data-service-worker="<?= e(url('/sw.js')) ?>" data-app-scope="<?= e(url('/')) ?>">
+<body class="<?= $viewer ? 'is-authenticated' : 'is-guest' ?>" data-service-worker="<?= e(url('/sw.js')) ?>" data-app-scope="<?= e(url('/')) ?>"<?php if ($pushEnabled): ?> data-push-notifications data-push-instance-id="<?= e($beams->instanceId()) ?>" data-push-subscribe-endpoint="<?= e(url('/notifications/subscribe')) ?>" data-push-unsubscribe-endpoint="<?= e(url('/notifications/unsubscribe')) ?>" data-csrf-token="<?= e(csrf_token()) ?>"<?php endif; ?>>
 <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
 <div class="app-shell">
     <?php if ($viewer && empty($viewer['password_hash'])): ?>
@@ -32,6 +37,12 @@
     <?php foreach ($flashes as $type => $message): ?>
         <div class="toast toast--<?= e($type) ?>" role="status"><span><?= e($message) ?></span><button type="button" aria-label="Sluiten">×</button></div>
     <?php endforeach; ?>
+    <?php if ($pushEnabled): ?>
+        <section class="push-consent" data-push-consent hidden aria-live="polite">
+            <div><strong>Meldingen voor gedeelde lijstjes</strong><span data-push-consent-text>Ontvang automatisch updates wanneer iemand een taak toevoegt, afrondt of wijzigt.</span></div>
+            <button type="button" class="button button--primary button--small" data-push-consent-button>Meldingen toestaan</button>
+        </section>
+    <?php endif; ?>
     <main class="page-content"><?= $content ?></main>
     <?php if ($viewer): ?>
         <nav class="bottom-nav" aria-label="Hoofdnavigatie">
@@ -62,5 +73,8 @@
         </dialog>
     <?php endif; ?>
 </div>
+<?php if ($pushEnabled): ?>
+<script src="https://js.pusher.com/beams/1.0/push-notifications-cdn.js" defer></script>
+<?php endif; ?>
 <script src="<?= e(asset('js/app.js')) ?>" defer></script>
 </body></html>

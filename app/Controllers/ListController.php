@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Models\TodoList;
 use App\Models\User;
 use App\Services\InvitationMailer;
+use App\Services\ListNotificationService;
 
 final class ListController extends Controller
 {
@@ -65,10 +66,11 @@ final class ListController extends Controller
     {
         $user = $this->auth();
         $this->verifyCsrf();
-        $this->accessible((int) $id, (int) $user['id']);
+        $list = $this->accessible((int) $id, (int) $user['id']);
         $title = trim((string) ($_POST['title'] ?? ''));
         if ($title !== '' && mb_strlen($title) <= 160) {
             $this->lists->addItem((int) $id, (int) $user['id'], $title);
+            $this->notify(fn(ListNotificationService $notifications) => $notifications->taskCreated($list, $user, $title));
         }
         if ($this->wantsJson()) {
             $this->respondWithState((int) $id);
@@ -81,8 +83,13 @@ final class ListController extends Controller
     {
         $user = $this->auth();
         $this->verifyCsrf();
-        $this->accessible((int) $listId, (int) $user['id']);
-        $this->lists->toggleItem((int) $itemId, (int) $listId, (int) $user['id']);
+        $list = $this->accessible((int) $listId, (int) $user['id']);
+        $item = $this->lists->toggleItem((int) $itemId, (int) $listId, (int) $user['id']);
+        if ($item) {
+            $this->notify(static fn(ListNotificationService $notifications) => (bool) $item['is_completed']
+                ? $notifications->taskCompleted($list, $user, $item['title'])
+                : $notifications->taskChanged($list, $user, $item['title']));
+        }
         if ($this->wantsJson()) {
             $this->respondWithState((int) $listId);
             return;
@@ -122,6 +129,17 @@ final class ListController extends Controller
         $this->lists->delete((int) $id, (int) $user['id']);
         flash('success', 'Het lijstje is verwijderd.');
         redirect('/');
+    }
+
+    private function notify(callable $notification): void
+    {
+        try {
+            if (!$notification(new ListNotificationService())) {
+                error_log('Samen kon een lijstnotificatie niet versturen.');
+            }
+        } catch (\Throwable $exception) {
+            error_log('Samen lijstnotificatie mislukt: ' . $exception->getMessage());
+        }
     }
 
     private function accessible(int $id, int $userId): array

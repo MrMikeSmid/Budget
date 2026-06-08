@@ -28,20 +28,41 @@ final class PushNotificationService
 
     public function sendToken(string $interest, string $message, string $path = '/'): bool
     {
+        return $this->sendInterests([$interest], 'Samen', $message, $path);
+    }
+
+    /** @param list<int> $userIds */
+    public function sendUsers(array $userIds, string $title, string $message, string $path = '/'): bool
+    {
+        $interests = (new PushSubscriptionService())->tokensForUsers($userIds);
+        if ($interests === []) {
+            return true;
+        }
+
+        return $this->sendInterests($interests, $title, $message, $path);
+    }
+
+    /** @param list<string> $interests */
+    public function sendInterests(array $interests, string $title, string $message, string $path = '/'): bool
+    {
         $this->lastError = null;
         $settings = new BeamsSettings();
         if (!$settings->isConfigured()) {
             return $this->fail('Pusher Beams is nog niet volledig ingesteld.');
         }
-        if (!preg_match('/^[A-Za-z0-9_\-=@,.;]{1,164}$/', $interest)) {
-            return $this->fail('Dit apparaat heeft geen geldige Beams-registratie.');
+
+        $interests = array_values(array_unique(array_filter($interests, fn(mixed $interest): bool =>
+            is_string($interest) && preg_match('/^[A-Za-z0-9_\-=@,.;]{1,164}$/', $interest) === 1
+        )));
+        if ($interests === []) {
+            return $this->fail('Er zijn geen geldige Beams-apparaatregistraties gevonden.');
         }
 
         $instanceId = $settings->instanceId();
         $payload = json_encode([
-            'interests' => [$interest],
+            'interests' => $interests,
             'web' => ['notification' => [
-                'title' => 'Samen',
+                'title' => mb_substr(trim($title), 0, 80) ?: 'Samen',
                 'body' => mb_substr(trim($message), 0, 500),
                 'deep_link' => absolute_url($path),
                 'icon' => absolute_url('/pwa-icon/app-192'),
@@ -72,7 +93,7 @@ final class PushNotificationService
             402 => $this->fail('De limiet van het Pusher Beams-abonnement is bereikt.'),
             404 => $this->fail('De Pusher Beams Instance ID is niet gevonden.'),
             422 => $this->fail('Pusher Beams kon deze apparaatregistratie niet verwerken.'),
-            default => $this->fail('Pusher Beams heeft de testmelding geweigerd (HTTP ' . $status . ').'),
+            default => $this->fail('Pusher Beams heeft de melding geweigerd (HTTP ' . $status . ').'),
         };
     }
 
@@ -85,7 +106,7 @@ final class PushNotificationService
                 CURLOPT_HTTPHEADER => $headers,
                 CURLOPT_POSTFIELDS => $payload,
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 20,
+                CURLOPT_TIMEOUT => 10,
             ]);
             $body = curl_exec($curl);
             if ($body === false) {
@@ -101,7 +122,7 @@ final class PushNotificationService
             'header' => implode("\r\n", $headers),
             'content' => $payload ?? '',
             'ignore_errors' => true,
-            'timeout' => 20,
+            'timeout' => 10,
         ]]);
         $body = file_get_contents($url, false, $context);
         $statusLine = $http_response_header[0] ?? '';

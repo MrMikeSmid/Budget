@@ -235,19 +235,34 @@ window.addEventListener('pagehide', () => {
   if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
 }, { once: true });
 
+
+const pushRoot = document.body.matches('[data-push-notifications]') ? document.body : null;
 const beamsPush = document.querySelector('[data-beams-push]');
-if (beamsPush) {
-  const status = beamsPush.querySelector('[data-beams-status]');
-  const subscribeButton = beamsPush.querySelector('[data-beams-subscribe]');
-  const unsubscribeButton = beamsPush.querySelector('[data-beams-unsubscribe]');
-  const csrfToken = beamsPush.dataset.csrfToken;
+const consentCard = document.querySelector('[data-push-consent]');
+const consentButton = document.querySelector('[data-push-consent-button]');
+const consentText = document.querySelector('[data-push-consent-text]');
+
+if (pushRoot) {
+  const status = beamsPush?.querySelector('[data-beams-status]');
+  const subscribeButton = beamsPush?.querySelector('[data-beams-subscribe]');
+  const unsubscribeButton = beamsPush?.querySelector('[data-beams-unsubscribe]');
   let beamsClient = null;
   let currentInterest = '';
 
   const setStatus = (message, isError = false) => {
-    if (!status) return;
-    status.textContent = message;
-    status.classList.toggle('form-error', isError);
+    if (status) {
+      status.textContent = message;
+      status.classList.toggle('form-error', isError);
+    }
+    if (consentText && message) consentText.textContent = message;
+  };
+
+  const notificationPermission = () => ('Notification' in window ? Notification.permission : 'unsupported');
+
+  const setControls = (registered) => {
+    if (subscribeButton) subscribeButton.hidden = Boolean(registered);
+    if (unsubscribeButton) unsubscribeButton.hidden = !registered;
+    if (consentCard) consentCard.hidden = Boolean(registered || notificationPermission() === 'denied');
   };
 
   const deviceInterest = (deviceId) => `samen_device_${String(deviceId || '').replace(/[^A-Za-z0-9_\-=@,.;]/g, '_').slice(0, 150)}`;
@@ -266,7 +281,7 @@ if (beamsPush) {
 
   const postToken = async (endpoint, token) => {
     const body = new FormData();
-    body.append('_token', csrfToken);
+    body.append('_token', pushRoot.dataset.csrfToken);
     body.append('token', token);
     const response = await fetch(endpoint, { method: 'POST', headers: { Accept: 'application/json' }, body });
     const result = await readJsonResponse(response);
@@ -280,44 +295,71 @@ if (beamsPush) {
     if (!window.PusherPushNotifications?.Client) throw new Error('De Pusher Beams SDK kon niet worden geladen.');
     const serviceWorkerRegistration = await navigator.serviceWorker.ready;
     beamsClient = beamsClient || new window.PusherPushNotifications.Client({
-      instanceId: beamsPush.dataset.instanceId,
+      instanceId: pushRoot.dataset.pushInstanceId,
       serviceWorkerRegistration,
     });
     return beamsClient;
   };
 
-  const refreshState = async () => {
+  const registerDevice = async (allowPrompt = false) => {
     const client = await initializeBeams();
-    const state = await client.getRegistrationState();
-    const interests = await client.getDeviceInterests().catch(() => []);
-    const deviceId = await client.getDeviceId().catch(() => '');
-    currentInterest = deviceId ? deviceInterest(deviceId) : '';
-    const registered = currentInterest && interests.includes(currentInterest);
-    subscribeButton.hidden = Boolean(registered);
-    unsubscribeButton.hidden = !registered;
-    if (registered) {
-      setStatus('Dit apparaat is actief bij Pusher Beams. Je kunt nu een testmelding sturen.');
-    } else if (String(state).includes('DENIED')) {
-      setStatus('Notificaties zijn in de browser geblokkeerd. Pas de site-instellingen aan en probeer opnieuw.', true);
-    } else {
-      setStatus('Dit apparaat is nog niet geregistreerd.');
+    if (notificationPermission() === 'denied') {
+      setStatus('Notificaties zijn in de browser geblokkeerd. Pas de site-instellingen aan om updates te ontvangen.', true);
+      setControls(false);
+      return false;
     }
+
+    if (!allowPrompt && notificationPermission() !== 'granted') {
+      setStatus('Tik één keer op toestaan om updates van gedeelde lijstjes te ontvangen.');
+      setControls(false);
+      return false;
+    }
+
+    await client.start();
+    const deviceId = await client.getDeviceId();
+    if (!deviceId) throw new Error('Pusher Beams kon geen apparaat-ID aanmaken.');
+    currentInterest = deviceInterest(deviceId);
+    const interests = await client.getDeviceInterests().catch(() => []);
+    if (!interests.includes(currentInterest)) {
+      await client.addDeviceInterest(currentInterest);
+    }
+    const result = await postToken(pushRoot.dataset.pushSubscribeEndpoint, currentInterest);
+    setStatus(result.message || 'Meldingen zijn actief op dit apparaat.');
+    setControls(true);
+    return true;
   };
+
+  const unregisterDevice = async () => {
+    const client = await initializeBeams();
+    if (!currentInterest) {
+      const deviceId = await client.getDeviceId().catch(() => '');
+      currentInterest = deviceId ? deviceInterest(deviceId) : '';
+    }
+    if (currentInterest) {
+      await client.removeDeviceInterest(currentInterest).catch(() => {});
+      await postToken(pushRoot.dataset.pushUnsubscribeEndpoint, currentInterest);
+    }
+    await client.stop();
+    currentInterest = '';
+    setStatus('Dit apparaat is afgemeld.');
+    setControls(false);
+  };
+
+  consentButton?.addEventListener('click', async () => {
+    consentButton.disabled = true;
+    try {
+      await registerDevice(true);
+    } catch (error) {
+      setStatus(error.message, true);
+    } finally {
+      consentButton.disabled = false;
+    }
+  });
 
   subscribeButton?.addEventListener('click', async () => {
     subscribeButton.disabled = true;
     try {
-      const client = await initializeBeams();
-      await client.start();
-      const deviceId = await client.getDeviceId();
-      if (!deviceId) throw new Error('Pusher Beams kon geen apparaat-ID aanmaken.');
-      currentInterest = deviceInterest(deviceId);
-      await client.addDeviceInterest(currentInterest);
-      const result = await postToken(beamsPush.dataset.subscribeEndpoint, currentInterest);
-      setStatus(result.message);
-      subscribeButton.hidden = true;
-      unsubscribeButton.hidden = false;
-      window.setTimeout(() => window.location.reload(), 700);
+      await registerDevice(true);
     } catch (error) {
       setStatus(error.message, true);
     } finally {
@@ -328,21 +370,7 @@ if (beamsPush) {
   unsubscribeButton?.addEventListener('click', async () => {
     unsubscribeButton.disabled = true;
     try {
-      const client = await initializeBeams();
-      if (!currentInterest) {
-        const deviceId = await client.getDeviceId().catch(() => '');
-        currentInterest = deviceId ? deviceInterest(deviceId) : '';
-      }
-      if (currentInterest) {
-        await client.removeDeviceInterest(currentInterest).catch(() => {});
-        await postToken(beamsPush.dataset.unsubscribeEndpoint, currentInterest);
-      }
-      await client.stop();
-      currentInterest = '';
-      setStatus('Dit apparaat is afgemeld.');
-      subscribeButton.hidden = false;
-      unsubscribeButton.hidden = true;
-      window.setTimeout(() => window.location.reload(), 700);
+      await unregisterDevice();
     } catch (error) {
       setStatus(error.message, true);
     } finally {
@@ -350,7 +378,13 @@ if (beamsPush) {
     }
   });
 
-  if (subscribeButton && !subscribeButton.disabled) {
-    refreshState().catch((error) => setStatus(error.message, true));
-  }
+  window.addEventListener('load', () => {
+    registerDevice(false).catch((error) => {
+      setStatus(error.message, true);
+      setControls(false);
+    });
+  });
+} else if (beamsPush) {
+  const status = beamsPush.querySelector('[data-beams-status]');
+  if (status) status.textContent = 'Configureer Pusher Beams voordat je apparaten kunt registreren.';
 }

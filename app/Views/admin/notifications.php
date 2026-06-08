@@ -1,13 +1,9 @@
-<section class="settings-page admin-page" data-beams-push
-    data-instance-id="<?= e($beams->instanceId()) ?>"
-    data-subscribe-endpoint="<?= e(url('/admin/notifications/subscribe')) ?>"
-    data-unsubscribe-endpoint="<?= e(url('/admin/notifications/unsubscribe')) ?>"
-    data-csrf-token="<?= e(csrf_token()) ?>">
-<header class="topbar"><div><span class="eyebrow">Pushnotificaties</span><h1>Pusher Beams-test</h1></div><a class="button button--soft button--small" href="<?= e(url('/admin')) ?>">Terug naar admin</a></header>
+<section class="settings-page admin-page" data-beams-push>
+<header class="topbar"><div><span class="eyebrow">Pushnotificaties</span><h1>Pusher Beams</h1></div><a class="button button--soft button--small" href="<?= e(url('/admin')) ?>">Terug naar admin</a></header>
 <div class="settings-stack admin-grid">
     <div class="settings-section admin-card">
         <span class="eyebrow">Stap 1</span><h2>Pusher Beams instellen</h2>
-        <p class="section-intro">Deze test gebruikt Pusher Beams. Maak gratis een Beams-instance aan en kopieer alleen de Instance ID en Secret Key uit de Credentials-sectie.</p>
+        <p class="section-intro">Samen gebruikt Pusher Beams voor automatische meldingen bij wijzigingen in gedeelde lijstjes. Maak gratis een Beams-instance aan en kopieer alleen de Instance ID en Secret Key uit de Credentials-sectie.</p>
         <form method="post" action="<?= e(url('/admin/notifications/settings')) ?>">
             <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
             <label class="field"><span>Instance ID</span><input name="instance_id" value="<?= e($beams->instanceId()) ?>" required autocomplete="off"><small>Pusher Dashboard → Beams → jouw instance → Credentials.</small></label>
@@ -15,12 +11,12 @@
             <?php if ($beams->secretKey() !== ''): ?><label class="admin-check"><input type="checkbox" name="clear_secret_key" value="1"><span>Opgeslagen Secret Key wissen</span></label><?php endif; ?>
             <button class="button button--primary button--wide">Pusher Beams-instellingen opslaan</button>
         </form>
-        <div class="admin-status <?= $beams->isConfigured() ? 'admin-status--ok' : '' ?>"><strong><?= $beams->isConfigured() ? 'Pusher Beams is klaar voor testen' : 'Configuratie is nog niet compleet' ?></strong><span>Je hebt alleen een Instance ID en Secret Key nodig.</span></div>
+        <div class="admin-status <?= $beams->isConfigured() ? 'admin-status--ok' : '' ?>"><strong><?= $beams->isConfigured() ? 'Pusher Beams is actief' : 'Configuratie is nog niet compleet' ?></strong><span>Je hebt alleen een Instance ID en Secret Key nodig.</span></div>
     </div>
 
     <div class="settings-section admin-card">
-        <span class="eyebrow">Stap 2</span><h2>Dit apparaat registreren</h2>
-        <p class="section-intro" data-beams-status>Controleer eerst de configuratie en geef daarna browsertoestemming.</p>
+        <span class="eyebrow">Stap 2</span><h2>Meldingen op dit apparaat</h2>
+        <p class="section-intro" data-beams-status>Geef één keer browsertoestemming. Daarna houdt Samen de apparaatregistratie automatisch actief.</p>
         <button type="button" class="button button--primary button--wide" data-beams-subscribe <?= $beams->isConfigured() ? '' : 'disabled' ?>>Meldingen op dit apparaat activeren</button>
         <button type="button" class="button button--outline button--wide" data-beams-unsubscribe hidden>Dit apparaat afmelden</button>
         <small>Push vereist HTTPS. Op iPhone/iPad moet de PWA eerst via Safari aan het beginscherm zijn toegevoegd.</small>
@@ -41,6 +37,3 @@
     </div>
 </div>
 </section>
-<?php if ($beams->isConfigured()): ?>
-<script src="https://js.pusher.com/beams/1.0/push-notifications-cdn.js"></script>
-<?php endif; ?>
