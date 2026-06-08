@@ -12,7 +12,7 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 use App\Models\AppSetting;
 use App\Models\TodoList;
 use App\Models\User;
-use App\Services\FirebaseSettings;
+use App\Services\BeamsSettings;
 use App\Services\InvitationEmailSettings;
 use App\Services\InvitationMailer;
 use App\Services\PushNotificationService;
@@ -72,62 +72,40 @@ $mailer = new InvitationMailer(function (string $to, string $subject, string $me
 assert_true($mailer->send('invitee@example.nl', $owner, $lists->findAccessible($listId, (int) $owner['id'])), 'invitation mail uses the injected transport');
 assert_true(str_contains($sentMail['message'], 'http://localhost/development/lists/' . $listId), 'invitation mail contains an absolute list URL');
 
-$privateKey = openssl_pkey_new(['private_key_bits' => 2048]);
-openssl_pkey_export($privateKey, $privateKeyPem);
-$serviceAccount = json_encode([
-    'type' => 'service_account',
-    'client_email' => 'firebase-adminsdk@example-project.iam.gserviceaccount.com',
-    'private_key' => $privateKeyPem,
-], JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-$firebase = new FirebaseSettings();
-$firebase->save([
-    'project_id' => 'example-project',
-    'api_key' => 'public-api-key',
-    'messaging_sender_id' => '123456789',
-    'app_id' => '1:123456789:web:abcdef',
-    'vapid_public_key' => 'public-vapid-key',
-], $serviceAccount);
-assert_true($firebase->isConfigured(), 'Firebase is configured when client and server credentials are complete');
-assert_true((new AppSetting())->get('firebase_project_id') === 'example-project', 'Firebase project settings are stored in the database');
-$firebase->save([
-    'project_id' => 'example-project',
-    'api_key' => 'public-api-key',
-    'messaging_sender_id' => '123456789',
-    'app_id' => '1:123456789:web:abcdef',
-    'vapid_public_key' => 'public-vapid-key',
-], null);
-assert_true($firebase->serviceAccountJson() === $serviceAccount, 'leaving the service account blank preserves the stored secret');
+$beams = new BeamsSettings();
+$beams->save('123e4567-e89b-42d3-a456-426614174000', 'secret-456');
+assert_true($beams->isConfigured(), 'Pusher Beams is configured with an instance ID and secret key');
+assert_true((new AppSetting())->get('beams_instance_id') === '123e4567-e89b-42d3-a456-426614174000', 'the Beams instance ID is stored in the database');
+$beams->save('123e4567-e89b-42d3-a456-426614174000', null);
+assert_true($beams->secretKey() === 'secret-456', 'leaving the Beams secret blank preserves the stored key');
 
 $subscriptions = new PushSubscriptionService();
-$subscriptions->save((int) $owner['id'], 'device-token', 'Test Browser');
+$subscriptions->save((int) $owner['id'], 'samen_device_web_1234', 'Test Browser');
+$subscriptions->save((int) $owner['id'], 'samen_device_web_1234', 'Updated Browser');
 $storedSubscriptions = $subscriptions->forUser((int) $owner['id']);
-assert_true(count($storedSubscriptions) === 1, 'a Firebase device token is stored locally');
-assert_true($storedSubscriptions[0]['user_agent'] === 'Test Browser', 'the device description is stored with the token');
+assert_true(count($storedSubscriptions) === 1, 'a Beams device interest is stored locally without duplicates');
+assert_true($storedSubscriptions[0]['user_agent'] === 'Updated Browser', 'a repeated Beams registration refreshes its device metadata');
 
 $requests = [];
 $push = new PushNotificationService(function (string $method, string $url, array $headers, ?string $payload) use (&$requests): array {
     $requests[] = compact('method', 'url', 'headers', 'payload');
-    if ($url === 'https://oauth2.googleapis.com/token') {
-        return ['status' => 200, 'body' => json_encode(['access_token' => 'oauth-token'], JSON_THROW_ON_ERROR)];
-    }
-    return ['status' => 200, 'body' => json_encode(['name' => 'projects/example-project/messages/1'], JSON_THROW_ON_ERROR)];
+    return ['status' => 200, 'body' => json_encode(['publishId' => 'publish-123'], JSON_THROW_ON_ERROR)];
 });
-assert_true($push->sendToken('device-token', 'Handmatige test', '/admin/notifications'), 'Firebase accepts a successful test message response');
-assert_true(count($requests) === 2, 'sending first requests OAuth and then calls the messaging API');
-assert_true(str_contains($requests[1]['url'], '/v1/projects/example-project/messages:send'), 'the HTTP v1 Firebase project endpoint is used');
-assert_true(in_array('Authorization: Bearer oauth-token', $requests[1]['headers'], true), 'the Firebase request uses an OAuth bearer token');
-$payload = json_decode($requests[1]['payload'], true, flags: JSON_THROW_ON_ERROR);
-assert_true($payload['message']['token'] === 'device-token', 'the test message targets one explicit device token');
-assert_true($payload['message']['webpush']['fcm_options']['link'] === 'http://localhost/development/admin/notifications', 'notification clicks return to the test page');
+assert_true($push->sendToken('samen_device_web_1234', 'Handmatige test', '/admin/notifications'), 'Pusher Beams accepts a successful test message response');
+assert_true(count($requests) === 1, 'sending through Beams needs a single provider request');
+assert_true(str_contains($requests[0]['url'], '123e4567-e89b-42d3-a456-426614174000.pushnotifications.pusher.com'), 'the Beams instance endpoint is used');
+assert_true(in_array('Authorization: Bearer secret-456', $requests[0]['headers'], true), 'the Beams request uses the server-side secret key');
+$pushPayload = json_decode($requests[0]['payload'], true, 32, JSON_THROW_ON_ERROR);
+assert_true($pushPayload['interests'] === ['samen_device_web_1234'], 'the notification targets the selected device interest');
+assert_true($pushPayload['web']['notification']['deep_link'] === 'http://localhost/development/admin/notifications', 'notification clicks return to the test page');
 
 $notificationPage = render_view('admin/notifications', [
-    'firebase' => $firebase,
-    'firebase_public_config' => $firebase->publicConfig(),
+    'beams' => $beams,
     'subscriptions' => $storedSubscriptions,
 ]);
-assert_true(str_contains($notificationPage, 'data-firebase-push'), 'the isolated admin test page exposes the Firebase client hook');
+assert_true(str_contains($notificationPage, 'data-beams-push'), 'the isolated admin test page exposes the Beams client hook');
 assert_true(str_contains($notificationPage, 'Stuur testmelding'), 'the test page offers manual delivery');
-assert_true(!str_contains($notificationPage, $privateKeyPem), 'the stored private key is never rendered into the page');
+assert_true(!str_contains($notificationPage, 'secret-456'), 'the stored Beams secret is never rendered into the page');
 
 $adminPage = render_view('admin/index', [
     'invitation_sender_name' => $invitationSettings->senderName(),
@@ -140,15 +118,14 @@ assert_true(str_contains($adminPage, '/admin/notifications'), 'the admin page li
 assert_true(str_contains($adminPage, 'data-rich-editor'), 'the invitation rich-text editor remains available');
 
 $javascript = file_get_contents(dirname(__DIR__) . '/public/assets/js/app.js');
-assert_true(str_contains($javascript, 'window.firebase.initializeApp'), 'the browser initializes Firebase on the test page');
-assert_true(str_contains($javascript, 'messaging.getToken'), 'the browser requests an FCM registration token');
-assert_true(str_contains($javascript, 'messaging.deleteToken'), 'the browser can revoke its FCM registration token');
-assert_true(str_contains($javascript, 'navigator.serviceWorker.ready'), 'FCM reuses the existing root-scoped PWA service worker');
-assert_true(str_contains($javascript, 'serviceWorkerRegistration'), 'the FCM token request receives the expected service worker option');
-assert_true(str_contains($javascript, 'messaging.onMessage'), 'foreground test messages are displayed while the admin page is open');
+assert_true(str_contains($javascript, 'PusherPushNotifications.Client'), 'the browser initializes the Pusher Beams client');
+assert_true(str_contains($javascript, 'client.start()'), 'the browser can register itself with Beams');
+assert_true(str_contains($javascript, 'client.addDeviceInterest'), 'the browser creates a device-specific Beams interest');
+assert_true(str_contains($javascript, 'client.stop()'), 'the browser can revoke its Beams registration');
+assert_true(str_contains($javascript, 'navigator.serviceWorker.ready'), 'Beams reuses the existing root-scoped PWA service worker');
 
 $manifestController = file_get_contents(dirname(__DIR__) . '/app/Controllers/PwaController.php');
-assert_true(str_contains($manifestController, 'firebase.messaging();'), 'the PWA service worker initializes Firebase Messaging');
+assert_true(str_contains($manifestController, 'beams/service-worker.js'), 'the PWA service worker imports Pusher Beams');
 assert_true(str_contains($manifestController, "'display' => 'standalone'"), 'the web app manifest enables standalone display');
 $routes = file_get_contents(dirname(__DIR__) . '/public/index.php');
 assert_true(str_contains($routes, "'/admin/notifications'"), 'the notification test has a dedicated admin route');
@@ -159,7 +136,7 @@ foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__
         $repositoryText .= file_get_contents($path);
     }
 }
-$removedProviderName = 'one' . 'signal';
+$removedProviderName = 'fire' . 'base';
 assert_true(stripos($repositoryText, $removedProviderName) === false, 'the previous notification provider is absent from application code and documentation');
 
 $deploymentWorkflow = file_get_contents(dirname(__DIR__) . '/.github/workflows/deploy.yml');
