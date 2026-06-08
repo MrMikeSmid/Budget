@@ -6,112 +6,23 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Services\InvitationEmailSettings;
-use App\Services\OneSignalSettings;
-use App\Services\OneSignalSubscriptionService;
-use App\Services\PushNotificationService;
 
 final class AdminController extends Controller
 {
-    public function debug(): void
-    {
-        $user = $this->admin();
-        $oneSignal = new OneSignalSettings();
-        $databasePath = (string) config('database');
-        $databaseDirectory = dirname($databasePath);
-        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-            || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
-
-        $checks = [
-            [
-                'label' => 'OneSignal App ID',
-                'status' => $oneSignal->appId() !== '' ? 'ok' : 'error',
-                'value' => $oneSignal->appId() !== '' ? $this->maskIdentifier($oneSignal->appId()) : 'Niet ingesteld',
-                'help' => 'De publieke App ID moet overeenkomen met de Web Push-app in OneSignal.',
-            ],
-            [
-                'label' => 'OneSignal REST API key',
-                'status' => $oneSignal->apiKey() !== '' ? 'ok' : 'error',
-                'value' => $oneSignal->apiKey() !== '' ? 'Aanwezig (verborgen)' : 'Niet ingesteld',
-                'help' => 'De sleutel wordt bewust nooit op deze pagina getoond.',
-            ],
-            [
-                'label' => 'Beveiligde verbinding',
-                'status' => $https ? 'ok' : 'error',
-                'value' => $https ? 'HTTPS actief' : 'Geen HTTPS gedetecteerd',
-                'help' => 'Web Push werkt in productie alleen vanuit een secure context.',
-            ],
-            [
-                'label' => 'Publieke applicatie-URL',
-                'status' => str_starts_with((string) absolute_url('/'), 'https://') ? 'ok' : 'warning',
-                'value' => absolute_url('/'),
-                'help' => 'Controleer vooral het deploymentpad en het gebruikte protocol.',
-            ],
-            [
-                'label' => 'OneSignal worker-URL',
-                'status' => 'info',
-                'value' => absolute_url('/push/onesignal/OneSignalSDKWorker.js'),
-                'help' => 'Deze URL moet publiek bereikbaar zijn en JavaScript teruggeven.',
-            ],
-            [
-                'label' => 'OneSignal worker-scope',
-                'status' => 'info',
-                'value' => url('/push/onesignal/'),
-                'help' => 'Deze scope moet gelijk zijn aan de configuratie in OneSignal.',
-            ],
-            [
-                'label' => 'Database en opslag',
-                'status' => is_writable($databasePath) && is_writable($databaseDirectory) ? 'ok' : 'warning',
-                'value' => (is_writable($databasePath) ? 'database schrijfbaar' : 'database niet schrijfbaar')
-                    . ' · ' . (is_writable($databaseDirectory) ? 'map schrijfbaar' : 'map niet schrijfbaar'),
-                'help' => $databasePath,
-            ],
-            [
-                'label' => 'PHP runtime',
-                'status' => version_compare(PHP_VERSION, '8.2.0', '>=') ? 'ok' : 'warning',
-                'value' => PHP_VERSION . ' · ' . PHP_SAPI,
-                'help' => 'Samen verwacht PHP 8.2 of nieuwer.',
-            ],
-        ];
-
-        view('admin/debug', [
-            'title' => 'Push debug',
-            'debug_checks' => $checks,
-            'debug_user' => $user,
-            'onesignal_configured' => $oneSignal->isConfigured(),
-            'generated_at' => date(DATE_ATOM),
-        ]);
-    }
-
-    private function maskIdentifier(string $value): string
-    {
-        if (mb_strlen($value) < 13) {
-            return str_repeat('•', max(4, mb_strlen($value)));
-        }
-        return mb_substr($value, 0, 8) . '…' . mb_substr($value, -4);
-    }
     public function show(): void
     {
         $this->admin();
-        $oneSignal = new OneSignalSettings();
         $invitationEmail = new InvitationEmailSettings();
         $sampleInviter = ['name' => 'Mike', 'email' => 'mike@voorbeeld.nl'];
         $sampleList = ['id' => 1, 'title' => 'Weekendje weg'];
-        $users = db()->query('SELECT id, name, email, push_external_id FROM users ORDER BY email COLLATE NOCASE')->fetchAll();
-        $subscriptionService = new OneSignalSubscriptionService();
-        $pushSubscriptions = $oneSignal->isConfigured() ? $subscriptionService->forUsers($users) : [];
+
         view('admin/index', [
             'title' => 'Admin',
-            'onesignal_app_id' => $oneSignal->appId(),
-            'onesignal_configured' => $oneSignal->isConfigured(),
             'invitation_sender_name' => $invitationEmail->senderName(),
             'invitation_sender_email' => $invitationEmail->senderEmail(),
             'invitation_message_html' => $invitationEmail->message(),
             'invitation_preview_html' => $invitationEmail->renderEmail($sampleInviter, $sampleList, 'vriend@voorbeeld.nl'),
             'invitation_tokens' => InvitationEmailSettings::tokens(),
-            'push_users' => $users,
-            'push_subscriptions' => $pushSubscriptions,
-            'active_push_subscription_count' => count(array_filter($pushSubscriptions, static fn(array $subscription): bool => $subscription['enabled'])),
-            'push_subscription_error' => $subscriptionService->lastError(),
         ]);
     }
 
@@ -142,62 +53,4 @@ final class AdminController extends Controller
         redirect('/admin#uitnodigingsmail');
     }
 
-    public function testPushNotification(): void
-    {
-        $this->admin();
-        $this->verifyCsrf();
-
-        $userId = (int) ($_POST['user_id'] ?? 0);
-        $message = trim((string) ($_POST['message'] ?? ''));
-        if ($userId < 1 || $message === '' || mb_strlen($message) > 500) {
-            flash('error', 'Selecteer een gebruiker en vul een testbericht van maximaal 500 tekens in.');
-            redirect('/admin#pushnotificaties');
-        }
-
-        $push = new PushNotificationService();
-        if ($push->send([$userId], $message, '/')) {
-            flash('success', 'De testmelding is door OneSignal geaccepteerd.');
-        } else {
-            flash('error', $push->lastError() ?? 'De testmelding kon niet worden verstuurd.');
-        }
-        redirect('/admin#pushnotificaties');
-    }
-
-    public function deletePushSubscription(): void
-    {
-        $this->admin();
-        $this->verifyCsrf();
-
-        $subscriptionId = trim((string) ($_POST['subscription_id'] ?? ''));
-        $subscriptions = new OneSignalSubscriptionService();
-        if ($subscriptions->delete($subscriptionId)) {
-            flash('success', 'Het pushabonnement wordt door OneSignal verwijderd.');
-        } else {
-            flash('error', $subscriptions->lastError() ?? 'Het pushabonnement kon niet worden verwijderd.');
-        }
-        redirect('/admin#pushabonnementen');
-    }
-
-    public function updateOneSignal(): void
-    {
-        $this->admin();
-        $this->verifyCsrf();
-
-        $appId = trim((string) ($_POST['onesignal_app_id'] ?? ''));
-        $apiKey = trim((string) ($_POST['onesignal_api_key'] ?? ''));
-        $clearApiKey = isset($_POST['clear_onesignal_api_key']);
-
-        if ($appId !== '' && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $appId) !== 1) {
-            flash('error', 'Vul een geldige OneSignal App ID in.');
-            redirect('/admin');
-        }
-
-        if ($clearApiKey) {
-            $apiKey = '';
-        }
-
-        (new OneSignalSettings())->save($appId, $apiKey === '' && !$clearApiKey ? null : $apiKey);
-        flash('success', 'De OneSignal-instellingen zijn opgeslagen.');
-        redirect('/admin');
-    }
 }

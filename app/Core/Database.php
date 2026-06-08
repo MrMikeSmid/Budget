@@ -88,6 +88,19 @@ final class Database
                 value TEXT NOT NULL,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
+
+
+            CREATE TABLE IF NOT EXISTS push_subscriptions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token TEXT NOT NULL UNIQUE,
+                user_agent TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
         SQL);
 
         $columns = $this->pdo->query('PRAGMA table_info(users)')->fetchAll();
@@ -98,19 +111,20 @@ final class Database
         if (!in_array('last_seen_at', $columnNames, true)) {
             $this->pdo->exec('ALTER TABLE users ADD COLUMN last_seen_at TEXT');
         }
-        if (!in_array('push_external_id', $columnNames, true)) {
-            $this->pdo->exec('ALTER TABLE users ADD COLUMN push_external_id TEXT');
-        }
         if (!in_array('is_admin', $columnNames, true)) {
             $this->pdo->exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
         }
 
-        $usersWithoutPushId = $this->pdo->query("SELECT id FROM users WHERE push_external_id IS NULL OR push_external_id = ''")->fetchAll();
-        $setPushId = $this->pdo->prepare('UPDATE users SET push_external_id = ? WHERE id = ?');
-        foreach ($usersWithoutPushId as $user) {
-            $setPushId->execute(['samen-' . bin2hex(random_bytes(24)), $user['id']]);
+        $this->pdo->exec("DELETE FROM app_settings WHERE key IN ('one' || 'signal_app_id', 'one' || 'signal_api_key')");
+        $legacyPushColumn = 'push_' . 'external_id';
+        if (in_array($legacyPushColumn, $columnNames, true)) {
+            $this->pdo->exec('DROP INDEX IF EXISTS idx_users_' . $legacyPushColumn);
+            try {
+                $this->pdo->exec('ALTER TABLE users DROP COLUMN ' . $legacyPushColumn);
+            } catch (\PDOException) {
+                // Older SQLite versions keep the unused legacy column; no application code reads it.
+            }
         }
-        $this->pdo->exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_users_push_external_id ON users(push_external_id)');
         $this->promoteInitialAdmin();
     }
 

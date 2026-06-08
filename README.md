@@ -62,37 +62,28 @@ De webserver moet daarnaast zijn geconfigureerd om uitgaande e-mail van PHP te b
 php tests/run.php
 ```
 
-## Pushnotificaties op iOS en Android
+## Pushnotificaties testen met Firebase
 
-Samen gebruikt **OneSignal Web Push**. Daardoor blijft Samen één PWA en zijn er geen aparte native iOS- en Android-projecten, APNs-code of Firebase-code in deze repository nodig. Meldingen worden verstuurd wanneer een andere deelnemer:
-
-- een taak toevoegt;
-- een taak afvinkt of opnieuw opent;
-- een lijst met iemand deelt.
-
-De gebruiker kan pushnotificaties zelf aan- of uitzetten onder **Instellingen**. Bij uitloggen wordt het apparaat uitgeschreven, zodat meldingen niet bij een volgende gebruiker van hetzelfde apparaat terechtkomen.
+Samen gebruikt voor de nieuwe, eenvoudige testopzet **Firebase Cloud Messaging (FCM)**. Automatische meldingen bij lijstwijzigingen zijn voorlopig uitgeschakeld. Een beheerder kan via `/admin/notifications` één apparaat registreren en daar handmatig een testmelding naartoe sturen.
 
 ### Eenmalige configuratie
 
-1. Maak in [OneSignal](https://onesignal.com) een app aan en voeg het platform **Web** toe.
-2. Kies de configuratie voor een normale website/custom code en vul de publieke HTTPS-URL van Samen in, bijvoorbeeld `https://mikesmid.nl/development`.
-3. Gebruik bij een deployment onder `/development` deze service-workerinstellingen:
-   - pad: `/development/push/onesignal/`
-   - bestandsnaam: `OneSignalSDKWorker.js`
-   - scope: `/development/push/onesignal/`
-4. Log in met het adminaccount, open `/admin` en sla daar de OneSignal App ID en REST API Key op. Deze waarden worden in de SQLite-database bewaard; de API key wordt nooit naar de browser gestuurd.
-5. Zet meldingen onder **Instellingen** aan voor het adminaccount en gebruik daarna in `/admin` de knop **Stuur testmelding naar dit account**. De test maakt onderscheid tussen een geweigerde API key en een account zonder actief OneSignal-abonnement.
+1. Maak een Firebase-project en voeg daarin een **Web app** toe.
+2. Open **Project settings → General** en kopieer Project ID, Web API key, Messaging sender ID en App ID.
+3. Open **Project settings → Cloud Messaging → Web Push certificates**, maak een sleutel aan en kopieer de publieke VAPID-key.
+4. Maak via **Project settings → Service accounts** een private key en download het JSON-bestand.
+5. Log in als beheerder, open `/admin/notifications`, vul de waarden in en plak de volledige serviceaccount-JSON.
+6. Open dezelfde pagina via HTTPS op het testapparaat, activeer meldingen en stuur daarna een handmatige test.
 
-OneSignal kan een verzendaanvraag met HTTP 200 beantwoorden terwijl geen enkel abonnement overeenkomt. Samen controleert daarom ook of de API-respons een notificatie-ID bevat; alleen dan wordt de melding als geaccepteerd beschouwd. Technische details van een afwijzing worden in de PHP-errorlog vastgelegd zonder de API key te loggen.
+De publieke webconfiguratie en VAPID-key worden naar de browser gestuurd. De serviceaccount-JSON blijft uitsluitend server-side in de SQLite-database. Als alternatief kunnen de waarden via deze omgevingsvariabelen worden gezet:
 
-De browserintegratie normaliseert het service-workerpad volgens de OneSignal Web SDK-eisen en koppelt het apparaat opnieuw aan de ingelogde gebruiker zodra een abonnement wordt aangemaakt of vernieuwd. Blijft de statuspagina een fout tonen, controleer dan ook of een contentblocker `cdn.onesignal.com` blokkeert en of de worker-URL publiek via HTTPS bereikbaar is.
+```bash
+export SAMEN_FIREBASE_PROJECT_ID=voorbeeld-project
+export SAMEN_FIREBASE_API_KEY=...
+export SAMEN_FIREBASE_MESSAGING_SENDER_ID=...
+export SAMEN_FIREBASE_APP_ID=...
+export SAMEN_FIREBASE_VAPID_PUBLIC_KEY=...
+export SAMEN_FIREBASE_SERVICE_ACCOUNT_JSON='{"type":"service_account",...}'
+```
 
-Het oudste bestaande account wordt bij de database-upgrade eenmalig admin. Bij een nieuwe installatie wordt het eerste account admin. Stel voor voorspelbaar beheer bij voorkeur `SAMEN_ADMIN_EMAIL` in; een account met dat e-mailadres krijgt automatisch adminrechten. Een admin moet een wachtwoord hebben voordat `/admin` toegankelijk is.
-
-De eerdere omgevingsvariabelen `SAMEN_ONESIGNAL_APP_ID` en `SAMEN_ONESIGNAL_API_KEY` blijven als fallback werken zolang er nog geen waarden via `/admin` zijn opgeslagen.
-
-### Gedrag per platform
-
-- **Android:** meldingen werken in ondersteunde browsers; installatie van de PWA geeft de prettigste app-ervaring.
-- **iPhone/iPad:** vereist iOS/iPadOS 16.4 of hoger. De gebruiker moet Samen eerst via Safari met **Zet op beginscherm** installeren, de geïnstalleerde app openen en daar meldingen aanzetten.
-- **Alle platformen:** productie vereist een geldige HTTPS-verbinding. Push werkt niet in een privé-/incognitovenster.
+Web-push vereist in productie HTTPS. Op iPhone en iPad moet Samen eerst via Safari aan het beginscherm worden toegevoegd voordat de geïnstalleerde PWA om notificatietoestemming kan vragen.

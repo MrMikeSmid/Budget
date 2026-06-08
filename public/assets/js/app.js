@@ -235,545 +235,109 @@ window.addEventListener('pagehide', () => {
   if (avatarObjectUrl) URL.revokeObjectURL(avatarObjectUrl);
 }, { once: true });
 
-const oneSignalAppId = document.body.dataset.onesignalAppId;
-const oneSignalUser = document.body.dataset.onesignalUser;
-const pushSettings = document.querySelector('[data-push-settings]');
-let oneSignalRuntimeReady = null;
+const firebasePush = document.querySelector('[data-firebase-push]');
 
-if (oneSignalAppId && oneSignalUser) {
-  let settleOneSignalRuntime;
-  oneSignalRuntimeReady = new Promise((resolve) => {
-    settleOneSignalRuntime = resolve;
-  });
-  const status = pushSettings?.querySelector('[data-push-status]');
-  let pushSettingsLoaded = false;
-  const loadingTimeout = window.setTimeout(() => {
-    if (!pushSettingsLoaded && status) {
-      status.textContent = 'De notificatieservice reageert niet. Controleer je internetverbinding of contentblocker en laad de pagina opnieuw.';
-    }
-  }, 10000);
+if (firebasePush) {
+  const status = firebasePush.querySelector('[data-firebase-status]');
+  const subscribeButton = firebasePush.querySelector('[data-firebase-subscribe]');
+  const unsubscribeButton = firebasePush.querySelector('[data-firebase-unsubscribe]');
+  const csrfToken = firebasePush.dataset.csrfToken;
+  let messaging = null;
+  let currentToken = '';
+  let foregroundHandlerRegistered = false;
 
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  window.OneSignalDeferred.push(async (OneSignal) => {
-    const toggle = pushSettings?.querySelector('[data-push-toggle]');
-    const deleteButton = pushSettings?.querySelector('[data-push-delete]');
-    const workerPath = document.body.dataset.onesignalWorker;
-    const workerScope = document.body.dataset.onesignalScope;
+  const setStatus = (message, isError = false) => {
+    if (!status) return;
+    status.textContent = message;
+    status.classList.toggle('form-error', isError);
+  };
 
-    try {
-      if (!window.isSecureContext) {
-        throw new Error('Pushnotificaties vereisen een beveiligde HTTPS-verbinding.');
-      }
+  const postToken = async (endpoint, token) => {
+    const body = new FormData();
+    body.append('_token', csrfToken);
+    body.append('token', token);
+    const response = await fetch(endpoint, { method: 'POST', headers: { Accept: 'application/json' }, body });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.message || 'Opslaan mislukt.');
+    return result;
+  };
 
-      // OneSignal expects a path relative to the origin root without a leading
-      // slash. Keep the deployment subdirectory (for example `development/`).
-      const serviceWorkerPath = new URL(workerPath, window.location.origin).pathname.replace(/^\/+/, '');
-      const serviceWorkerScope = new URL(workerScope, window.location.origin).pathname;
-      await OneSignal.init({
-        appId: oneSignalAppId,
-        serviceWorkerPath,
-        serviceWorkerParam: { scope: serviceWorkerScope },
-        autoResubscribe: true,
-      });
-
-      const withTimeout = async (promise, timeout = 8000) => {
-        let timer;
-        try {
-          return await Promise.race([
-            promise,
-            new Promise((resolve) => {
-              timer = window.setTimeout(() => resolve(undefined), timeout);
-            }),
-          ]);
-        } finally {
-          window.clearTimeout(timer);
-        }
-      };
-
-      const waitFor = async (readValue, timeout = 15000) => {
-        const deadline = Date.now() + timeout;
-        let value = readValue();
-        while (!value && Date.now() < deadline) {
-          await new Promise((resolve) => window.setTimeout(resolve, 250));
-          value = readValue();
-        }
-        return value;
-      };
-
-      const linkSubscriptionToUser = async () => {
-        await withTimeout(OneSignal.login(oneSignalUser), 10000);
-        return waitFor(() => OneSignal.User.externalId === oneSignalUser, 5000);
-      };
-      await linkSubscriptionToUser();
-
-      const nativePermission = () => {
-        if (typeof Notification !== 'undefined' && Notification.permission) {
-          return Notification.permission;
-        }
-        return OneSignal.Notifications.permissionNative || 'default';
-      };
-
-      const waitForPermission = () => waitFor(
-        () => nativePermission() === 'granted',
-        5000,
-      );
-      const hasActivePushSubscription = () => nativePermission() === 'granted'
-        && OneSignal.User.PushSubscription.optedIn
-        && Boolean(OneSignal.User.PushSubscription.id)
-        && Boolean(OneSignal.User.PushSubscription.token);
-      const waitForActiveSubscription = () => waitFor(
-        () => hasActivePushSubscription(),
-      );
-      const resubscribePushSubscription = async () => {
-        const pushSubscription = OneSignal.User.PushSubscription;
-
-        await withTimeout(pushSubscription.optIn(), 8000);
-        if (await waitForActiveSubscription()) return true;
-
-        // When OneSignal restores an opted-in Subscription ID without a browser
-        // token, optIn() can be a no-op because the SDK already considers the
-        // subscription opted in. Flip the local opt-in state once so optIn() is
-        // forced to request a fresh browser push token.
-        if (pushSubscription.optedIn && !pushSubscription.token) {
-          await withTimeout(pushSubscription.optOut(), 5000);
-          await waitFor(() => !pushSubscription.optedIn, 3000);
-          await withTimeout(pushSubscription.optIn(), 8000);
-          return Boolean(await waitForActiveSubscription());
-        }
-
-        return false;
-      };
-      const repairPushSubscription = async () => {
-        const pushSubscription = OneSignal.User.PushSubscription;
-        if (nativePermission() !== 'granted' || !pushSubscription.optedIn || pushSubscription.token) return;
-
-        await resubscribePushSubscription();
-      };
-
-      const updatePushStatus = () => {
-        if (!pushSettings || !status || !toggle) return;
-        const isIosBrowser = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-        const runsStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-        const supported = OneSignal.Notifications.isPushSupported();
-        const permission = nativePermission();
-        const optedIn = OneSignal.User.PushSubscription.optedIn;
-        const subscriptionId = OneSignal.User.PushSubscription.id;
-        const active = hasActivePushSubscription();
-
-        pushSettings.dataset.pushActive = String(active);
-        if (deleteButton) deleteButton.hidden = !subscriptionId;
-        toggle.disabled = false;
-        if (active) {
-          status.textContent = 'Meldingen staan aan op dit apparaat.';
-          toggle.textContent = 'Meldingen uitzetten';
-        } else if (isIosBrowser && !runsStandalone) {
-          status.textContent = 'Installeer Samen eerst op je beginscherm; daarna kun je meldingen aanzetten.';
-          toggle.textContent = 'Bekijk installatiestappen';
-        } else if (!supported) {
-          status.textContent = 'Deze browser ondersteunt helaas geen pushnotificaties.';
-          toggle.textContent = 'Niet beschikbaar';
-          toggle.disabled = true;
-        } else if (permission === 'denied') {
-          status.textContent = 'Notificaties zijn door je browser geblokkeerd. Sta ze toe via de site-instellingen van je browser en probeer opnieuw.';
-          toggle.textContent = 'Opnieuw controleren';
-        } else if (optedIn && !subscriptionId) {
-          status.textContent = 'Het pushabonnement wordt nog aangemaakt. Probeer het over een paar seconden opnieuw.';
-          toggle.textContent = 'Opnieuw proberen';
-        } else {
-          status.textContent = 'Ontvang een seintje als iemand een gedeeld lijstje bijwerkt.';
-          toggle.textContent = 'Meldingen aanzetten';
-        }
-      };
-
-      toggle?.addEventListener('click', async () => {
-        const isIosBrowser = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-        const runsStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-        if (isIosBrowser && !runsStandalone) {
-          document.getElementById('install-help')?.showModal();
-          return;
-        }
-
-        toggle.disabled = true;
-        status.textContent = 'De notificatie-instellingen worden bijgewerkt…';
-        let errorMessage = '';
-        try {
-          if (hasActivePushSubscription()) {
-            await OneSignal.User.PushSubscription.optOut();
-          } else {
-            // optIn requests browser permission when needed and, unlike
-            // requestPermission alone, also clears OneSignal's opted-out state.
-            await withTimeout(OneSignal.User.PushSubscription.optIn(), 8000);
-
-            if (nativePermission() !== 'granted' && !(await waitForPermission())) {
-              updatePushStatus();
-              return;
-            }
-            if (!(await waitForActiveSubscription()) && !(await resubscribePushSubscription())) {
-              throw new Error('OneSignal heeft het pushabonnement niet geactiveerd.');
-            }
-            await linkSubscriptionToUser();
-          }
-        } catch (error) {
-          console.warn('Pushnotificaties wijzigen is mislukt.', error);
-          errorMessage = 'Meldingen konden niet worden ingeschakeld. Controleer de browsertoestemming en probeer opnieuw.';
-        } finally {
-          updatePushStatus();
-          if (errorMessage) status.textContent = errorMessage;
-          toggle.disabled = false;
-        }
-      });
-
-      deleteButton?.addEventListener('click', async () => {
-        const subscriptionId = OneSignal.User.PushSubscription.id;
-        if (!subscriptionId) return;
-        if (!window.confirm('Pushabonnement van dit apparaat definitief verwijderen?')) return;
-        deleteButton.disabled = true;
-        try {
-          await OneSignal.User.PushSubscription.optOut();
-          const response = await fetch(deleteButton.dataset.endpoint, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
-            body: new URLSearchParams({_token: deleteButton.dataset.csrfToken, subscription_id: subscriptionId}),
+  const initializeMessaging = async () => {
+    if (!window.isSecureContext) throw new Error('Pushnotificaties vereisen HTTPS.');
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) throw new Error('Deze browser ondersteunt geen web-push.');
+    if (!window.firebase?.messaging) throw new Error('De Firebase SDK kon niet worden geladen.');
+    const config = JSON.parse(firebasePush.dataset.firebaseConfig || '{}');
+    const app = window.firebase.apps.length ? window.firebase.app() : window.firebase.initializeApp(config);
+    messaging = window.firebase.messaging(app);
+    if (!foregroundHandlerRegistered) {
+      messaging.onMessage((payload) => {
+        const notification = payload.notification || {};
+        if (Notification.permission === 'granted') {
+          new Notification(notification.title || 'Samen', {
+            body: notification.body || 'Je hebt een nieuwe testmelding.',
+            icon: payload.webpush?.notification?.icon,
           });
-          if (!response.ok) throw new Error('Abonnement verwijderen mislukt.');
-          await OneSignal.logout();
-          status.textContent = 'Het pushabonnement van dit apparaat is verwijderd.';
-        } catch (error) {
-          console.warn('Pushabonnement verwijderen is mislukt.', error);
-          status.textContent = 'Het pushabonnement kon niet worden verwijderd.';
-        } finally {
-          updatePushStatus();
-          deleteButton.disabled = false;
         }
       });
-
-      OneSignal.User.PushSubscription.addEventListener('change', async () => {
-        updatePushStatus();
-        try {
-          await linkSubscriptionToUser();
-        } catch (error) {
-          console.warn('Pushabonnement opnieuw koppelen is mislukt.', error);
-          if (status) status.textContent = 'Meldingen zijn toegestaan, maar het apparaat kon niet aan je account worden gekoppeld. Laad de pagina opnieuw.';
-        }
-      });
-      OneSignal.Notifications.addEventListener('permissionChange', updatePushStatus);
-      try {
-        await repairPushSubscription();
-      } catch (error) {
-        console.warn('Pushabonnement automatisch herstellen is mislukt.', error);
-      }
-      settleOneSignalRuntime({ OneSignal, error: null });
-      pushSettingsLoaded = true;
-      window.clearTimeout(loadingTimeout);
-      updatePushStatus();
-
-      document.querySelector('[data-logout-form]')?.addEventListener('submit', async (event) => {
-        const form = event.currentTarget;
-        if (form.dataset.pushLogoutDone === 'true') return;
-        event.preventDefault();
-        await OneSignal.User.PushSubscription.optOut();
-        await OneSignal.logout();
-        form.dataset.pushLogoutDone = 'true';
-        form.submit();
-      });
-    } catch (error) {
-      settleOneSignalRuntime({ OneSignal: null, error });
-      pushSettingsLoaded = true;
-      window.clearTimeout(loadingTimeout);
-      console.warn('Pushnotificaties initialiseren is mislukt.', error);
-      if (status) {
-        status.textContent = error instanceof Error && error.message.includes('HTTPS')
-          ? error.message
-          : 'De notificatie-instellingen konden niet worden geladen. Controleer je verbinding, contentblocker en OneSignal-configuratie.';
-      }
+      foregroundHandlerRegistered = true;
     }
-  });
-}
-
-
-const emailEditorForm = document.querySelector('[data-email-editor-form]');
-if (emailEditorForm) {
-  const editor = emailEditorForm.querySelector('[data-editor-content]');
-  const input = emailEditorForm.querySelector('[data-editor-input]');
-  const preview = document.querySelector('[data-email-preview]');
-
-  const syncEmailEditor = () => {
-    input.value = editor.innerHTML;
-    const previewMessage = preview?.contentDocument?.getElementById('email-message');
-    if (previewMessage) previewMessage.innerHTML = editor.innerHTML;
+    const serviceWorkerRegistration = await navigator.serviceWorker.ready;
+    return { serviceWorkerRegistration, vapidKey: firebasePush.dataset.vapidKey };
   };
 
-  emailEditorForm.querySelectorAll('[data-editor-command]').forEach((button) => {
-    button.addEventListener('click', () => {
-      editor.focus();
-      document.execCommand(button.dataset.editorCommand, false, button.dataset.editorValue || null);
-      syncEmailEditor();
-    });
-  });
-
-  emailEditorForm.querySelector('[data-editor-link]')?.addEventListener('click', () => {
-    const href = window.prompt('Naar welke URL moet de link verwijzen?', 'https://');
-    if (!href) return;
-    editor.focus();
-    document.execCommand('createLink', false, href);
-    syncEmailEditor();
-  });
-
-  emailEditorForm.querySelectorAll('[data-editor-token]').forEach((button) => {
-    button.addEventListener('click', () => {
-      editor.focus();
-      document.execCommand('insertText', false, button.dataset.editorToken);
-      syncEmailEditor();
-    });
-  });
-
-  editor.addEventListener('input', syncEmailEditor);
-  preview?.addEventListener('load', syncEmailEditor);
-  emailEditorForm.addEventListener('submit', syncEmailEditor);
-}
-
-const pushDebug = document.querySelector('[data-push-debug]');
-
-if (pushDebug) {
-  const logElement = pushDebug.querySelector('[data-debug-log]');
-  const reportElement = pushDebug.querySelector('[data-debug-report]');
-  const summary = pushDebug.querySelector('[data-debug-summary]');
-  const results = new Map();
-
-  const redact = (value, visibleStart = 7, visibleEnd = 4) => {
-    const text = String(value || '');
-    if (!text) return 'niet aanwezig';
-    if (text.length <= visibleStart + visibleEnd) return 'aanwezig (verborgen)';
-    return `${text.slice(0, visibleStart)}…${text.slice(-visibleEnd)}`;
-  };
-
-  const addLog = (message) => {
-    const item = document.createElement('li');
-    const time = document.createElement('time');
-    const text = document.createElement('span');
-    time.textContent = new Date().toLocaleTimeString('nl-NL');
-    text.textContent = message;
-    item.append(time, text);
-    logElement?.append(item);
-  };
-
-  const refreshReport = () => {
-    if (!reportElement) return;
-    const lines = [
-      'Samen push-debugrapport',
-      `Gegenereerd: ${new Date().toISOString()}`,
-      `Pagina: ${window.location.href}`,
-      `User agent: ${window.navigator.userAgent}`,
-      '',
-    ];
-    results.forEach((result, key) => lines.push(`[${result.status.toUpperCase()}] ${key}: ${result.value}${result.help ? ` — ${result.help}` : ''}`));
-    lines.push('', 'Tijdlijn:');
-    logElement?.querySelectorAll('li').forEach((item) => lines.push(`- ${item.textContent.trim()}`));
-    reportElement.value = lines.join('\n');
-  };
-
-  const setCheck = (key, status, value, help = '') => {
-    const check = pushDebug.querySelector(`[data-debug-check="${key}"]`);
-    if (!check) return;
-    check.className = `debug-check debug-check--${status}`;
-    check.querySelector('code').textContent = value;
-    check.querySelector('small').textContent = help;
-    results.set(key, { status, value, help });
-    refreshReport();
-  };
-
-  const setBadge = (selector, text, status = '') => {
-    const badge = pushDebug.querySelector(selector);
-    if (!badge) return;
-    badge.textContent = text;
-    badge.className = `debug-badge${status ? ` debug-badge--${status}` : ''}`;
-  };
-
-  const runBrowserChecks = async () => {
-    addLog('Browser- en PWA-controles gestart.');
-    setCheck('secure-context', window.isSecureContext ? 'ok' : 'error', window.isSecureContext ? 'Ja' : 'Nee', window.isSecureContext ? 'De browser staat Web Push toe op deze origin.' : 'Open de app via HTTPS.');
-    setCheck('notification-api', 'Notification' in window ? 'ok' : 'error', 'Notification' in window ? 'Beschikbaar' : 'Ontbreekt', 'Dit is de ingebouwde browser-API voor notificaties.');
-    const permission = 'Notification' in window ? Notification.permission : 'niet beschikbaar';
-    setCheck('permission', permission === 'granted' ? 'ok' : permission === 'denied' ? 'error' : 'warning', permission, permission === 'denied' ? 'De gebruiker moet dit via de site-instellingen van de browser herstellen.' : 'Waarde rechtstreeks uit Notification.permission.');
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-    const isiOS = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-    setCheck('standalone', standalone ? 'ok' : isiOS ? 'error' : 'warning', standalone ? 'Standalone geïnstalleerd' : 'Normaal browsertabblad', isiOS && !standalone ? 'Op iOS werkt Web Push alleen vanuit de geïnstalleerde web-app.' : 'Op andere platforms kan push ook vanuit een browsertabblad werken.');
-
-    if (!('serviceWorker' in navigator)) {
-      setCheck('service-worker', 'error', 'Niet ondersteund', 'navigator.serviceWorker ontbreekt.');
+  const refreshToken = async () => {
+    const options = await initializeMessaging();
+    currentToken = await messaging.getToken(options) || '';
+    if (currentToken) {
+      subscribeButton.hidden = true;
+      unsubscribeButton.hidden = false;
+      setStatus('Dit apparaat heeft een actief Firebase-token. Je kunt nu een testmelding sturen.');
     } else {
-      try {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        const scopes = registrations.map((registration) => registration.scope);
-        setCheck('service-worker', registrations.length ? 'ok' : 'warning', `${registrations.length} registratie(s)`, scopes.join(' · ') || 'Nog geen service worker geregistreerd.');
-      } catch (error) {
-        setCheck('service-worker', 'error', 'Uitlezen mislukt', error.message);
-      }
+      subscribeButton.hidden = false;
+      unsubscribeButton.hidden = true;
+      setStatus('Dit apparaat is nog niet geregistreerd.');
     }
-
-    try {
-      const workerUrl = document.body.dataset.onesignalWorker;
-      if (!workerUrl) throw new Error('Worker-URL ontbreekt in de pagina.');
-      const response = await fetch(workerUrl, { cache: 'no-store' });
-      const body = await response.text();
-      const valid = response.ok && body.includes('OneSignalSDK.sw.js');
-      setCheck('worker-endpoint', valid ? 'ok' : 'error', `HTTP ${response.status} · ${response.headers.get('content-type') || 'geen content-type'}`, valid ? workerUrl : 'De response bevat niet de verwachte OneSignal-worker.');
-    } catch (error) {
-      setCheck('worker-endpoint', 'error', 'Niet bereikbaar', error.message);
-    }
-
-    try {
-      const workerScope = document.body.dataset.onesignalScope;
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) throw new Error('ServiceWorker of PushManager ontbreekt.');
-      const registration = await navigator.serviceWorker.getRegistration(workerScope);
-      const subscription = await registration?.pushManager.getSubscription();
-      setCheck('browser-push', subscription ? 'ok' : 'warning', subscription ? redact(subscription.endpoint) : 'niet aanwezig', subscription ? 'De browser heeft een native PushManager-abonnement.' : 'De browser heeft nog geen native pushabonnement voor de OneSignal-worker.');
-    } catch (error) {
-      setCheck('browser-push', 'error', 'Uitlezen mislukt', error.message);
-    }
-    setBadge('[data-debug-browser-badge]', 'Klaar', 'ok');
-    addLog('Browser- en PWA-controles afgerond.');
   };
 
-  const completeSummary = () => {
-    const errors = [...results.values()].filter((result) => result.status === 'error').length;
-    const warnings = [...results.values()].filter((result) => result.status === 'warning').length;
-    summary.className = `debug-summary ${errors ? 'debug-summary--error' : warnings ? 'debug-summary--warning' : 'debug-summary--ok'}`;
-    summary.querySelector('strong').textContent = errors ? `${errors} blokkade(s) gevonden` : warnings ? `${warnings} aandachtspunt(en) gevonden` : 'Alle browsercontroles zijn geslaagd';
-    summary.querySelector('span:last-child').textContent = errors ? 'Bekijk de rode regels hieronder; daar zit de concrete oorzaak.' : 'Gebruik het rapport als meldingen desondanks niet aankomen.';
-    refreshReport();
-  };
-
-  runBrowserChecks().then(() => window.setTimeout(completeSummary, 500));
-
-  if (oneSignalAppId && oneSignalUser) {
-    const sdkTimeout = window.setTimeout(() => {
-      if (!results.has('sdk')) {
-        setCheck('sdk', 'error', 'Niet gereed binnen 60 seconden', 'De SDK is geblokkeerd of de pushregistratie blijft hangen.');
-        ['supported', 'external-id', 'opted-in', 'subscription-id', 'push-token'].forEach((key) => setCheck(key, 'error', 'Niet beschikbaar', 'De SDK is niet geladen.'));
-        setBadge('[data-debug-onesignal-badge]', 'Geblokkeerd', 'error');
-        addLog('OneSignal runtime-time-out na 60 seconden.');
-        completeSummary();
-      }
-    }, 60000);
-
-    (async () => {
-      const runtime = await oneSignalRuntimeReady;
-      window.clearTimeout(sdkTimeout);
-      if (runtime.error) {
-        const message = runtime.error instanceof Error ? runtime.error.message : String(runtime.error);
-        addLog(`OneSignal initialiseren mislukt: ${message}`);
-        setCheck('sdk', 'error', 'Initialisatie mislukt', message);
-        ['supported', 'external-id', 'opted-in', 'subscription-id', 'push-token'].forEach((key) => setCheck(key, 'error', 'Niet beschikbaar', 'De OneSignal-runtime is niet gereed.'));
-        setBadge('[data-debug-onesignal-badge]', 'Fout', 'error');
-        completeSummary();
-        return;
-      }
-
-      const { OneSignal } = runtime;
-      addLog('OneSignal is volledig geïnitialiseerd; runtimewaarden worden uitgelezen.');
-      setCheck('sdk', 'ok', 'Geïnitialiseerd', 'OneSignal Web SDK v16 is gereed.');
-      try {
-        const withTimeout = async (promise, timeout = 8000) => {
-          let timer;
-          try {
-            return await Promise.race([
-              promise,
-              new Promise((resolve) => {
-                timer = window.setTimeout(() => resolve(undefined), timeout);
-              }),
-            ]);
-          } finally {
-            window.clearTimeout(timer);
-          }
-        };
-        const supported = OneSignal.Notifications.isPushSupported();
-        setCheck('supported', supported ? 'ok' : 'error', supported ? 'Ja' : 'Nee', 'Resultaat van OneSignal.Notifications.isPushSupported().');
-        const externalId = OneSignal.User.externalId;
-        if (externalId) {
-          setCheck('external-id', externalId === oneSignalUser ? 'ok' : 'error', redact(externalId), externalId === oneSignalUser ? 'Komt overeen met de ingelogde Samen-gebruiker.' : 'OneSignal is aan een andere gebruiker gekoppeld.');
-        } else {
-          setCheck('external-id', 'warning', 'Niet teruggegeven', `Verwacht Samen-ID: ${redact(oneSignalUser)}.`);
-        }
-        const readPushSubscription = (state = OneSignal.User.PushSubscription) => ({
-          optedIn: Boolean(state.optedIn),
-          id: state.id || null,
-          token: state.token || null,
-        });
-        const nativePermission = () => {
-          if (typeof Notification !== 'undefined' && Notification.permission) {
-            return Notification.permission;
-          }
-          return OneSignal.Notifications.permissionNative || 'default';
-        };
-        const waitForPushSubscription = (predicate, timeout = 12000) => new Promise((resolve) => {
-          const initial = readPushSubscription();
-          if (predicate(initial)) {
-            resolve(initial);
-            return;
-          }
-
-          let settled = false;
-          const finish = (state) => {
-            if (settled) return;
-            settled = true;
-            window.clearTimeout(timer);
-            OneSignal.User.PushSubscription.removeEventListener('change', handleChange);
-            resolve(state);
-          };
-          const handleChange = (event) => {
-            const current = readPushSubscription(event.current);
-            if (predicate(current)) finish(current);
-          };
-          const timer = window.setTimeout(() => finish(readPushSubscription()), timeout);
-          OneSignal.User.PushSubscription.addEventListener('change', handleChange);
-        });
-
-        let pushSubscription = readPushSubscription();
-        if (nativePermission() === 'granted' && pushSubscription.optedIn && !pushSubscription.token) {
-          addLog('Push token ontbreekt; automatische herregistratie wordt uitgevoerd.');
-          await withTimeout(OneSignal.User.PushSubscription.optIn(), 8000);
-          pushSubscription = await waitForPushSubscription((state) => Boolean(state.token));
-
-          if (pushSubscription.optedIn && !pushSubscription.token) {
-            addLog('Token ontbreekt nog; OneSignal opt-in wordt kort ververst en opnieuw opgebouwd.');
-            await withTimeout(OneSignal.User.PushSubscription.optOut(), 5000);
-            await waitForPushSubscription((state) => !state.optedIn, 3000);
-            await withTimeout(OneSignal.User.PushSubscription.optIn(), 8000);
-            pushSubscription = await waitForPushSubscription((state) => Boolean(state.token));
-          }
-        } else if (pushSubscription.optedIn && !pushSubscription.token) {
-          pushSubscription = await waitForPushSubscription((state) => Boolean(state.token), 5000);
-        }
-
-        const { optedIn, id: subscriptionId, token } = pushSubscription;
-        setCheck('opted-in', optedIn ? 'ok' : 'warning', optedIn ? 'Ja' : 'Nee', optedIn ? 'Dit apparaat is bij OneSignal aangemeld.' : 'Zet meldingen aan via Instellingen.');
-        setCheck('subscription-id', subscriptionId ? 'ok' : 'error', redact(subscriptionId), subscriptionId ? 'Er bestaat een abonnement-ID voor dit apparaat.' : 'OneSignal heeft nog geen abonnement aangemaakt.');
-        setCheck('push-token', token ? 'ok' : 'error', redact(token), token ? 'Er is een browser push token (gedeeltelijk verborgen).' : 'Automatische herregistratie en opt-in-refresh leverden geen token op; controleer browser- of apparaatbeperkingen.');
-        setBadge('[data-debug-onesignal-badge]', subscriptionId && token && optedIn ? 'Actief' : 'Onvolledig', subscriptionId && token && optedIn ? 'ok' : 'warning');
-      } catch (error) {
-        addLog(`OneSignal uitlezen mislukt: ${error.message}`);
-        setBadge('[data-debug-onesignal-badge]', 'Fout', 'error');
-      }
-      completeSummary();
-    });
-  } else {
-    setCheck('sdk', 'error', 'Niet geconfigureerd', 'App ID ontbreekt.');
-    ['supported', 'external-id', 'opted-in', 'subscription-id', 'push-token'].forEach((key) => setCheck(key, 'error', 'Niet beschikbaar', 'Configureer OneSignal eerst.'));
-    setBadge('[data-debug-onesignal-badge]', 'Niet ingesteld', 'error');
-  }
-
-  pushDebug.querySelector('[data-debug-copy]')?.addEventListener('click', async (event) => {
-    refreshReport();
+  subscribeButton?.addEventListener('click', async () => {
+    subscribeButton.disabled = true;
     try {
-      await navigator.clipboard.writeText(reportElement.value);
-      event.currentTarget.textContent = 'Gekopieerd';
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') throw new Error('Notificatietoestemming is niet gegeven.');
+      const options = await initializeMessaging();
+      currentToken = await messaging.getToken(options) || '';
+      if (!currentToken) throw new Error('Firebase kon geen apparaattoken aanmaken.');
+      const result = await postToken(firebasePush.dataset.subscribeEndpoint, currentToken);
+      setStatus(result.message);
+      subscribeButton.hidden = true;
+      unsubscribeButton.hidden = false;
+      window.setTimeout(() => window.location.reload(), 700);
     } catch (error) {
-      reportElement.focus();
-      reportElement.select();
-      addLog(`Automatisch kopiëren mislukt: ${error.message}`);
+      setStatus(error.message, true);
+    } finally {
+      subscribeButton.disabled = false;
     }
   });
 
-  pushDebug.querySelector('[data-debug-rerun]')?.addEventListener('click', () => window.location.reload());
+  unsubscribeButton?.addEventListener('click', async () => {
+    unsubscribeButton.disabled = true;
+    try {
+      if (!messaging) await initializeMessaging();
+      if (currentToken) await postToken(firebasePush.dataset.unsubscribeEndpoint, currentToken);
+      await messaging.deleteToken();
+      currentToken = '';
+      setStatus('Dit apparaat is afgemeld.');
+      subscribeButton.hidden = false;
+      unsubscribeButton.hidden = true;
+      window.setTimeout(() => window.location.reload(), 700);
+    } catch (error) {
+      setStatus(error.message, true);
+    } finally {
+      unsubscribeButton.disabled = false;
+    }
+  });
+
+  if (subscribeButton && !subscribeButton.disabled) {
+    refreshToken().catch((error) => setStatus(error.message, true));
+  }
 }
