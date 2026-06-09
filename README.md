@@ -85,3 +85,13 @@ export SAMEN_ONESIGNAL_REST_API_KEY=...
 ```
 
 Webpush vereist in productie HTTPS. Android en ondersteunde desktopbrowsers kunnen rechtstreeks toestemming geven. Op iPhone en iPad is minimaal iOS/iPadOS 16.4 vereist: voeg Samen eerst via Safari aan het beginscherm toe, open vervolgens de geïnstalleerde PWA en activeer daar de meldingen.
+
+### Vervaldatummeldingen automatisch versturen
+
+Een vervaldatum loopt tot het einde van de gekozen dag. Samen stuurt om 12:00 uur op die dag een melding dat er nog twaalf uur over is en om 00:00 uur daarna een melding dat de taak is vervallen. Laat hiervoor het idempotente CLI-commando iedere minuut uitvoeren, bijvoorbeeld via cron:
+
+```cron
+* * * * * cd /pad/naar/samen && /usr/bin/php bin/send-due-notifications.php >> storage/due-notifications.log 2>&1
+```
+
+Het commando bewaart per taak welke meldingen al zijn verstuurd, zodat vaker uitvoeren geen dubbele pushmeldingen veroorzaakt.

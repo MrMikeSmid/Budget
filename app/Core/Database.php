@@ -118,6 +118,16 @@ final class Database
             );
 
             CREATE INDEX IF NOT EXISTS idx_notification_subscriptions_user ON notification_subscriptions(user_id);
+
+            CREATE TABLE IF NOT EXISTS due_task_notifications (
+                item_id INTEGER NOT NULL,
+                notification_type TEXT NOT NULL,
+                sent_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (item_id, notification_type),
+                FOREIGN KEY (item_id) REFERENCES todo_items(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_due_task_notifications_item ON due_task_notifications(item_id);
         SQL);
 
         // Provider migration: old device identifiers and credentials cannot be reused by OneSignal.
