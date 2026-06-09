@@ -14,11 +14,21 @@ if (liveList) {
   const stateUrl = liveList.dataset.stateUrl;
   const toggleUrl = liveList.dataset.toggleUrl;
   const deleteUrl = liveList.dataset.deleteUrl;
+  const commentUrl = liveList.dataset.commentUrl;
   const csrfToken = liveList.dataset.csrfToken;
-  let currentRevision = null;
+  const commentsModal = document.getElementById('task-comments');
+  const commentsTitle = commentsModal?.querySelector('[data-comments-task-title]');
+  const commentsList = commentsModal?.querySelector('[data-comment-list]');
+  const commentForm = commentsModal?.querySelector('[data-live-comment]');
+  const initialStateElement = document.querySelector('[data-initial-list-state]');
+  let currentState = initialStateElement ? JSON.parse(initialStateElement.textContent) : null;
+  let activeCommentItemId = null;
+  let currentRevision = currentState?.revision ?? null;
   let requestSequence = 0;
   let appliedSequence = 0;
   let pollInProgress = false;
+
+  const commentCountLabel = (count) => `${count} ${count === 1 ? 'reactie' : 'reacties'}`;
 
   const memberAvatar = (member) => {
     const avatar = document.createElement('i');
@@ -55,11 +65,14 @@ if (liveList) {
   };
 
   const renderTask = (item) => {
-    const form = document.createElement('form');
-    form.method = 'post';
-    form.action = toggleUrl.replace('__ITEM_ID__', encodeURIComponent(item.id));
-    form.className = `task${item.is_completed ? ' task--done' : ''}`;
-    form.dataset.liveToggle = '';
+    const task = document.createElement('article');
+    task.className = `task${item.is_completed ? ' task--done' : ''}`;
+
+    const toggleForm = document.createElement('form');
+    toggleForm.method = 'post';
+    toggleForm.action = toggleUrl.replace('__ITEM_ID__', encodeURIComponent(item.id));
+    toggleForm.className = 'task-toggle-form';
+    toggleForm.dataset.liveToggle = '';
 
     const token = document.createElement('input');
     token.type = 'hidden';
@@ -70,55 +83,92 @@ if (liveList) {
     check.className = 'task-check';
     check.setAttribute('aria-label', item.is_completed ? 'Markeer als niet gedaan' : 'Vink af');
     check.textContent = item.is_completed ? '✓' : '';
+    toggleForm.append(token, check);
 
     const content = document.createElement('button');
+    content.type = 'button';
     content.className = 'task-content';
+    content.dataset.taskDetails = item.id;
     const title = document.createElement('strong');
     title.textContent = item.title;
-    const attribution = document.createElement('small');
+    const meta = document.createElement('small');
+    const attribution = document.createElement('span');
     attribution.textContent = item.is_completed
       ? `Afgevinkt door ${item.completer_name}`
       : `Toegevoegd door ${item.creator_name}`;
-    content.append(title, attribution);
+    const commentCount = document.createElement('span');
+    commentCount.dataset.commentCount = '';
+    commentCount.textContent = commentCountLabel(item.comment_count);
+    meta.append(attribution, commentCount);
+    content.append(title, meta);
 
-    form.append(token, check, content);
-    return form;
+    task.append(toggleForm, content);
+
+    if (item.is_completed) {
+      const deleteForm = document.createElement('form');
+      deleteForm.method = 'post';
+      deleteForm.action = deleteUrl.replace('__ITEM_ID__', encodeURIComponent(item.id));
+      deleteForm.className = 'task-delete-form';
+      deleteForm.dataset.liveDelete = '';
+
+      const deleteToken = token.cloneNode();
+      const button = document.createElement('button');
+      button.className = 'task-delete';
+      button.setAttribute('aria-label', `Verwijder ${item.title}`);
+      const icon = document.createElement('span');
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = '×';
+      button.append(icon);
+      deleteForm.append(deleteToken, button);
+      task.append(deleteForm);
+    }
+
+    return task;
   };
 
-  const renderCompletedTask = (item) => {
-    const row = document.createElement('div');
-    row.className = 'completed-task-row';
-    row.append(renderTask(item));
+  const renderComments = (item) => {
+    if (!commentsModal || !commentsTitle || !commentsList || !commentForm) return;
+    commentsTitle.textContent = item.title;
+    commentForm.action = commentUrl.replace('__ITEM_ID__', encodeURIComponent(item.id));
 
-    const deleteForm = document.createElement('form');
-    deleteForm.method = 'post';
-    deleteForm.action = deleteUrl.replace('__ITEM_ID__', encodeURIComponent(item.id));
-    deleteForm.className = 'task-delete-form';
-    deleteForm.dataset.liveDelete = '';
+    if (item.comments.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'comments-empty';
+      const title = document.createElement('strong');
+      title.textContent = 'Nog geen reacties';
+      const copy = document.createElement('span');
+      copy.textContent = 'Plaats hieronder de eerste reactie op deze taak.';
+      empty.append(title, copy);
+      commentsList.replaceChildren(empty);
+      return;
+    }
 
-    const token = document.createElement('input');
-    token.type = 'hidden';
-    token.name = '_token';
-    token.value = csrfToken;
-
-    const button = document.createElement('button');
-    button.className = 'task-delete';
-    button.setAttribute('aria-label', `Verwijder ${item.title}`);
-    const icon = document.createElement('span');
-    icon.setAttribute('aria-hidden', 'true');
-    icon.textContent = '×';
-    const label = document.createElement('small');
-    label.textContent = 'Verwijder';
-    button.append(icon, label);
-    deleteForm.append(token, button);
-    row.append(deleteForm);
-    return row;
+    commentsList.replaceChildren(...item.comments.map((comment) => {
+      const entry = document.createElement('article');
+      entry.className = 'comment';
+      const author = document.createElement('strong');
+      author.textContent = comment.author_name;
+      const body = document.createElement('p');
+      body.textContent = comment.body;
+      entry.append(author, body);
+      return entry;
+    }));
   };
 
-  const applyState = (state, sequence) => {
+  const openComments = (itemId) => {
+    const item = currentState?.items.find((candidate) => candidate.id === Number(itemId));
+    if (!item || !commentsModal) return;
+    activeCommentItemId = item.id;
+    renderComments(item);
+    commentsModal.showModal();
+    window.setTimeout(() => commentForm?.querySelector('textarea')?.focus(), 50);
+  };
+
+  const applyState = (state, sequence, force = false) => {
     if (sequence < appliedSequence) return;
     appliedSequence = sequence;
-    if (state.revision === currentRevision) return;
+    currentState = state;
+    if (!force && state.revision === currentRevision) return;
     currentRevision = state.revision;
 
     const { done, total, open, percent } = state.stats;
@@ -150,8 +200,14 @@ if (liveList) {
     } else {
       const taskList = document.createElement('div');
       taskList.className = 'task-list';
-      taskList.append(...completedItems.map(renderCompletedTask));
+      taskList.append(...completedItems.map(renderTask));
       completedContainer.replaceChildren(taskList);
+    }
+
+    if (activeCommentItemId !== null && commentsModal?.open) {
+      const activeItem = state.items.find((item) => item.id === activeCommentItemId);
+      if (activeItem) renderComments(activeItem);
+      else commentsModal.close();
     }
 
     renderMembers(state.members);
@@ -175,9 +231,19 @@ if (liveList) {
     }
   };
 
+  liveList.addEventListener('click', (event) => {
+    const detailsButton = event.target.closest('[data-task-details]');
+    if (detailsButton) openComments(detailsButton.dataset.taskDetails);
+  });
+
+  commentsModal?.addEventListener('close', () => {
+    activeCommentItemId = null;
+    commentForm?.reset();
+  });
+
   document.addEventListener('submit', async (event) => {
-    const form = event.target.closest('[data-live-add], [data-live-toggle], [data-live-delete]');
-    if (!form || !liveList.contains(form)) return;
+    const form = event.target.closest('[data-live-add], [data-live-toggle], [data-live-delete], [data-live-comment]');
+    if (!form || (!liveList.contains(form) && !commentsModal?.contains(form))) return;
     event.preventDefault();
     if (form.dataset.submitting === 'true') return;
     if (form.matches('[data-live-delete]') && !window.confirm('Wil je deze afgeronde taak verwijderen?')) return;
@@ -191,8 +257,8 @@ if (liveList) {
         body: new FormData(form),
       });
       if (!response.ok) throw new Error(`Wijziging opslaan mislukt (${response.status})`);
-      applyState(await response.json(), sequence);
-      if (form.matches('[data-live-add]')) form.reset();
+      applyState(await response.json(), sequence, true);
+      if (form.matches('[data-live-add], [data-live-comment]')) form.reset();
     } catch (error) {
       console.error(error);
       window.alert('De wijziging kon niet worden opgeslagen. Probeer het opnieuw.');

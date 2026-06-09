@@ -62,6 +62,11 @@ assert_true((bool) $toggled['is_completed'], 'members can complete shared tasks'
 assert_true($lists->liveState($listId)['stats']['percent'] === 100, 'live state reports completion progress');
 $lists->addItem($listId, (int) $owner['id'], 'Niet afgeronde taak');
 $openItem = $lists->items($listId)[0];
+assert_true($lists->addComment((int) $openItem['id'], $listId, (int) $member['id'], 'Ik regel dit vanmiddag.'), 'members can comment on existing tasks');
+$commentedItem = $lists->liveState($listId)['items'][0];
+assert_true($commentedItem['comment_count'] === 1, 'live state includes the task comment count');
+assert_true($commentedItem['comments'][0]['author_name'] === $member['name'], 'task comments include the author name');
+assert_true($commentedItem['comments'][0]['body'] === 'Ik regel dit vanmiddag.', 'task comments include their text');
 assert_true(!$lists->deleteCompletedItem((int) $openItem['id'], $listId), 'open tasks cannot be deleted through the completed-task action');
 assert_true($lists->deleteCompletedItem((int) $item['id'], $listId), 'completed tasks can be deleted');
 assert_true($lists->liveState($listId)['stats']['total'] === 1, 'deleting a completed task refreshes list statistics');
@@ -152,6 +157,9 @@ assert_true(str_contains($adminPage, 'data-rich-editor'), 'the invitation rich-t
 $listView = file_get_contents(dirname(__DIR__) . '/app/Views/lists/show.php');
 assert_true(str_contains($listView, '>Afgerond</h2>'), 'completed tasks have their own section heading');
 assert_true(str_contains($listView, 'data-live-delete'), 'completed tasks expose a dedicated delete action');
+assert_true(str_contains($listView, 'data-task-details'), 'task cards open their comments dialog');
+assert_true(str_contains($listView, 'data-live-comment'), 'the comments dialog exposes a live comment form');
+assert_true(!str_contains($listView, '<small>Verwijder</small>'), 'the oversized completed-task delete label is removed');
 $listModal = file_get_contents(dirname(__DIR__) . '/app/Views/layouts/app.php');
 assert_true(substr_count($listModal, 'name="color"') === 1, 'the list modal renders its color selector from one reusable loop');
 assert_true(str_contains($listModal, "'lavender' => 'Lavendel'"), 'the list modal offers additional pastel colors');
@@ -170,6 +178,8 @@ assert_true(str_contains($javascript, 'iOS 16.4'), 'iOS users receive the requir
 assert_true(str_contains($javascript, 'registerDevice(false)'), 'previously granted devices are synchronized automatically in the background');
 assert_true(str_contains($javascript, "state.items.filter((item) => !item.is_completed)"), 'live updates keep open and completed tasks in separate sections');
 assert_true(str_contains($javascript, "[data-live-delete]"), 'live updates submit completed-task deletions asynchronously');
+assert_true(str_contains($javascript, "[data-live-comment]"), 'task comments are submitted asynchronously');
+assert_true(str_contains($javascript, 'comment.author_name'), 'comment rendering shows the author name');
 
 $manifestController = file_get_contents(dirname(__DIR__) . '/app/Controllers/PwaController.php');
 assert_true(str_contains($manifestController, 'OneSignalSDK.sw.js'), 'the PWA service worker imports the OneSignal worker');
@@ -177,6 +187,7 @@ assert_true(str_contains($manifestController, "'display' => 'standalone'"), 'the
 $routes = file_get_contents(dirname(__DIR__) . '/public/index.php');
 assert_true(str_contains($routes, "'/notifications/subscribe'"), 'signed-in users can register a OneSignal subscription');
 assert_true(str_contains($routes, "'/notifications/unsubscribe'"), 'signed-in users can remove a OneSignal subscription');
+assert_true(str_contains($routes, "'/lists/{listId}/items/{itemId}/comments'"), 'task comments have a dedicated signed-in route');
 $readme = file_get_contents(dirname(__DIR__) . '/README.md');
 assert_true(str_contains($readme, 'iOS/iPadOS 16.4'), 'the README documents iOS web-push requirements');
 

@@ -5,6 +5,7 @@ $percent = $total ? round($done / $total * 100) : 0;
 $isOwner = (int) $list['owner_id'] === (int) $user['id'];
 $openItems = array_values(array_filter($items, fn($item) => (int) $item['is_completed'] === 0));
 $completedItems = array_values(array_filter($items, fn($item) => (int) $item['is_completed'] === 1));
+$commentLabel = static fn(array $item): string => (int) $item['comment_count'] . ' ' . ((int) $item['comment_count'] === 1 ? 'reactie' : 'reacties');
 ?>
 <section
     class="detail-page detail-page--<?= e($list['color']) ?>"
@@ -12,6 +13,7 @@ $completedItems = array_values(array_filter($items, fn($item) => (int) $item['is
     data-state-url="<?= e(url('/lists/' . $list['id'] . '/state')) ?>"
     data-toggle-url="<?= e(url('/lists/' . $list['id'] . '/items/__ITEM_ID__/toggle')) ?>"
     data-delete-url="<?= e(url('/lists/' . $list['id'] . '/items/__ITEM_ID__/delete')) ?>"
+    data-comment-url="<?= e(url('/lists/' . $list['id'] . '/items/__ITEM_ID__/comments')) ?>"
     data-csrf-token="<?= e(csrf_token()) ?>"
 >
     <header class="detail-header">
@@ -39,11 +41,13 @@ $completedItems = array_values(array_filter($items, fn($item) => (int) $item['is
                 <?php if ($openItems): ?>
                     <div class="task-list">
                         <?php foreach ($openItems as $item): ?>
-                            <form method="post" action="<?= e(url('/lists/' . $list['id'] . '/items/' . $item['id'] . '/toggle')) ?>" class="task" data-live-toggle>
-                                <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
-                                <button class="task-check" aria-label="Vink af"></button>
-                                <button class="task-content"><strong><?= e($item['title']) ?></strong><small>Toegevoegd door <?= e($item['creator_name']) ?></small></button>
-                            </form>
+                            <article class="task">
+                                <form method="post" action="<?= e(url('/lists/' . $list['id'] . '/items/' . $item['id'] . '/toggle')) ?>" class="task-toggle-form" data-live-toggle>
+                                    <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
+                                    <button class="task-check" aria-label="Vink af"></button>
+                                </form>
+                                <button type="button" class="task-content" data-task-details="<?= (int) $item['id'] ?>"><strong><?= e($item['title']) ?></strong><small><span>Toegevoegd door <?= e($item['creator_name']) ?></span><span data-comment-count><?= e($commentLabel($item)) ?></span></small></button>
+                            </article>
                         <?php endforeach; ?>
                     </div>
                 <?php else: ?>
@@ -56,17 +60,17 @@ $completedItems = array_values(array_filter($items, fn($item) => (int) $item['is
             <div data-task-container="completed">
                 <?php if ($completedItems): ?><div class="task-list">
                     <?php foreach ($completedItems as $item): ?>
-                        <div class="completed-task-row">
-                            <form method="post" action="<?= e(url('/lists/' . $list['id'] . '/items/' . $item['id'] . '/toggle')) ?>" class="task task--done" data-live-toggle>
+                        <article class="task task--done">
+                            <form method="post" action="<?= e(url('/lists/' . $list['id'] . '/items/' . $item['id'] . '/toggle')) ?>" class="task-toggle-form" data-live-toggle>
                                 <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
                                 <button class="task-check" aria-label="Markeer als niet gedaan">✓</button>
-                                <button class="task-content"><strong><?= e($item['title']) ?></strong><small>Afgevinkt door <?= e($item['completer_name']) ?></small></button>
                             </form>
+                            <button type="button" class="task-content" data-task-details="<?= (int) $item['id'] ?>"><strong><?= e($item['title']) ?></strong><small><span>Afgevinkt door <?= e($item['completer_name']) ?></span><span data-comment-count><?= e($commentLabel($item)) ?></span></small></button>
                             <form method="post" action="<?= e(url('/lists/' . $list['id'] . '/items/' . $item['id'] . '/delete')) ?>" class="task-delete-form" data-live-delete>
                                 <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
-                                <button class="task-delete" aria-label="Verwijder <?= e($item['title']) ?>"><span aria-hidden="true">×</span><small>Verwijder</small></button>
+                                <button class="task-delete" aria-label="Verwijder <?= e($item['title']) ?>"><span aria-hidden="true">×</span></button>
                             </form>
-                        </div>
+                        </article>
                     <?php endforeach; ?>
                 </div><?php endif; ?>
             </div>
@@ -79,4 +83,17 @@ $completedItems = array_values(array_filter($items, fn($item) => (int) $item['is
         <?php if ($isOwner): ?><form method="post" action="<?= e(url('/lists/' . $list['id'] . '/delete')) ?>" onsubmit="return confirm('Weet je zeker dat je dit lijstje wilt verwijderen?')" class="delete-form"><input type="hidden" name="_token" value="<?= e(csrf_token()) ?>"><button class="text-link text-link--danger">Lijstje verwijderen</button></form><?php endif; ?>
     </div>
 </section>
+<script type="application/json" data-initial-list-state><?= json_encode($initialState, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) ?></script>
+<dialog class="modal task-comments-modal" id="task-comments">
+    <div class="modal-card">
+        <div class="modal-handle"></div>
+        <div class="modal-heading"><div><span class="eyebrow">Taak</span><h2 data-comments-task-title></h2></div><button type="button" class="icon-button" data-close-modal aria-label="Sluiten">×</button></div>
+        <div class="comment-list" data-comment-list></div>
+        <form method="post" class="comment-form" data-live-comment>
+            <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
+            <label class="field"><span>Nieuwe reactie</span><textarea name="body" maxlength="1000" rows="3" placeholder="Schrijf een reactie..." required></textarea></label>
+            <button class="button button--primary button--wide">Reactie plaatsen</button>
+        </form>
+    </div>
+</dialog>
 <?php if ($isOwner): ?><dialog class="modal" id="share-list"><form method="post" action="<?= e(url('/lists/' . $list['id'] . '/share')) ?>" class="modal-card"><input type="hidden" name="_token" value="<?= e(csrf_token()) ?>"><div class="modal-handle"></div><div class="modal-heading"><div><span class="eyebrow">Samen is leuker</span><h2>Nodig iemand uit</h2></div><button type="button" class="icon-button" data-close-modal>×</button></div><p class="modal-intro">Vul het e-mailadres in. We maken alvast een plek voor diegene; inloggen kan direct met hetzelfde adres.</p><label class="field"><span>E-mailadres</span><input type="email" name="email" placeholder="vriend@voorbeeld.nl" required></label><button class="button button--primary button--wide">Uitnodigen <span>♡</span></button></form></dialog><?php endif; ?>
