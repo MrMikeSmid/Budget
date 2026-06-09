@@ -80,6 +80,21 @@ assert_true($richItem['priority'] === 'high', 'task state includes the selected 
 assert_true($richItem['due_date'] === '2026-08-14', 'task state includes the due date');
 assert_true($richItem['has_image'] === true, 'task state reports an attached image without exposing its filename');
 assert_true($lists->itemImage($richItemId, $listId) === 'voorbeeld.webp', 'task images can be resolved inside their list');
+$storedImageBytes = "\x89PNG\r\n\x1a\nblijvende-testafbeelding";
+$storedImageId = $lists->addItem(
+    $listId,
+    (int) $owner['id'],
+    'Afbeelding duurzaam bewaren',
+    'none',
+    null,
+    null,
+    $storedImageBytes,
+    'image/png'
+);
+$storedImage = $lists->itemImageData($storedImageId, $listId);
+assert_true($storedImage !== null && $storedImage['data'] === $storedImageBytes, 'task image bytes remain stored with the task');
+assert_true($storedImage['mime_type'] === 'image/png', 'task image MIME types remain stored with the task');
+assert_true($lists->liveState($listId)['items'][0]['has_image'] === true, 'database-backed task images remain visible after state reloads');
 $listPage = render_view('lists/show', [
     'user' => $owner,
     'list' => $lists->findAccessible($listId, (int) $owner['id']),

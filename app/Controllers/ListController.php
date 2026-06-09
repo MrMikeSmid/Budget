@@ -94,17 +94,21 @@ final class ListController extends Controller
             $this->itemError($id, 'Kies een geldige vervaldatum.');
         }
 
-        $imageFilename = $this->storeTaskImage($_FILES['image'] ?? null);
-        if ($imageFilename === false) {
+        $image = $this->storeTaskImage($_FILES['image'] ?? null);
+        if ($image === false) {
             $this->itemError($id, 'Gebruik een JPG-, PNG-, WebP- of GIF-afbeelding van maximaal 5 MB.');
         }
 
-        try {
-            $this->lists->addItem((int) $id, (int) $user['id'], $title, $priority, $dueDate, $imageFilename);
-        } catch (\Throwable $exception) {
-            $this->deleteTaskImage($imageFilename);
-            throw $exception;
-        }
+        $this->lists->addItem(
+            (int) $id,
+            (int) $user['id'],
+            $title,
+            $priority,
+            $dueDate,
+            null,
+            $image['data'] ?? null,
+            $image['mime_type'] ?? null
+        );
         $this->notify(fn(ListNotificationService $notifications) => $notifications->taskCreated($list, $user, $title));
 
         if ($this->wantsJson()) {
@@ -118,6 +122,17 @@ final class ListController extends Controller
     {
         $user = $this->auth();
         $this->accessible((int) $listId, (int) $user['id']);
+        $storedImage = $this->lists->itemImageData((int) $itemId, (int) $listId);
+        if ($storedImage !== null && isset(self::IMAGE_TYPES[$storedImage['mime_type']])) {
+            header('Content-Type: ' . $storedImage['mime_type']);
+            header('Content-Length: ' . (string) strlen($storedImage['data']));
+            header('Cache-Control: private, max-age=86400');
+            header('X-Content-Type-Options: nosniff');
+            echo $storedImage['data'];
+            return;
+        }
+
+        // Bestaande uploads van vóór de database-opslag blijven via hun bestand werken.
         $filename = $this->lists->itemImage((int) $itemId, (int) $listId);
         $path = $this->taskImageDirectory() . '/' . basename((string) $filename);
         $extension = strtolower(pathinfo((string) $filename, PATHINFO_EXTENSION));
@@ -234,7 +249,8 @@ final class ListController extends Controller
         return $date !== false && $date->format('Y-m-d') === $value ? $value : false;
     }
 
-    private function storeTaskImage(?array $upload): string|false|null
+    /** @return array{data: string, mime_type: string}|false|null */
+    private function storeTaskImage(?array $upload): array|false|null
     {
         if ($upload === null || ($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
             return null;
@@ -253,12 +269,12 @@ final class ListController extends Controller
             return false;
         }
 
-        $directory = $this->taskImageDirectory();
-        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+        $imageData = file_get_contents($temporaryPath);
+        if (!is_string($imageData) || $imageData === '') {
             return false;
         }
-        $filename = bin2hex(random_bytes(20)) . '.' . self::IMAGE_TYPES[$mimeType];
-        return move_uploaded_file($temporaryPath, $directory . '/' . $filename) ? $filename : false;
+
+        return ['data' => $imageData, 'mime_type' => $mimeType];
     }
 
     private function deleteTaskImage(?string $filename): void
