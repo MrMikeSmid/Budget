@@ -15,6 +15,7 @@ if (liveList) {
   const toggleUrl = liveList.dataset.toggleUrl;
   const deleteUrl = liveList.dataset.deleteUrl;
   const commentUrl = liveList.dataset.commentUrl;
+  const updateUrl = liveList.dataset.updateUrl;
   const imageUrl = liveList.dataset.imageUrl;
   const memberDeleteUrl = liveList.dataset.memberDeleteUrl;
   const isOwner = liveList.dataset.isOwner === 'true';
@@ -27,6 +28,8 @@ if (liveList) {
   const detailMedia = commentsModal?.querySelector('[data-task-detail-media]');
   const detailImage = commentsModal?.querySelector('[data-task-detail-image]');
   const detailBadges = commentsModal?.querySelector('[data-task-detail-badges]');
+  const taskEditToggle = commentsModal?.querySelector('[data-toggle-task-edit]');
+  const taskEditForm = commentsModal?.querySelector('[data-live-edit]');
   const initialStateElement = document.querySelector('[data-initial-list-state]');
   const taskSort = liveList.querySelector('[data-task-sort]');
   const sortStorageKey = `samen-task-sort-${liveList.dataset.listId}`;
@@ -282,6 +285,12 @@ if (liveList) {
     if (!commentsModal || !commentsTitle || !commentsList || !commentForm) return;
     commentsTitle.textContent = item.title;
     commentForm.action = commentUrl.replace('__ITEM_ID__', encodeURIComponent(item.id));
+    if (taskEditForm?.hidden) {
+      taskEditForm.action = updateUrl.replace('__ITEM_ID__', encodeURIComponent(item.id));
+      taskEditForm.querySelector('[data-edit-task-title]').value = item.title;
+      taskEditForm.querySelector('[data-edit-task-priority]').value = item.priority;
+      taskEditForm.querySelector('[data-edit-task-due-date]').value = item.due_date ?? '';
+    }
 
     if (detailMedia && detailImage) {
       const hasImage = taskHasImage(item);
@@ -325,9 +334,10 @@ if (liveList) {
     const item = currentState?.items.find((candidate) => candidate.id === Number(itemId));
     if (!item || !commentsModal) return;
     activeCommentItemId = item.id;
+    if (taskEditForm) taskEditForm.hidden = true;
+    if (taskEditToggle) taskEditToggle.hidden = false;
     renderComments(item);
     commentsModal.showModal();
-    window.setTimeout(() => commentForm?.querySelector('textarea')?.focus(), 50);
   };
 
   const applyState = (state, sequence, force = false) => {
@@ -416,13 +426,30 @@ if (liveList) {
     if (detailsButton) openComments(detailsButton.dataset.taskDetails);
   });
 
+  taskEditToggle?.addEventListener('click', () => {
+    if (!taskEditForm) return;
+    taskEditForm.hidden = false;
+    taskEditToggle.hidden = true;
+    taskEditForm.querySelector('[data-edit-task-title]')?.focus();
+  });
+
+  commentsModal?.querySelector('[data-cancel-task-edit]')?.addEventListener('click', () => {
+    if (!taskEditForm || !taskEditToggle || activeCommentItemId === null) return;
+    taskEditForm.hidden = true;
+    taskEditToggle.hidden = false;
+    const item = currentState?.items.find((candidate) => candidate.id === activeCommentItemId);
+    if (item) renderComments(item);
+  });
+
   commentsModal?.addEventListener('close', () => {
     activeCommentItemId = null;
     commentForm?.reset();
+    if (taskEditForm) taskEditForm.hidden = true;
+    if (taskEditToggle) taskEditToggle.hidden = false;
   });
 
   document.addEventListener('submit', async (event) => {
-    const form = event.target.closest('[data-live-add], [data-live-toggle], [data-live-delete], [data-live-comment]');
+    const form = event.target.closest('[data-live-add], [data-live-toggle], [data-live-delete], [data-live-comment], [data-live-edit]');
     if (!form || (!liveList.contains(form) && !taskCreateModal?.contains(form) && !commentsModal?.contains(form))) return;
     event.preventDefault();
     if (form.dataset.submitting === 'true') return;
@@ -438,6 +465,10 @@ if (liveList) {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.message || `Wijziging opslaan mislukt (${response.status})`);
+      if (form.matches('[data-live-edit]')) {
+        form.hidden = true;
+        if (taskEditToggle) taskEditToggle.hidden = false;
+      }
       applyState(result, sequence, true);
       if (form.matches('[data-live-add], [data-live-comment]')) form.reset();
       if (form.matches('[data-task-create-form]')) taskCreateModal.close();

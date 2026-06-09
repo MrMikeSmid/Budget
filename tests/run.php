@@ -221,6 +221,22 @@ assert_true(str_contains($listPage, 'name="image"'), 'the task modal offers an i
 assert_true(str_contains($listPage, '/lists/' . $listId . '/members/' . $member['id'] . '/delete'), 'owners can remove active members from the member list');
 assert_true(str_contains($listPage, 'data-member-delete-url='), 'live member updates retain the member removal endpoint');
 assert_true(str_contains($listPage, 'data-is-owner="true"'), 'the live list identifies owners who may remove members');
+assert_true(str_contains($listPage, 'data-live-edit'), 'the task details dialog includes an edit form');
+assert_true(str_contains($listPage, 'data-toggle-task-edit'), 'the task details dialog exposes its edit action');
+assert_true(str_contains($listPage, '/items/__ITEM_ID__/update'), 'the live list exposes the task update endpoint');
+
+assert_true($lists->claimDueNotification($storedImageId, 'reminder'), 'the edited task can have an existing deadline notification');
+assert_true($lists->updateItem($storedImageId, $listId, 'Paspoorten controleren', 'medium', '2026-08-20'), 'existing tasks can be updated');
+assert_true(!$lists->dueNotificationWasSent($storedImageId, 'reminder'), 'changing a due date resets its sent deadline notifications');
+$updatedItem = array_values(array_filter(
+    $lists->liveState($listId)['items'],
+    static fn(array $item): bool => $item['id'] === $storedImageId
+))[0];
+assert_true($updatedItem['title'] === 'Paspoorten controleren', 'task updates persist the changed title');
+assert_true($updatedItem['priority'] === 'medium' && $updatedItem['due_date'] === '2026-08-20', 'task updates persist priority and due date');
+assert_true($updatedItem['has_image'] === true, 'editing task details preserves an existing image');
+assert_true($lists->itemImageData($storedImageId, $listId)['data'] === $storedImageBytes, 'editing task details preserves stored image bytes');
+assert_true(!$lists->updateItem(999999, $listId, 'Onbekend', 'none', null), 'tasks outside the list cannot be updated');
 
 $users->setPassword((int) $owner['id'], 'een-veilig-wachtwoord');
 assert_true(password_verify('een-veilig-wachtwoord', $users->find((int) $owner['id'])['password_hash']), 'passwords are securely hashed');
@@ -374,6 +390,8 @@ assert_true(str_contains($javascript, "state.items.filter((item) => !item.is_com
 assert_true(str_contains($javascript, '`${open} open taken`'), 'live updates keep the open task count in the section heading');
 assert_true(str_contains($javascript, "[data-live-delete]"), 'live updates submit completed-task deletions asynchronously');
 assert_true(str_contains($javascript, "[data-live-comment]"), 'task comments are submitted asynchronously');
+assert_true(str_contains($javascript, "[data-live-edit]"), 'task edits are submitted asynchronously');
+assert_true(str_contains($javascript, "taskEditForm.action = updateUrl.replace"), 'the task edit form targets the selected task');
 assert_true(str_contains($javascript, 'comment.author_name'), 'comment rendering shows the author name');
 assert_true(str_contains($javascript, 'const imageItemIds = new Set('), 'live updates remember which tasks have an attached image');
 assert_true(str_contains($javascript, "memberDeleteUrl.replace('__MEMBER_ID__'"), 'live member cards keep owner removal actions after synchronization');
@@ -396,6 +414,7 @@ assert_true(str_contains($routes, "'/admin/accounts'"), 'administrators can open
 assert_true(str_contains($routes, "'/notifications/subscribe'"), 'signed-in users can register a OneSignal subscription');
 assert_true(str_contains($routes, "'/notifications/unsubscribe'"), 'signed-in users can remove a OneSignal subscription');
 assert_true(str_contains($routes, "'/lists/{listId}/items/{itemId}/comments'"), 'task comments have a dedicated signed-in route');
+assert_true(str_contains($routes, "'/lists/{listId}/items/{itemId}/update'"), 'task editing has a dedicated signed-in route');
 assert_true(str_contains($routes, "'/lists/{id}/accept'"), 'invited users have a dedicated invitation acceptance route');
 assert_true(str_contains($routes, "'/lists/{listId}/members/{memberId}/delete'"), 'owners have a dedicated member removal route');
 assert_true(str_contains($routes, "'/users/{id}/profile-image'"), 'member profile images have a user-specific route');

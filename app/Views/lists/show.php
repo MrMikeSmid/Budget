@@ -64,6 +64,7 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
     data-toggle-url="<?= e(url('/lists/' . $list['id'] . '/items/__ITEM_ID__/toggle')) ?>"
     data-delete-url="<?= e(url('/lists/' . $list['id'] . '/items/__ITEM_ID__/delete')) ?>"
     data-comment-url="<?= e(url('/lists/' . $list['id'] . '/items/__ITEM_ID__/comments')) ?>"
+    data-update-url="<?= e(url('/lists/' . $list['id'] . '/items/__ITEM_ID__/update')) ?>"
     data-image-url="<?= e(url('/lists/' . $list['id'] . '/items/__ITEM_ID__/image')) ?>"
     data-member-delete-url="<?= e(url('/lists/' . $list['id'] . '/members/__MEMBER_ID__/delete')) ?>"
     data-is-owner="<?= $isOwner ? 'true' : 'false' ?>"
@@ -157,6 +158,18 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
         <div class="modal-heading"><div><span class="eyebrow">Taak</span><h2 data-comments-task-title></h2></div><button type="button" class="icon-button" data-close-modal aria-label="Sluiten">×</button></div>
         <div class="task-detail-media" data-task-detail-media hidden><img data-task-detail-image src="" alt=""></div>
         <div class="task-detail-badges" data-task-detail-badges></div>
+        <?php if (!$isPending): ?>
+            <button type="button" class="task-edit-toggle" data-toggle-task-edit><span aria-hidden="true">✎</span> Taak bewerken</button>
+            <form method="post" class="task-edit-form" data-live-edit hidden>
+                <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
+                <label class="field"><span>Taak</span><input name="title" maxlength="160" required data-edit-task-title></label>
+                <div class="task-form-grid">
+                    <label class="field"><span>Prioriteit</span><select name="priority" data-edit-task-priority><option value="none">Geen prioriteit</option><option value="low">Laag</option><option value="medium">Normaal</option><option value="high">Hoog</option></select></label>
+                    <label class="field"><span>Vervaldatum</span><input type="date" name="due_date" data-edit-task-due-date></label>
+                </div>
+                <div class="task-edit-form__actions"><button type="button" class="text-link" data-cancel-task-edit>Annuleren</button><button class="button button--primary">Wijzigingen opslaan</button></div>
+            </form>
+        <?php endif; ?>
         <div class="comment-list" data-comment-list></div>
         <form method="post" class="comment-form" data-live-comment<?= $isPending ? ' data-pending-invitation hidden' : '' ?>>
             <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">

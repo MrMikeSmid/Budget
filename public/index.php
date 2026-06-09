@@ -40,6 +40,7 @@ $router->get('/lists/{id}/state', [ListController::class, 'state']);
 $router->post('/lists/{id}/items', [ListController::class, 'addItem']);
 $router->get('/lists/{listId}/items/{itemId}/image', [ListController::class, 'itemImage']);
 $router->post('/lists/{listId}/items/{itemId}/comments', [ListController::class, 'addComment']);
+$router->post('/lists/{listId}/items/{itemId}/update', [ListController::class, 'updateItem']);
 $router->post('/lists/{listId}/items/{itemId}/toggle', [ListController::class, 'toggle']);
 $router->post('/lists/{listId}/items/{itemId}/delete', [ListController::class, 'deleteItem']);
 $router->post('/lists/{id}/share', [ListController::class, 'share']);

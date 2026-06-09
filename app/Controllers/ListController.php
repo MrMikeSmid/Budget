@@ -150,6 +150,35 @@ final class ListController extends Controller
         readfile($path);
     }
 
+    public function updateItem(string $listId, string $itemId): void
+    {
+        $user = $this->auth();
+        $this->verifyCsrf();
+        $this->participating((int) $listId, (int) $user['id']);
+        $title = trim((string) ($_POST['title'] ?? ''));
+        if ($title === '' || mb_strlen($title) > 160) {
+            $this->itemError($listId, 'Geef je taak een korte naam.');
+        }
+
+        $priority = in_array($_POST['priority'] ?? 'none', self::PRIORITIES, true)
+            ? (string) ($_POST['priority'] ?? 'none')
+            : 'none';
+        $dueDate = $this->validatedDueDate((string) ($_POST['due_date'] ?? ''));
+        if ($dueDate === false) {
+            $this->itemError($listId, 'Kies een geldige vervaldatum.');
+        }
+
+        if (!$this->lists->updateItem((int) $itemId, (int) $listId, $title, $priority, $dueDate)) {
+            $this->itemError($listId, 'Deze taak bestaat niet meer.');
+        }
+
+        if ($this->wantsJson()) {
+            $this->respondWithState((int) $listId);
+            return;
+        }
+        redirect('/lists/' . $listId);
+    }
+
     public function addComment(string $listId, string $itemId): void
     {
         $user = $this->auth();
