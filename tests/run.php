@@ -241,13 +241,26 @@ assert_true($storedSubscriptions[0]['user_agent'] === 'Updated Browser', 'a repe
 $subscriptions->save((int) $member['id'], '22222222-2222-4222-8222-222222222222', 'Member Browser');
 $subscriptions->save((int) $outsider['id'], '33333333-3333-4333-8333-333333333333', 'Outsider Browser');
 assert_true($subscriptions->idsForUsers([(int) $member['id']]) === ['22222222-2222-4222-8222-222222222222'], 'subscription IDs can be selected for notification recipients');
+$lists->share($sortingListId, (int) $owner['id'], (int) $pendingRemoval['id']);
 $adminAccounts = $users->allForAdmin();
 $memberAccount = array_values(array_filter($adminAccounts, static fn(array $account): bool => (int) $account['id'] === (int) $member['id']))[0];
 assert_true((int) $memberAccount['notification_subscription_count'] === 1, 'the admin account overview counts active notification devices');
 assert_true((int) $memberAccount['has_password'] === 1, 'the admin account overview exposes whether a password is configured');
 assert_true(!array_key_exists('password_hash', $memberAccount), 'the admin account overview does not expose password hashes');
+assert_true(count($memberAccount['lists']) === 1 && $memberAccount['lists'][0]['title'] === 'Vakantie', 'the admin account overview includes accepted list memberships');
+assert_true((int) $memberAccount['lists'][0]['is_owner'] === 0, 'the admin account overview identifies memberships that are not owned');
+$ownerAccount = array_values(array_filter($adminAccounts, static fn(array $account): bool => (int) $account['id'] === (int) $owner['id']))[0];
+assert_true(array_column($ownerAccount['lists'], 'title') === ['Sorteertest', 'Vakantie'], 'owned lists are included and alphabetized in the account membership overview');
+assert_true(array_unique(array_column($ownerAccount['lists'], 'is_owner')) === [1], 'owned lists are marked as owned in the account membership overview');
+$pendingAccount = array_values(array_filter($adminAccounts, static fn(array $account): bool => (int) $account['id'] === (int) $pendingRemoval['id']))[0];
+assert_true($pendingAccount['lists'] === [], 'pending invitations are not presented as active list memberships');
+$outsiderAccount = array_values(array_filter($adminAccounts, static fn(array $account): bool => (int) $account['id'] === (int) $outsider['id']))[0];
+assert_true($outsiderAccount['lists'] === [], 'accounts without active memberships expose an empty list collection');
 $accountsPage = render_view('admin/accounts', ['accounts' => $adminAccounts]);
 assert_true(str_contains($accountsPage, 'member@example.nl'), 'the admin account page lists registered users');
+assert_true(str_contains($accountsPage, 'Lijsten'), 'the admin account page shows the list membership column');
+assert_true(str_contains($accountsPage, '✈️ Vakantie'), 'the admin account page names active list memberships');
+assert_true(str_contains($accountsPage, 'Geen lijsten'), 'the admin account page labels accounts without memberships');
 assert_true(str_contains($accountsPage, 'Ingesteld'), 'the admin account page shows configured password status');
 assert_true(str_contains($accountsPage, 'Laatst ingelogd'), 'the admin account page shows the last login column');
 
