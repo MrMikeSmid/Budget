@@ -156,6 +156,9 @@ $listModal = file_get_contents(dirname(__DIR__) . '/app/Views/layouts/app.php');
 assert_true(substr_count($listModal, 'name="color"') === 1, 'the list modal renders its color selector from one reusable loop');
 assert_true(str_contains($listModal, "'lavender' => 'Lavendel'"), 'the list modal offers additional pastel colors');
 assert_true(str_contains($listModal, 'list_mood_options()'), 'the list modal offers the SVG mood icon collection');
+assert_true(str_starts_with(render_list_mood_icon('sparkles'), '<svg class="mood-icon mood-icon--sparkles"'), 'known mood icons render as inline SVG');
+assert_true(str_contains(render_list_mood_icon('sparkles'), '<path d="'), 'inline mood icons include their vector path');
+assert_true(!str_contains(file_get_contents(dirname(__DIR__) . '/public/assets/css/app.css'), '.mood-icon--sparkles{mask-image'), 'mood icons no longer depend on browser CSS mask support');
 
 $javascript = file_get_contents(dirname(__DIR__) . '/public/assets/js/app.js');
 assert_true(str_contains($javascript, 'OneSignal.init'), 'the browser initializes the OneSignal web SDK');

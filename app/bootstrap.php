@@ -80,7 +80,23 @@ function list_mood_options(): array {
 }
 function render_list_mood_icon(string $value, string $class = ''): string {
     if (array_key_exists($value, list_mood_options())) {
-        return '<span class="mood-icon mood-icon--' . e($value) . ($class !== '' ? ' ' . e($class) : '') . '" aria-hidden="true"></span>';
+        static $icons = [];
+        $iconClass = 'mood-icon mood-icon--' . $value . ($class !== '' ? ' ' . $class : '');
+        $cacheKey = $value . '|' . $class;
+
+        if (!isset($icons[$cacheKey])) {
+            $path = dirname(__DIR__) . '/public/assets/icons/moods/' . $value . '.svg';
+            $svg = (string) file_get_contents($path);
+            $svg = preg_replace(
+                '/<svg\b[^>]*>/',
+                '<svg class="' . e($iconClass) . '" viewBox="0 0 24 24" focusable="false" aria-hidden="true">',
+                $svg,
+                1
+            );
+            $icons[$cacheKey] = (string) $svg;
+        }
+
+        return $icons[$cacheKey];
     }
     return '<span class="mood-emoji' . ($class !== '' ? ' ' . e($class) : '') . '" aria-hidden="true">' . e($value) . '</span>';
 }
