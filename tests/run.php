@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Services\OneSignalSettings;
 use App\Services\InvitationEmailSettings;
 use App\Services\InvitationMailer;
+use App\Services\SmtpSettings;
 use App\Services\ListNotificationService;
 use App\Services\DueTaskNotificationService;
 use App\Services\OneSignalNotificationService;
@@ -271,6 +272,13 @@ $mailer = new InvitationMailer(function (string $to, string $subject, string $me
 assert_true($mailer->send('invitee@example.nl', $owner, $lists->findAccessible($listId, (int) $owner['id'])), 'invitation mail uses the injected transport');
 assert_true(str_contains($sentMail['message'], 'http://localhost/development/lists/' . $listId), 'invitation mail contains an absolute list URL');
 
+$smtpSettings = new SmtpSettings();
+$smtpSettings->save('smtp.example.nl', 587, 'starttls', 'mailer@example.nl', 'smtp-secret', 20);
+assert_true($smtpSettings->isConfigured(), 'SMTP settings are complete after host and port are saved');
+assert_true($smtpSettings->encryption() === 'starttls' && $smtpSettings->timeout() === 20, 'SMTP security and timeout settings are persisted');
+$smtpSettings->save('smtp.example.nl', 587, 'starttls', 'mailer@example.nl', null, 20);
+assert_true($smtpSettings->password() === 'smtp-secret', 'leaving the SMTP password blank preserves the stored secret');
+
 $oneSignal = new OneSignalSettings();
 $oneSignal->save('123e4567-e89b-42d3-a456-426614174000', 'os-rest-key-456');
 assert_true($oneSignal->isConfigured(), 'OneSignal is configured with an App ID and REST API key');
@@ -370,16 +378,23 @@ assert_true(str_contains($notificationPage, 'Stuur testmelding'), 'the test page
 assert_true(str_contains($notificationPage, 'iOS 16.4 of nieuwer'), 'the test page documents the iOS installation requirement');
 assert_true(!str_contains($notificationPage, 'os-rest-key-456'), 'the stored OneSignal REST API key is never rendered into the page');
 
-$adminPage = render_view('admin/index', [
+$adminPage = render_view('admin/index', []);
+assert_true(str_contains($adminPage, 'OneSignal-testomgeving'), 'the admin page links to the OneSignal notification test');
+assert_true(str_contains($adminPage, 'href="/development/admin/accounts"'), 'the admin page links to the registered account overview');
+assert_true(str_contains($adminPage, 'href="/development/admin/email"'), 'the admin page links to the dedicated email settings');
+$emailPage = render_view('admin/email', [
+    'user' => $owner,
+    'smtp' => $smtpSettings,
     'invitation_sender_name' => $invitationSettings->senderName(),
     'invitation_sender_email' => $invitationSettings->senderEmail(),
     'invitation_message_html' => $invitationSettings->message(),
     'invitation_preview_html' => $invitationSettings->renderEmail($owner, ['id' => $listId, 'title' => 'Vakantie'], 'invitee@example.nl'),
     'invitation_tokens' => InvitationEmailSettings::tokens(),
 ]);
-assert_true(str_contains($adminPage, 'OneSignal-testomgeving'), 'the admin page links to the OneSignal notification test');
-assert_true(str_contains($adminPage, 'href="/development/admin/accounts"'), 'the admin page links to the registered account overview');
-assert_true(str_contains($adminPage, 'data-rich-editor'), 'the invitation rich-text editor remains available');
+assert_true(str_contains($emailPage, 'data-rich-editor'), 'the invitation rich-text editor remains available on the email settings page');
+assert_true(str_contains($emailPage, 'name="smtp_host"') && str_contains($emailPage, 'name="smtp_encryption"'), 'the email settings page exposes the SMTP connection fields');
+assert_true(str_contains($emailPage, 'SPF:') && str_contains($emailPage, 'DKIM:'), 'the email settings page explains domain authentication');
+assert_true(!str_contains($emailPage, 'smtp-secret'), 'the stored SMTP password is never rendered into the page');
 
 $listView = file_get_contents(dirname(__DIR__) . '/app/Views/lists/show.php');
 assert_true(str_contains($listView, '>Afgerond</h2>'), 'completed tasks have their own section heading');
@@ -432,6 +447,7 @@ assert_true(str_contains($manifestController, "'display' => 'standalone'"), 'the
 $routes = file_get_contents(dirname(__DIR__) . '/public/index.php');
 assert_true(str_contains($routes, "'/admin/accounts'"), 'administrators can open the account overview route');
 assert_true(str_contains($routes, "'/admin/events'"), 'administrators can open the audit log route');
+assert_true(str_contains($routes, "'/admin/email'") && str_contains($routes, "'/admin/email/test'"), 'administrators can configure and test SMTP');
 assert_true(str_contains($routes, "'/notifications/subscribe'"), 'signed-in users can register a OneSignal subscription');
 assert_true(str_contains($routes, "'/notifications/unsubscribe'"), 'signed-in users can remove a OneSignal subscription');
 assert_true(str_contains($routes, "'/lists/{listId}/items/{itemId}/comments'"), 'task comments have a dedicated signed-in route');
@@ -441,6 +457,7 @@ assert_true(str_contains($routes, "'/lists/{listId}/members/{memberId}/delete'")
 assert_true(str_contains($routes, "'/users/{id}/profile-image'"), 'member profile images have a user-specific route');
 $readme = file_get_contents(dirname(__DIR__) . '/README.md');
 assert_true(str_contains($readme, 'iOS/iPadOS 16.4'), 'the README documents iOS web-push requirements');
+assert_true(str_contains($readme, 'SAMEN_SMTP_HOST') && str_contains($readme, 'DMARC'), 'the README documents SMTP and domain authentication');
 
 $repositoryText = '';
 foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__DIR__), FilesystemIterator::SKIP_DOTS)) as $file) {

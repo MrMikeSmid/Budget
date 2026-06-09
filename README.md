@@ -47,16 +47,24 @@ Upload de volledige repository naar de map die publiek bereikbaar is als `/devel
 
 De SQLite-database wordt bij het eerste verzoek automatisch aangemaakt in `storage/app.sqlite`. Maak `storage/` schrijfbaar voor de PHP/Apache-gebruiker, bijvoorbeeld met `chmod 775 storage`. De FTP-deployment slaat de volledige map `storage/` bewust over, zodat de database en profielfoto's bij een nieuwe release op de server behouden blijven.
 
-## E-mailuitnodigingen
+## E-mailuitnodigingen via SMTP
 
-Bij het delen van een lijst verstuurt Samen een opgemaakte HTML-mail via de PHP `mail()`-functie. Een beheerder kan op `/admin` de afzendernaam, het afzenderadres en de inhoud met een rich-texteditor aanpassen. De branded header, de knop naar het lijstje en de footer met privacy- en voorwaardenlinks worden automatisch toegevoegd. Stel in productie ook de publieke basis-URL en een geldig standaardafzenderadres in:
+Bij het delen van een lijst verstuurt Samen een opgemaakte HTML-mail via een configureerbare SMTP-server. Een beheerder kan op `/admin/email` de SMTP-host, poort, verbindingsbeveiliging, inloggegevens, time-out, afzender en uitnodigingstekst beheren en direct een testmail sturen. Het SMTP-wachtwoord blijft server-side en wordt na opslaan niet teruggetoond.
+
+Gebruik bij voorkeur de instellingen van een transactionele mailprovider of de mailserver van het eigen domein, met STARTTLS op poort 587 of TLS op poort 465. Dezelfde waarden kunnen voor deployment via omgevingsvariabelen worden ingesteld:
 
 ```bash
 export SAMEN_APP_URL=https://mikesmid.nl/development
-export SAMEN_MAIL_FROM=noreply@mikesmid.nl
+export SAMEN_MAIL_FROM=uitnodigingen@mikesmid.nl
+export SAMEN_SMTP_HOST=smtp.voorbeeld.nl
+export SAMEN_SMTP_PORT=587
+export SAMEN_SMTP_ENCRYPTION=starttls
+export SAMEN_SMTP_USERNAME=uitnodigingen@mikesmid.nl
+export SAMEN_SMTP_PASSWORD='app-wachtwoord'
+export SAMEN_SMTP_TIMEOUT=15
 ```
 
-De webserver moet daarnaast zijn geconfigureerd om uitgaande e-mail van PHP te bezorgen. Als verzending mislukt, behoudt de genodigde wel toegang tot de lijst en ziet de uitnodiger een melding.
+Een geldige SMTP-login alleen garandeert nog niet dat berichten in de inbox belanden. Configureer bij de gekozen provider ook SPF en DKIM voor het afzenderdomein en publiceer een DMARC-record. Gebruik als zichtbare afzender een geverifieerd adres op hetzelfde domein en controleer via de testmail de ontvangen berichtheaders.
 
 ## Tests
 

@@ -15,7 +15,7 @@ final class InvitationMailer
         $this->transport = $transport !== null
             ? Closure::fromCallable($transport)
             : static fn (string $to, string $subject, string $message, array $headers): bool =>
-                @mail($to, mb_encode_mimeheader($subject, 'UTF-8'), $message, $headers);
+                (new SmtpTransport())->send($to, $subject, $message, $headers);
     }
 
     public function send(string $email, array $inviter, array $list): bool

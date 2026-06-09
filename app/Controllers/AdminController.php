@@ -14,18 +14,7 @@ final class AdminController extends Controller
     public function show(): void
     {
         $this->admin();
-        $invitationEmail = new InvitationEmailSettings();
-        $sampleInviter = ['name' => 'Mike', 'email' => 'mike@voorbeeld.nl'];
-        $sampleList = ['id' => 1, 'title' => 'Weekendje weg'];
-
-        view('admin/index', [
-            'title' => 'Admin',
-            'invitation_sender_name' => $invitationEmail->senderName(),
-            'invitation_sender_email' => $invitationEmail->senderEmail(),
-            'invitation_message_html' => $invitationEmail->message(),
-            'invitation_preview_html' => $invitationEmail->renderEmail($sampleInviter, $sampleList, 'vriend@voorbeeld.nl'),
-            'invitation_tokens' => InvitationEmailSettings::tokens(),
-        ]);
+        view('admin/index', ['title' => 'Admin']);
     }
 
     public function accounts(): void
@@ -66,20 +55,20 @@ final class AdminController extends Controller
 
         if ($senderName === '' || mb_strlen($senderName) > 100 || preg_match('/[\r\n]/', $senderName) === 1) {
             flash('error', 'Vul een geldige afzendernaam van maximaal 100 tekens in.');
-            redirect('/admin#uitnodigingsmail');
+            redirect('/admin/email#uitnodigingsmail');
         }
         if (filter_var($senderEmail, FILTER_VALIDATE_EMAIL) === false || preg_match('/[\r\n]/', $senderEmail) === 1) {
             flash('error', 'Vul een geldig afzenderadres in.');
-            redirect('/admin#uitnodigingsmail');
+            redirect('/admin/email#uitnodigingsmail');
         }
         if ($message === '' || mb_strlen($message) > 20000) {
             flash('error', 'Vul een bericht van maximaal 20.000 tekens in.');
-            redirect('/admin#uitnodigingsmail');
+            redirect('/admin/email#uitnodigingsmail');
         }
 
         (new InvitationEmailSettings())->save($senderName, $senderEmail, $message);
         flash('success', 'De uitnodigingsmail is opgeslagen.');
-        redirect('/admin#uitnodigingsmail');
+        redirect('/admin/email#uitnodigingsmail');
     }
 
 }
