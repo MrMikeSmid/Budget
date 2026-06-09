@@ -70,6 +70,23 @@ assert_true($commentedItem['comments'][0]['body'] === 'Ik regel dit vanmiddag.',
 assert_true(!$lists->deleteCompletedItem((int) $openItem['id'], $listId), 'open tasks cannot be deleted through the completed-task action');
 assert_true($lists->deleteCompletedItem((int) $item['id'], $listId), 'completed tasks can be deleted');
 assert_true($lists->liveState($listId)['stats']['total'] === 1, 'deleting a completed task refreshes list statistics');
+$richItemId = $lists->addItem($listId, (int) $owner['id'], 'Paspoorten klaarleggen', 'high', '2026-08-14', 'voorbeeld.webp');
+$richItem = $lists->liveState($listId)['items'][0];
+assert_true($richItem['priority'] === 'high', 'task state includes the selected priority');
+assert_true($richItem['due_date'] === '2026-08-14', 'task state includes the due date');
+assert_true($richItem['has_image'] === true, 'task state reports an attached image without exposing its filename');
+assert_true($lists->itemImage($richItemId, $listId) === 'voorbeeld.webp', 'task images can be resolved inside their list');
+$listPage = render_view('lists/show', [
+    'user' => $owner,
+    'list' => $lists->findAccessible($listId, (int) $owner['id']),
+    'items' => $lists->items($listId),
+    'members' => $lists->members($listId),
+    'initialState' => $lists->liveState($listId),
+]);
+assert_true(str_contains($listPage, 'id="new-task"'), 'list pages include the detailed task creation modal');
+assert_true(str_contains($listPage, 'name="priority"'), 'the task modal offers a priority field');
+assert_true(str_contains($listPage, 'name="due_date"'), 'the task modal offers a due date field');
+assert_true(str_contains($listPage, 'name="image"'), 'the task modal offers an image upload');
 
 $users->setPassword((int) $owner['id'], 'een-veilig-wachtwoord');
 assert_true(password_verify('een-veilig-wachtwoord', $users->find((int) $owner['id'])['password_hash']), 'passwords are securely hashed');

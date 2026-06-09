@@ -3,6 +3,7 @@ $viewer = current_user();
 $flashes = pull_flashes();
 $oneSignal = $viewer ? new \App\Services\OneSignalSettings() : null;
 $pushEnabled = $oneSignal?->isConfigured() ?? false;
+$taskCreateAvailable = isset($list['id']);
 ?>
 <!doctype html>
 <html lang="nl">
@@ -49,7 +50,7 @@ $pushEnabled = $oneSignal?->isConfigured() ?? false;
             <a class="nav-brand desktop-only" href="<?= e(url('/')) ?>" aria-label="Samen home"><span class="brand-mark"><i></i><i></i><i></i></span><strong>Samen</strong></a>
             <span class="nav-section-label desktop-only">Werkruimte</span>
             <a href="<?= e(url('/')) ?>" class="<?= ($_SERVER['REQUEST_URI'] ?? '') === url('/') ? 'active' : '' ?>"><span class="ui-icon ui-icon--checklist nav-icon" aria-hidden="true"></span><span>Lijstjes</span></a>
-            <button type="button" class="nav-create" data-open-modal="new-list" aria-label="Nieuw lijstje"><span aria-hidden="true">＋</span><strong class="desktop-only">Nieuw lijstje</strong></button>
+            <button type="button" class="nav-create" data-open-modal="<?= $taskCreateAvailable ? 'new-task' : 'new-list' ?>" aria-label="<?= $taskCreateAvailable ? 'Nieuwe taak' : 'Nieuw lijstje' ?>"><span aria-hidden="true">＋</span><strong class="desktop-only"><?= $taskCreateAvailable ? 'Nieuwe taak' : 'Nieuw lijstje' ?></strong></button>
             <a href="<?= e(url('/settings')) ?>" class="<?= str_contains($_SERVER['REQUEST_URI'] ?? '', '/settings') ? 'active' : '' ?>"><span class="ui-icon ui-icon--user nav-icon" aria-hidden="true"></span><span>Profiel</span></a>
             <?php if (\App\Core\Auth::isAdmin($viewer)): ?><a class="desktop-only" href="<?= e(url('/admin')) ?>"><span aria-hidden="true">⚙</span><span>Admin</span></a><?php endif; ?>
             <a class="nav-account desktop-only" href="<?= e(url('/settings')) ?>">

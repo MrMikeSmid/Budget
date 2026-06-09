@@ -37,6 +37,7 @@ $router->post('/lists', [ListController::class, 'create']);
 $router->get('/lists/{id}', [ListController::class, 'show']);
 $router->get('/lists/{id}/state', [ListController::class, 'state']);
 $router->post('/lists/{id}/items', [ListController::class, 'addItem']);
+$router->get('/lists/{listId}/items/{itemId}/image', [ListController::class, 'itemImage']);
 $router->post('/lists/{listId}/items/{itemId}/comments', [ListController::class, 'addComment']);
 $router->post('/lists/{listId}/items/{itemId}/toggle', [ListController::class, 'toggle']);
 $router->post('/lists/{listId}/items/{itemId}/delete', [ListController::class, 'deleteItem']);

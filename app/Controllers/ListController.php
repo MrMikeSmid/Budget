@@ -12,6 +12,17 @@ use App\Services\ListNotificationService;
 
 final class ListController extends Controller
 {
+    private const MAX_TASK_IMAGE_SIZE = 5 * 1024 * 1024;
+
+    private const IMAGE_TYPES = [
+        'image/jpeg' => 'jpg',
+        'image/png' => 'png',
+        'image/webp' => 'webp',
+        'image/gif' => 'gif',
+    ];
+
+    private const PRIORITIES = ['none', 'low', 'medium', 'high'];
+
     private TodoList $lists;
 
     public function __construct()
@@ -71,15 +82,57 @@ final class ListController extends Controller
         $this->verifyCsrf();
         $list = $this->accessible((int) $id, (int) $user['id']);
         $title = trim((string) ($_POST['title'] ?? ''));
-        if ($title !== '' && mb_strlen($title) <= 160) {
-            $this->lists->addItem((int) $id, (int) $user['id'], $title);
-            $this->notify(fn(ListNotificationService $notifications) => $notifications->taskCreated($list, $user, $title));
+        if ($title === '' || mb_strlen($title) > 160) {
+            $this->itemError($id, 'Geef je taak een korte naam.');
         }
+
+        $priority = in_array($_POST['priority'] ?? 'none', self::PRIORITIES, true)
+            ? (string) ($_POST['priority'] ?? 'none')
+            : 'none';
+        $dueDate = $this->validatedDueDate((string) ($_POST['due_date'] ?? ''));
+        if ($dueDate === false) {
+            $this->itemError($id, 'Kies een geldige vervaldatum.');
+        }
+
+        $imageFilename = $this->storeTaskImage($_FILES['image'] ?? null);
+        if ($imageFilename === false) {
+            $this->itemError($id, 'Gebruik een JPG-, PNG-, WebP- of GIF-afbeelding van maximaal 5 MB.');
+        }
+
+        try {
+            $this->lists->addItem((int) $id, (int) $user['id'], $title, $priority, $dueDate, $imageFilename);
+        } catch (\Throwable $exception) {
+            $this->deleteTaskImage($imageFilename);
+            throw $exception;
+        }
+        $this->notify(fn(ListNotificationService $notifications) => $notifications->taskCreated($list, $user, $title));
+
         if ($this->wantsJson()) {
             $this->respondWithState((int) $id);
             return;
         }
         redirect('/lists/' . $id);
+    }
+
+    public function itemImage(string $listId, string $itemId): void
+    {
+        $user = $this->auth();
+        $this->accessible((int) $listId, (int) $user['id']);
+        $filename = $this->lists->itemImage((int) $itemId, (int) $listId);
+        $path = $this->taskImageDirectory() . '/' . basename((string) $filename);
+        $extension = strtolower(pathinfo((string) $filename, PATHINFO_EXTENSION));
+        $contentTypes = array_flip(self::IMAGE_TYPES);
+
+        if ($filename === null || !isset($contentTypes[$extension]) || !is_file($path)) {
+            http_response_code(404);
+            return;
+        }
+
+        header('Content-Type: ' . $contentTypes[$extension]);
+        header('Content-Length: ' . (string) filesize($path));
+        header('Cache-Control: private, max-age=86400');
+        header('X-Content-Type-Options: nosniff');
+        readfile($path);
     }
 
     public function addComment(string $listId, string $itemId): void
@@ -121,7 +174,10 @@ final class ListController extends Controller
         $user = $this->auth();
         $this->verifyCsrf();
         $this->accessible((int) $listId, (int) $user['id']);
-        $this->lists->deleteCompletedItem((int) $itemId, (int) $listId);
+        $imageFilename = $this->lists->itemImage((int) $itemId, (int) $listId);
+        if ($this->lists->deleteCompletedItem((int) $itemId, (int) $listId)) {
+            $this->deleteTaskImage($imageFilename);
+        }
         if ($this->wantsJson()) {
             $this->respondWithState((int) $listId);
             return;
@@ -158,9 +214,76 @@ final class ListController extends Controller
     {
         $user = $this->auth();
         $this->verifyCsrf();
-        $this->lists->delete((int) $id, (int) $user['id']);
+        $imageFilenames = $this->lists->imageFilenames((int) $id);
+        if ($this->lists->delete((int) $id, (int) $user['id'])) {
+            foreach ($imageFilenames as $imageFilename) {
+                $this->deleteTaskImage($imageFilename);
+            }
+        }
         flash('success', 'Het lijstje is verwijderd.');
         redirect('/');
+    }
+
+    private function validatedDueDate(string $value): string|false|null
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        return $date !== false && $date->format('Y-m-d') === $value ? $value : false;
+    }
+
+    private function storeTaskImage(?array $upload): string|false|null
+    {
+        if ($upload === null || ($upload['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            return null;
+        }
+        if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return false;
+        }
+
+        $temporaryPath = (string) ($upload['tmp_name'] ?? '');
+        $size = (int) ($upload['size'] ?? 0);
+        if ($size < 1 || $size > self::MAX_TASK_IMAGE_SIZE) {
+            return false;
+        }
+        $mimeType = (new \finfo(FILEINFO_MIME_TYPE))->file($temporaryPath);
+        if (!is_string($mimeType) || !isset(self::IMAGE_TYPES[$mimeType]) || @getimagesize($temporaryPath) === false) {
+            return false;
+        }
+
+        $directory = $this->taskImageDirectory();
+        if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
+            return false;
+        }
+        $filename = bin2hex(random_bytes(20)) . '.' . self::IMAGE_TYPES[$mimeType];
+        return move_uploaded_file($temporaryPath, $directory . '/' . $filename) ? $filename : false;
+    }
+
+    private function deleteTaskImage(?string $filename): void
+    {
+        if ($filename === null || $filename === '') {
+            return;
+        }
+        $path = $this->taskImageDirectory() . '/' . basename($filename);
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
+
+    private function taskImageDirectory(): string
+    {
+        return dirname(__DIR__, 2) . '/storage/task-images';
+    }
+
+    private function itemError(string $listId, string $message): never
+    {
+        if ($this->wantsJson()) {
+            $this->json(['message' => $message], 422);
+        }
+        flash('error', $message);
+        redirect('/lists/' . $listId);
     }
 
     private function notify(callable $notification): void
