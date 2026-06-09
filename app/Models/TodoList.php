@@ -269,6 +269,25 @@ final class TodoList
         return $stmt->rowCount() > 0;
     }
 
+    public function removeMember(int $listId, int $ownerId, int $memberId): bool
+    {
+        $stmt = db()->prepare(<<<'SQL'
+            DELETE FROM list_members
+            WHERE list_id = :list_id
+                AND user_id = :member_id
+                AND EXISTS (
+                    SELECT 1 FROM todo_lists
+                    WHERE id = :list_id AND owner_id = :owner_id
+                )
+        SQL);
+        $stmt->execute([
+            'list_id' => $listId,
+            'owner_id' => $ownerId,
+            'member_id' => $memberId,
+        ]);
+        return $stmt->rowCount() > 0;
+    }
+
     public function canParticipate(int $listId, int $userId): bool
     {
         $stmt = db()->prepare(<<<'SQL'
