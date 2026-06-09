@@ -59,7 +59,16 @@ final class TodoList
             JOIN users creator ON creator.id = i.created_by
             LEFT JOIN users completer ON completer.id = i.completed_by
             WHERE i.list_id = ?
-            ORDER BY i.is_completed ASC, i.id DESC
+            ORDER BY i.is_completed ASC,
+                CASE i.priority
+                    WHEN 'high' THEN 3
+                    WHEN 'medium' THEN 2
+                    WHEN 'low' THEN 1
+                    ELSE 0
+                END DESC,
+                CASE WHEN i.due_date IS NULL THEN 1 ELSE 0 END ASC,
+                i.due_date ASC,
+                i.id DESC
         SQL);
         $stmt->execute([$listId]);
         $items = $stmt->fetchAll();
