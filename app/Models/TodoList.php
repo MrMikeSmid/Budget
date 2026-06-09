@@ -48,7 +48,10 @@ final class TodoList
     public function items(int $listId): array
     {
         $stmt = db()->prepare(<<<'SQL'
-            SELECT i.*, creator.name AS creator_name, completer.name AS completer_name,
+            SELECT i.id, i.list_id, i.created_by, i.completed_by, i.title, i.image_filename,
+                i.priority, i.due_date, i.is_completed, i.created_at, i.completed_at,
+                i.image_data IS NOT NULL AS has_image_data,
+                creator.name AS creator_name, completer.name AS completer_name,
                 (SELECT COUNT(*) FROM todo_item_comments c WHERE c.item_id = i.id) AS comment_count
             FROM todo_items i
             JOIN users creator ON creator.id = i.created_by
@@ -110,7 +113,8 @@ final class TodoList
             'is_completed' => (bool) $item['is_completed'],
             'priority' => $item['priority'],
             'due_date' => $item['due_date'],
-            'has_image' => $item['image_filename'] !== null && $item['image_filename'] !== '',
+            'has_image' => (bool) ($item['has_image_data'] ?? false)
+                || ($item['image_filename'] !== null && $item['image_filename'] !== ''),
             'creator_name' => $item['creator_name'],
             'completer_name' => $item['completer_name'],
             'comment_count' => (int) $item['comment_count'],
@@ -162,13 +166,23 @@ final class TodoList
         string $title,
         string $priority = 'none',
         ?string $dueDate = null,
-        ?string $imageFilename = null
+        ?string $imageFilename = null,
+        ?string $imageData = null,
+        ?string $imageMimeType = null
     ): int {
         $stmt = db()->prepare(<<<'SQL'
-            INSERT INTO todo_items (list_id, created_by, title, priority, due_date, image_filename)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO todo_items (list_id, created_by, title, priority, due_date, image_filename, image_data, image_mime_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         SQL);
-        $stmt->execute([$listId, $userId, trim($title), $priority, $dueDate, $imageFilename]);
+        $stmt->bindValue(1, $listId, \PDO::PARAM_INT);
+        $stmt->bindValue(2, $userId, \PDO::PARAM_INT);
+        $stmt->bindValue(3, trim($title));
+        $stmt->bindValue(4, $priority);
+        $stmt->bindValue(5, $dueDate, $dueDate === null ? \PDO::PARAM_NULL : \PDO::PARAM_STR);
+        $stmt->bindValue(6, $imageFilename, $imageFilename === null ? \PDO::PARAM_NULL : \PDO::PARAM_STR);
+        $stmt->bindValue(7, $imageData, $imageData === null ? \PDO::PARAM_NULL : \PDO::PARAM_LOB);
+        $stmt->bindValue(8, $imageMimeType, $imageMimeType === null ? \PDO::PARAM_NULL : \PDO::PARAM_STR);
+        $stmt->execute();
         db()->prepare('UPDATE todo_lists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$listId]);
         return (int) db()->lastInsertId();
     }
@@ -179,6 +193,18 @@ final class TodoList
         $stmt->execute([$itemId, $listId]);
         $filename = $stmt->fetchColumn();
         return is_string($filename) && $filename !== '' ? $filename : null;
+    }
+
+    /** @return array{data: string, mime_type: string}|null */
+    public function itemImageData(int $itemId, int $listId): ?array
+    {
+        $stmt = db()->prepare('SELECT image_data, image_mime_type FROM todo_items WHERE id = ? AND list_id = ?');
+        $stmt->execute([$itemId, $listId]);
+        $image = $stmt->fetch();
+        if (!$image || !is_string($image['image_data']) || $image['image_data'] === '' || !is_string($image['image_mime_type'])) {
+            return null;
+        }
+        return ['data' => $image['image_data'], 'mime_type' => $image['image_mime_type']];
     }
 
     public function addComment(int $itemId, int $listId, int $userId, string $body): bool

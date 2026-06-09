@@ -73,6 +73,8 @@ final class Database
                 completed_by INTEGER,
                 title TEXT NOT NULL,
                 image_filename TEXT,
+                image_data BLOB,
+                image_mime_type TEXT,
                 priority TEXT NOT NULL DEFAULT 'none',
                 due_date TEXT,
                 is_completed INTEGER NOT NULL DEFAULT 0,
@@ -142,6 +144,12 @@ final class Database
         $itemColumnNames = array_column($itemColumns, 'name');
         if (!in_array('image_filename', $itemColumnNames, true)) {
             $this->pdo->exec('ALTER TABLE todo_items ADD COLUMN image_filename TEXT');
+        }
+        if (!in_array('image_data', $itemColumnNames, true)) {
+            $this->pdo->exec('ALTER TABLE todo_items ADD COLUMN image_data BLOB');
+        }
+        if (!in_array('image_mime_type', $itemColumnNames, true)) {
+            $this->pdo->exec('ALTER TABLE todo_items ADD COLUMN image_mime_type TEXT');
         }
         if (!in_array('priority', $itemColumnNames, true)) {
             $this->pdo->exec("ALTER TABLE todo_items ADD COLUMN priority TEXT NOT NULL DEFAULT 'none'");
