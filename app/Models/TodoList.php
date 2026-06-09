@@ -108,6 +108,9 @@ final class TodoList
             'id' => (int) $item['id'],
             'title' => $item['title'],
             'is_completed' => (bool) $item['is_completed'],
+            'priority' => $item['priority'],
+            'due_date' => $item['due_date'],
+            'has_image' => $item['image_filename'] !== null && $item['image_filename'] !== '',
             'creator_name' => $item['creator_name'],
             'completer_name' => $item['completer_name'],
             'comment_count' => (int) $item['comment_count'],
@@ -153,11 +156,29 @@ final class TodoList
         return array_map('intval', array_column($stmt->fetchAll(), 'user_id'));
     }
 
-    public function addItem(int $listId, int $userId, string $title): void
-    {
-        $stmt = db()->prepare('INSERT INTO todo_items (list_id, created_by, title) VALUES (?, ?, ?)');
-        $stmt->execute([$listId, $userId, trim($title)]);
+    public function addItem(
+        int $listId,
+        int $userId,
+        string $title,
+        string $priority = 'none',
+        ?string $dueDate = null,
+        ?string $imageFilename = null
+    ): int {
+        $stmt = db()->prepare(<<<'SQL'
+            INSERT INTO todo_items (list_id, created_by, title, priority, due_date, image_filename)
+            VALUES (?, ?, ?, ?, ?, ?)
+        SQL);
+        $stmt->execute([$listId, $userId, trim($title), $priority, $dueDate, $imageFilename]);
         db()->prepare('UPDATE todo_lists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$listId]);
+        return (int) db()->lastInsertId();
+    }
+
+    public function itemImage(int $itemId, int $listId): ?string
+    {
+        $stmt = db()->prepare('SELECT image_filename FROM todo_items WHERE id = ? AND list_id = ?');
+        $stmt->execute([$itemId, $listId]);
+        $filename = $stmt->fetchColumn();
+        return is_string($filename) && $filename !== '' ? $filename : null;
     }
 
     public function addComment(int $itemId, int $listId, int $userId, string $body): bool
@@ -207,8 +228,18 @@ final class TodoList
         $stmt->execute([$listId, $memberId, $ownerId]);
     }
 
-    public function delete(int $listId, int $ownerId): void
+    /** @return list<string> */
+    public function imageFilenames(int $listId): array
     {
-        db()->prepare('DELETE FROM todo_lists WHERE id = ? AND owner_id = ?')->execute([$listId, $ownerId]);
+        $stmt = db()->prepare("SELECT image_filename FROM todo_items WHERE list_id = ? AND image_filename IS NOT NULL AND image_filename != ''");
+        $stmt->execute([$listId]);
+        return array_values(array_filter(array_column($stmt->fetchAll(), 'image_filename'), 'is_string'));
+    }
+
+    public function delete(int $listId, int $ownerId): bool
+    {
+        $stmt = db()->prepare('DELETE FROM todo_lists WHERE id = ? AND owner_id = ?');
+        $stmt->execute([$listId, $ownerId]);
+        return $stmt->rowCount() > 0;
     }
 }

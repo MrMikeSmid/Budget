@@ -72,6 +72,9 @@ final class Database
                 created_by INTEGER NOT NULL,
                 completed_by INTEGER,
                 title TEXT NOT NULL,
+                image_filename TEXT,
+                priority TEXT NOT NULL DEFAULT 'none',
+                due_date TEXT,
                 is_completed INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 completed_at TEXT,
@@ -130,6 +133,18 @@ final class Database
         }
         if (!in_array('is_admin', $columnNames, true)) {
             $this->pdo->exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+        }
+
+        $itemColumns = $this->pdo->query('PRAGMA table_info(todo_items)')->fetchAll();
+        $itemColumnNames = array_column($itemColumns, 'name');
+        if (!in_array('image_filename', $itemColumnNames, true)) {
+            $this->pdo->exec('ALTER TABLE todo_items ADD COLUMN image_filename TEXT');
+        }
+        if (!in_array('priority', $itemColumnNames, true)) {
+            $this->pdo->exec("ALTER TABLE todo_items ADD COLUMN priority TEXT NOT NULL DEFAULT 'none'");
+        }
+        if (!in_array('due_date', $itemColumnNames, true)) {
+            $this->pdo->exec('ALTER TABLE todo_items ADD COLUMN due_date TEXT');
         }
 
         $legacyPushColumn = 'push_' . 'external_id';

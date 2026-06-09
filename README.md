@@ -8,7 +8,7 @@ Een mobiele PHP/SQLite-app waarmee mensen lijstjes maken, delen en samen afvinke
 - Subtiele beveiligingsmelding zolang het account nog geen wachtwoord heeft.
 - Optioneel wachtwoord instellen en wijzigen via Instellingen; daarna is het wachtwoord verplicht bij een nieuwe login.
 - Gedeelde todo-lijsten op basis van het e-mailadres van de andere gebruiker.
-- Taken toevoegen en door iedere deelnemer afvinken, inclusief registratie wie dat deed.
+- Taken toevoegen met een optionele afbeelding, prioriteit en vervaldatum, en door iedere deelnemer afvinken, inclusief registratie wie dat deed.
 - Automatische pushmeldingen voor andere deelnemers wanneer een taak wordt toegevoegd, afgerond of opnieuw geopend.
 - Responsive, mobile-first community-interface met bottom navigation.
 - Installeerbare PWA voor iOS en Android, met app-iconen, standalone-weergave en een offline terugvalscherm.

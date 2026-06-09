@@ -15,11 +15,16 @@ if (liveList) {
   const toggleUrl = liveList.dataset.toggleUrl;
   const deleteUrl = liveList.dataset.deleteUrl;
   const commentUrl = liveList.dataset.commentUrl;
+  const imageUrl = liveList.dataset.imageUrl;
   const csrfToken = liveList.dataset.csrfToken;
+  const taskCreateModal = document.getElementById('new-task');
   const commentsModal = document.getElementById('task-comments');
   const commentsTitle = commentsModal?.querySelector('[data-comments-task-title]');
   const commentsList = commentsModal?.querySelector('[data-comment-list]');
   const commentForm = commentsModal?.querySelector('[data-live-comment]');
+  const detailMedia = commentsModal?.querySelector('[data-task-detail-media]');
+  const detailImage = commentsModal?.querySelector('[data-task-detail-image]');
+  const detailBadges = commentsModal?.querySelector('[data-task-detail-badges]');
   const initialStateElement = document.querySelector('[data-initial-list-state]');
   let currentState = initialStateElement ? JSON.parse(initialStateElement.textContent) : null;
   let activeCommentItemId = null;
@@ -29,6 +34,19 @@ if (liveList) {
   let pollInProgress = false;
 
   const commentCountLabel = (count) => `${count} ${count === 1 ? 'reactie' : 'reacties'}`;
+  const priorityLabels = { low: 'Lage prioriteit', medium: 'Normale prioriteit', high: 'Hoge prioriteit' };
+  const dueDateLabel = (date) => {
+    if (!date) return '';
+    const [year, month, day] = date.split('-');
+    return `Vervalt ${day}-${month}-${year}`;
+  };
+
+  const taskBadge = (label, modifier) => {
+    const badge = document.createElement('span');
+    badge.className = `task-badge task-badge--${modifier}`;
+    badge.textContent = label;
+    return badge;
+  };
 
   const memberAvatar = (member) => {
     const avatar = document.createElement('i');
@@ -85,12 +103,30 @@ if (liveList) {
     check.textContent = item.is_completed ? '✓' : '';
     toggleForm.append(token, check);
 
+    let thumbnail = null;
+    if (item.has_image) {
+      thumbnail = document.createElement('img');
+      thumbnail.className = 'task-thumbnail';
+      thumbnail.src = imageUrl.replace('__ITEM_ID__', encodeURIComponent(item.id));
+      thumbnail.alt = '';
+      thumbnail.loading = 'lazy';
+    }
+
     const content = document.createElement('button');
     content.type = 'button';
     content.className = 'task-content';
     content.dataset.taskDetails = item.id;
     const title = document.createElement('strong');
     title.textContent = item.title;
+    if (item.priority !== 'none' || item.due_date) {
+      const badges = document.createElement('span');
+      badges.className = 'task-badges';
+      if (item.priority !== 'none') badges.append(taskBadge(priorityLabels[item.priority], item.priority));
+      if (item.due_date) badges.append(taskBadge(dueDateLabel(item.due_date), 'date'));
+      content.append(title, badges);
+    } else {
+      content.append(title);
+    }
     const meta = document.createElement('small');
     const attribution = document.createElement('span');
     attribution.textContent = item.is_completed
@@ -100,9 +136,11 @@ if (liveList) {
     commentCount.dataset.commentCount = '';
     commentCount.textContent = commentCountLabel(item.comment_count);
     meta.append(attribution, commentCount);
-    content.append(title, meta);
+    content.append(meta);
 
-    task.append(toggleForm, content);
+    task.append(toggleForm);
+    if (thumbnail) task.append(thumbnail);
+    task.append(content);
 
     if (item.is_completed) {
       const deleteForm = document.createElement('form');
@@ -130,6 +168,19 @@ if (liveList) {
     if (!commentsModal || !commentsTitle || !commentsList || !commentForm) return;
     commentsTitle.textContent = item.title;
     commentForm.action = commentUrl.replace('__ITEM_ID__', encodeURIComponent(item.id));
+
+    if (detailMedia && detailImage) {
+      detailMedia.hidden = !item.has_image;
+      detailImage.src = item.has_image ? imageUrl.replace('__ITEM_ID__', encodeURIComponent(item.id)) : '';
+      detailImage.alt = item.has_image ? `Afbeelding bij ${item.title}` : '';
+    }
+    if (detailBadges) {
+      const badges = [];
+      if (item.priority !== 'none') badges.push(taskBadge(priorityLabels[item.priority], item.priority));
+      if (item.due_date) badges.push(taskBadge(dueDateLabel(item.due_date), 'date'));
+      detailBadges.replaceChildren(...badges);
+      detailBadges.hidden = badges.length === 0;
+    }
 
     if (item.comments.length === 0) {
       const empty = document.createElement('div');
@@ -243,7 +294,7 @@ if (liveList) {
 
   document.addEventListener('submit', async (event) => {
     const form = event.target.closest('[data-live-add], [data-live-toggle], [data-live-delete], [data-live-comment]');
-    if (!form || (!liveList.contains(form) && !commentsModal?.contains(form))) return;
+    if (!form || (!liveList.contains(form) && !taskCreateModal?.contains(form) && !commentsModal?.contains(form))) return;
     event.preventDefault();
     if (form.dataset.submitting === 'true') return;
     if (form.matches('[data-live-delete]') && !window.confirm('Wil je deze afgeronde taak verwijderen?')) return;
@@ -256,15 +307,42 @@ if (liveList) {
         headers: { Accept: 'application/json' },
         body: new FormData(form),
       });
-      if (!response.ok) throw new Error(`Wijziging opslaan mislukt (${response.status})`);
-      applyState(await response.json(), sequence, true);
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || `Wijziging opslaan mislukt (${response.status})`);
+      applyState(result, sequence, true);
       if (form.matches('[data-live-add], [data-live-comment]')) form.reset();
+      if (form.matches('[data-task-create-form]')) taskCreateModal.close();
     } catch (error) {
       console.error(error);
-      window.alert('De wijziging kon niet worden opgeslagen. Probeer het opnieuw.');
+      window.alert(error.message || 'De wijziging kon niet worden opgeslagen. Probeer het opnieuw.');
     } finally {
       delete form.dataset.submitting;
     }
+  });
+
+  const taskImageInput = taskCreateModal?.querySelector('[data-task-image-input]');
+  const taskImagePreview = taskCreateModal?.querySelector('[data-task-image-preview]');
+  let taskImageObjectUrl = null;
+
+  taskImageInput?.addEventListener('change', () => {
+    if (taskImageObjectUrl) URL.revokeObjectURL(taskImageObjectUrl);
+    taskImageObjectUrl = null;
+    const [file] = taskImageInput.files;
+    if (!file || !taskImagePreview) {
+      taskImagePreview?.replaceChildren(Object.assign(document.createElement('strong'), { textContent: '＋' }));
+      return;
+    }
+    taskImageObjectUrl = URL.createObjectURL(file);
+    const preview = document.createElement('img');
+    preview.src = taskImageObjectUrl;
+    preview.alt = 'Voorbeeld van gekozen afbeelding';
+    taskImagePreview.replaceChildren(preview);
+  });
+
+  taskCreateModal?.addEventListener('close', () => {
+    if (taskImageObjectUrl) URL.revokeObjectURL(taskImageObjectUrl);
+    taskImageObjectUrl = null;
+    taskImagePreview?.replaceChildren(Object.assign(document.createElement('strong'), { textContent: '＋' }));
   });
 
   requestState();
