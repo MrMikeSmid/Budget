@@ -3,6 +3,20 @@
         <div><span class="eyebrow">Goed je te zien</span><h1>Hoi, <?= e(explode(' ', $user['name'])[0]) ?> <span class="wave">👋</span></h1></div>
         <a class="avatar" href="<?= e(url('/settings')) ?>"><?php if ($profileImage = profile_image_url($user)): ?><img src="<?= e($profileImage) ?>" alt="Profielfoto van <?= e($user['name']) ?>"><?php else: ?><?= e(mb_strtoupper(mb_substr($user['name'], 0, 1))) ?><?php endif; ?><span></span></a>
     </header>
+    <?php $pendingInvitations = array_values(array_filter($lists, static fn(array $list): bool => (int) $list['invitation_pending'] === 1)); ?>
+    <?php if ($pendingInvitations): ?>
+        <section class="dashboard-invitations" aria-labelledby="dashboard-invitations-title">
+            <div class="dashboard-invitations__heading"><span class="eyebrow">Openstaande uitnodigingen</span><h2 id="dashboard-invitations-title"><?= count($pendingInvitations) === 1 ? 'Je bent uitgenodigd' : 'Je hebt meerdere uitnodigingen' ?></h2></div>
+            <?php foreach ($pendingInvitations as $invitation): ?>
+                <article class="invitation-banner invitation-banner--dashboard">
+                    <span class="invitation-banner__icon">♡</span>
+                    <div><span class="eyebrow">Van <?= e($invitation['owner_name']) ?></span><h3><?= e($invitation['title']) ?></h3><p>Accepteer de uitnodiging om taken toe te voegen, af te vinken en reacties te plaatsen.</p></div>
+                    <form method="post" action="<?= e(url('/lists/' . $invitation['id'] . '/accept')) ?>"><input type="hidden" name="_token" value="<?= e(csrf_token()) ?>"><button class="button button--primary">Uitnodiging accepteren</button></form>
+                    <a class="invitation-banner__link" href="<?= e(url('/lists/' . $invitation['id'])) ?>">Bekijk lijstje</a>
+                </article>
+            <?php endforeach; ?>
+        </section>
+    <?php endif; ?>
     <?php if (!$lists): ?>
         <section class="hero-card">
             <div class="hero-card__copy"><span class="pill pill--light">Jullie week</span><h2>Samen wordt alles net wat leuker.</h2><p>Nodig iemand uit en begin aan jullie volgende plan.</p><button type="button" class="button button--light" data-open-modal="new-list">Nieuw lijstje <span>＋</span></button></div>

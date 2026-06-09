@@ -23,11 +23,12 @@ $renderMemberAvatar = static function (array $member): void {
 };
 $renderTask = static function (array $item) use ($list, $commentLabel, $priorityLabels, $formatDueDate): void {
     $isCompleted = (int) $item['is_completed'] === 1;
+    $isOverdue = !$isCompleted && !empty($item['due_date']) && $item['due_date'] < date('Y-m-d');
     $hasImage = !empty($item['has_image'])
         || !empty($item['has_image_data'])
         || !empty($item['image_filename']);
     ?>
-    <article class="task<?= $isCompleted ? ' task--done' : '' ?>">
+    <article class="task<?= $isCompleted ? ' task--done' : '' ?><?= $isOverdue ? ' task--overdue' : '' ?>">
         <form method="post" action="<?= e(url('/lists/' . $list['id'] . '/items/' . $item['id'] . '/toggle')) ?>" class="task-toggle-form" data-live-toggle>
             <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
             <button class="task-check" aria-label="<?= $isCompleted ? 'Markeer als niet gedaan' : 'Vink af' ?>"><?= $isCompleted ? '✓' : '' ?></button>
@@ -40,7 +41,7 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
             <?php if (($item['priority'] ?? 'none') !== 'none' || !empty($item['due_date'])): ?>
                 <span class="task-badges">
                     <?php if (($item['priority'] ?? 'none') !== 'none'): ?><span class="task-badge task-badge--<?= e($item['priority']) ?>"><?= e($priorityLabels[$item['priority']] ?? '') ?></span><?php endif; ?>
-                    <?php if (!empty($item['due_date'])): ?><span class="task-badge task-badge--date">Vervalt <?= e($formatDueDate($item['due_date'])) ?></span><?php endif; ?>
+                    <?php if (!empty($item['due_date'])): ?><span class="task-badge task-badge--date"><?= $isOverdue ? 'Vervallen' : 'Vervalt' ?> <?= e($formatDueDate($item['due_date'])) ?></span><?php endif; ?>
                 </span>
             <?php endif; ?>
             <small><span><?= $isCompleted ? 'Afgevinkt door ' . e($item['completer_name']) : 'Toegevoegd door ' . e($item['creator_name']) ?></span><span data-comment-count><?= e($commentLabel($item)) ?></span></small>
@@ -81,13 +82,6 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
     </div>
     <div class="detail-progress"><span style="width:<?= $percent ?>%" data-progress-bar></span></div>
     <div class="task-sheet">
-        <?php if ($isPending): ?>
-            <section class="invitation-banner">
-                <span class="invitation-banner__icon">♡</span>
-                <div><span class="eyebrow">Uitnodiging</span><h2>Wil je meedoen aan dit lijstje?</h2><p>Na je akkoord word je actief lid en kun je taken toevoegen, afvinken en reageren.</p></div>
-                <form method="post" action="<?= e(url('/lists/' . $list['id'] . '/accept')) ?>"><input type="hidden" name="_token" value="<?= e(csrf_token()) ?>"><button class="button button--primary">Uitnodiging accepteren</button></form>
-            </section>
-        <?php endif; ?>
         <form method="post" action="<?= e(url('/lists/' . $list['id'] . '/items')) ?>" class="quick-add" data-live-add>
             <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
             <button type="button" class="quick-add__more" data-open-modal="new-task" aria-label="Taak met details toevoegen">＋</button>

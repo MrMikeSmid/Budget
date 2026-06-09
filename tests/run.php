@@ -17,6 +17,7 @@ use App\Services\OneSignalSettings;
 use App\Services\InvitationEmailSettings;
 use App\Services\InvitationMailer;
 use App\Services\ListNotificationService;
+use App\Services\DueTaskNotificationService;
 use App\Services\OneSignalNotificationService;
 use App\Services\NotificationSubscriptionService;
 
@@ -77,6 +78,12 @@ assert_true(str_contains($homePage, '<dialog class="modal" id="new-list">'), 'th
 $lists->share($listId, (int) $owner['id'], (int) $member['id']);
 assert_true(count($lists->forUser((int) $member['id'])) === 1, 'pending invitations are visible to invited users');
 assert_true((int) $lists->forUser((int) $member['id'])[0]['invitation_pending'] === 1, 'list overviews identify pending invitations');
+$pendingHomePage = render_view('lists/index', [
+    'user' => $member,
+    'lists' => $lists->forUser((int) $member['id']),
+]);
+assert_true(str_contains($pendingHomePage, 'Openstaande uitnodigingen'), 'pending invitations are shown directly below the dashboard greeting');
+assert_true(str_contains($pendingHomePage, '/lists/' . $listId . '/accept'), 'dashboard invitations include an acceptance action');
 assert_true(!$lists->canParticipate($listId, (int) $member['id']), 'invited users are not active participants before accepting');
 $pendingState = $lists->liveState($listId);
 $pendingMember = array_values(array_filter($pendingState['members'], static fn(array $person): bool => (int) $person['id'] === (int) $member['id']))[0];
@@ -88,7 +95,7 @@ $pendingPage = render_view('lists/show', [
     'members' => $pendingState['members'],
     'initialState' => $pendingState,
 ]);
-assert_true(str_contains($pendingPage, 'Uitnodiging accepteren'), 'invited users see an explicit invitation acceptance action');
+assert_true(!str_contains($pendingPage, 'Uitnodiging accepteren'), 'the invitation acceptance window is no longer duplicated inside the list');
 assert_true(str_contains($pendingPage, 'Uitgenodigd'), 'pending members are labelled as invited in the member list');
 assert_true($lists->acceptInvitation($listId, (int) $member['id']), 'an invited user can accept the invitation');
 assert_true($lists->canParticipate($listId, (int) $member['id']), 'accepted users become active participants');
@@ -154,6 +161,18 @@ $richItemId = $lists->addItem($listId, (int) $owner['id'], 'Paspoorten klaarlegg
 $richItem = $lists->liveState($listId)['items'][0];
 assert_true($richItem['priority'] === 'high', 'task state includes the selected priority');
 assert_true($richItem['due_date'] === '2026-08-14', 'task state includes the due date');
+$overdueItemId = $lists->addItem($listId, (int) $owner['id'], 'Verlopen taak', 'none', '2025-01-01');
+$overdueItem = array_values(array_filter($lists->liveState($listId)['items'], static fn(array $task): bool => $task['id'] === $overdueItemId))[0];
+assert_true($overdueItem['is_overdue'] === true, 'live state marks incomplete tasks past their due date as overdue');
+$overduePage = render_view('lists/show', [
+    'user' => $owner,
+    'list' => $lists->findAccessible($listId, (int) $owner['id']),
+    'items' => $lists->liveState($listId)['items'],
+    'members' => $lists->liveState($listId)['members'],
+    'initialState' => $lists->liveState($listId),
+]);
+assert_true(str_contains($overduePage, 'task--overdue') && str_contains($overduePage, 'Vervallen 01-01-2025'), 'server-rendered overdue tasks receive the pastel-red state and expired label');
+$lists->toggleItem($overdueItemId, $listId, (int) $owner['id']);
 assert_true($richItem['has_image'] === true, 'task state reports an attached image without exposing its filename');
 assert_true($lists->itemImage($richItemId, $listId) === 'voorbeeld.webp', 'task images can be resolved inside their list');
 $storedImageBytes = "\x89PNG\r\n\x1a\nblijvende-testafbeelding";
@@ -268,6 +287,20 @@ $acceptedPayload = json_decode($requests[4]['payload'], true, 32, JSON_THROW_ON_
 assert_true($acceptedPayload['include_subscription_ids'] === ['11111111-1111-4111-8111-111111111111'], 'only the list owner receives an accepted-invitation notification');
 assert_true(str_contains($acceptedPayload['contents']['en'], 'Member heeft de uitnodiging geaccepteerd en is nu lid van dit lijstje.'), 'accepted-invitation notifications identify the new member');
 assert_true($acceptedPayload['url'] === 'http://localhost/development/lists/' . $listId, 'accepted-invitation notification clicks open the shared list');
+
+$dueListId = $lists->create((int) $owner['id'], 'Deadline test', '✨', 'violet');
+$dueItemId = $lists->addItem($dueListId, (int) $owner['id'], 'Belasting opsturen', 'high', '2025-01-10');
+$dueNotifications = new DueTaskNotificationService($push, $lists);
+$reminderResult = $dueNotifications->sendPending(new DateTimeImmutable('2025-01-10 12:00:00', new DateTimeZone('Europe/Amsterdam')));
+assert_true($reminderResult['reminders'] === 1 && $reminderResult['expired'] === 0, 'due task service sends a reminder twelve hours before the end-of-day deadline');
+$reminderPayload = json_decode($requests[5]['payload'], true, 32, JSON_THROW_ON_ERROR);
+assert_true(str_contains($reminderPayload['contents']['en'], 'Nog 12 uur voordat de taak “Belasting opsturen” vervalt.'), 'the twelve-hour notification clearly identifies the task');
+assert_true($dueNotifications->sendPending(new DateTimeImmutable('2025-01-10 12:30:00', new DateTimeZone('Europe/Amsterdam')))['reminders'] === 0, 'the twelve-hour reminder is only sent once');
+$expiredResult = $dueNotifications->sendPending(new DateTimeImmutable('2025-01-11 00:00:00', new DateTimeZone('Europe/Amsterdam')));
+assert_true($expiredResult['expired'] === 1, 'due task service sends a notification when the task expires');
+$expiredPayload = json_decode($requests[6]['payload'], true, 32, JSON_THROW_ON_ERROR);
+assert_true(str_contains($expiredPayload['contents']['en'], 'De taak “Belasting opsturen” is vervallen.'), 'the expiration notification clearly identifies the expired task');
+assert_true($lists->dueNotificationWasSent($dueItemId, 'reminder') && $lists->dueNotificationWasSent($dueItemId, 'expired'), 'sent due notifications are persisted to prevent duplicates');
 
 $notificationPage = render_view('admin/notifications', [
     'oneSignal' => $oneSignal,

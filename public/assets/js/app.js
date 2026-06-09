@@ -51,10 +51,10 @@ if (liveList) {
 
   const commentCountLabel = (count) => `${count} ${count === 1 ? 'reactie' : 'reacties'}`;
   const priorityLabels = { low: 'Lage prioriteit', medium: 'Normale prioriteit', high: 'Hoge prioriteit' };
-  const dueDateLabel = (date) => {
+  const dueDateLabel = (date, isOverdue = false) => {
     if (!date) return '';
     const [year, month, day] = date.split('-');
-    return `Vervalt ${day}-${month}-${year}`;
+    return `${isOverdue ? 'Vervallen' : 'Vervalt'} ${day}-${month}-${year}`;
   };
 
   const priorityRank = { none: 0, low: 1, medium: 2, high: 3 };
@@ -195,7 +195,7 @@ if (liveList) {
 
   const renderTask = (item) => {
     const task = document.createElement('article');
-    task.className = `task${item.is_completed ? ' task--done' : ''}`;
+    task.className = `task${item.is_completed ? ' task--done' : ''}${item.is_overdue ? ' task--overdue' : ''}`;
 
     const toggleForm = document.createElement('form');
     toggleForm.method = 'post';
@@ -236,7 +236,7 @@ if (liveList) {
       const badges = document.createElement('span');
       badges.className = 'task-badges';
       if (item.priority !== 'none') badges.append(taskBadge(priorityLabels[item.priority], item.priority));
-      if (item.due_date) badges.append(taskBadge(dueDateLabel(item.due_date), 'date'));
+      if (item.due_date) badges.append(taskBadge(dueDateLabel(item.due_date, item.is_overdue), 'date'));
       content.append(title, badges);
     } else {
       content.append(title);
@@ -292,7 +292,7 @@ if (liveList) {
     if (detailBadges) {
       const badges = [];
       if (item.priority !== 'none') badges.push(taskBadge(priorityLabels[item.priority], item.priority));
-      if (item.due_date) badges.push(taskBadge(dueDateLabel(item.due_date), 'date'));
+      if (item.due_date) badges.push(taskBadge(dueDateLabel(item.due_date, item.is_overdue), 'date'));
       detailBadges.replaceChildren(...badges);
       detailBadges.hidden = badges.length === 0;
     }

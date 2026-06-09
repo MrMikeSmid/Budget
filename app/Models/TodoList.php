@@ -122,12 +122,13 @@ final class TodoList
 
     public function liveState(int $listId): array
     {
-        $items = array_map(static fn(array $item): array => [
+        $items = array_map(fn(array $item): array => [
             'id' => (int) $item['id'],
             'title' => $item['title'],
             'is_completed' => (bool) $item['is_completed'],
             'priority' => $item['priority'],
             'due_date' => $item['due_date'],
+            'is_overdue' => !$item['is_completed'] && $this->isOverdue($item['due_date']),
             'has_image' => (bool) ($item['has_image_data'] ?? false)
                 || ($item['image_filename'] !== null && $item['image_filename'] !== ''),
             'creator_name' => $item['creator_name'],
@@ -163,6 +164,55 @@ final class TodoList
         ];
         $state['revision'] = hash('sha256', json_encode([$items, $members], JSON_THROW_ON_ERROR));
         return $state;
+    }
+
+    private function isOverdue(?string $dueDate): bool
+    {
+        return $dueDate !== null && $dueDate < date('Y-m-d');
+    }
+
+    /** @return list<int> */
+    public function participantIds(int $listId): array
+    {
+        $stmt = db()->prepare(<<<'SQL'
+            SELECT owner_id AS user_id FROM todo_lists WHERE id = :list_id
+            UNION
+            SELECT user_id FROM list_members WHERE list_id = :list_id AND accepted_at IS NOT NULL
+        SQL);
+        $stmt->execute(['list_id' => $listId]);
+        return array_map('intval', array_column($stmt->fetchAll(), 'user_id'));
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function openItemsWithDueDate(): array
+    {
+        return db()->query(<<<'SQL'
+            SELECT i.id, i.list_id, i.title, i.due_date, l.title AS list_title
+            FROM todo_items i
+            JOIN todo_lists l ON l.id = i.list_id
+            WHERE i.is_completed = 0 AND i.due_date IS NOT NULL
+            ORDER BY i.due_date ASC, i.id ASC
+        SQL)->fetchAll();
+    }
+
+    public function dueNotificationWasSent(int $itemId, string $notificationType): bool
+    {
+        $stmt = db()->prepare('SELECT 1 FROM due_task_notifications WHERE item_id = ? AND notification_type = ?');
+        $stmt->execute([$itemId, $notificationType]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    public function claimDueNotification(int $itemId, string $notificationType): bool
+    {
+        $stmt = db()->prepare('INSERT OR IGNORE INTO due_task_notifications (item_id, notification_type) VALUES (?, ?)');
+        $stmt->execute([$itemId, $notificationType]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function releaseDueNotification(int $itemId, string $notificationType): void
+    {
+        $stmt = db()->prepare('DELETE FROM due_task_notifications WHERE item_id = ? AND notification_type = ?');
+        $stmt->execute([$itemId, $notificationType]);
     }
 
     /** @return list<int> */
