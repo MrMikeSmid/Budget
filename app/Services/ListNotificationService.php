@@ -41,6 +41,20 @@ final class ListNotificationService
         );
     }
 
+    public function invitationAccepted(array $list, array $member): bool
+    {
+        if ((int) $list['owner_id'] === (int) $member['id']) {
+            return true;
+        }
+
+        return ($this->push ?? new OneSignalNotificationService())->sendUsers(
+            [(int) $list['owner_id']],
+            (string) $list['title'],
+            sprintf('%s heeft de uitnodiging geaccepteerd en is nu lid van dit lijstje.', $member['name']),
+            '/lists/' . (int) $list['id'],
+        );
+    }
+
     private function send(array $list, array $actor, string $message): bool
     {
         $listId = (int) $list['id'];

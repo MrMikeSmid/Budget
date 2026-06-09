@@ -230,8 +230,9 @@ final class ListController extends Controller
     {
         $user = $this->auth();
         $this->verifyCsrf();
-        $this->accessible((int) $id, (int) $user['id']);
+        $list = $this->accessible((int) $id, (int) $user['id']);
         if ($this->lists->acceptInvitation((int) $id, (int) $user['id'])) {
+            $this->notify(fn(ListNotificationService $notifications) => $notifications->invitationAccepted($list, $user));
             flash('success', 'Je doet nu actief mee aan dit lijstje.');
         }
         redirect('/lists/' . $id);

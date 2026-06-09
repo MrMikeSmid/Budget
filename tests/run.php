@@ -228,6 +228,12 @@ assert_true($notifications->taskChanged($list, $member, 'Treinkaartjes boeken'),
 $changedPayload = json_decode($requests[3]['payload'], true, 32, JSON_THROW_ON_ERROR);
 assert_true(str_contains($changedPayload['contents']['en'], 'Member heeft “Treinkaartjes boeken” gewijzigd en weer geopend.'), 'changed-task notifications describe a reopened task');
 
+assert_true($notifications->invitationAccepted($list, $member), 'accepted-invitation notifications are accepted by OneSignal');
+$acceptedPayload = json_decode($requests[4]['payload'], true, 32, JSON_THROW_ON_ERROR);
+assert_true($acceptedPayload['include_subscription_ids'] === ['11111111-1111-4111-8111-111111111111'], 'only the list owner receives an accepted-invitation notification');
+assert_true(str_contains($acceptedPayload['contents']['en'], 'Member heeft de uitnodiging geaccepteerd en is nu lid van dit lijstje.'), 'accepted-invitation notifications identify the new member');
+assert_true($acceptedPayload['url'] === 'http://localhost/development/lists/' . $listId, 'accepted-invitation notification clicks open the shared list');
+
 $notificationPage = render_view('admin/notifications', [
     'oneSignal' => $oneSignal,
     'subscriptions' => $storedSubscriptions,
