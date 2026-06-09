@@ -48,7 +48,8 @@ final class TodoList
     public function items(int $listId): array
     {
         $stmt = db()->prepare(<<<'SQL'
-            SELECT i.*, creator.name AS creator_name, completer.name AS completer_name
+            SELECT i.*, creator.name AS creator_name, completer.name AS completer_name,
+                (SELECT COUNT(*) FROM todo_item_comments c WHERE c.item_id = i.id) AS comment_count
             FROM todo_items i
             JOIN users creator ON creator.id = i.created_by
             LEFT JOIN users completer ON completer.id = i.completed_by
@@ -56,7 +57,32 @@ final class TodoList
             ORDER BY i.is_completed ASC, i.id DESC
         SQL);
         $stmt->execute([$listId]);
-        return $stmt->fetchAll();
+        $items = $stmt->fetchAll();
+        $comments = $this->commentsForList($listId);
+        foreach ($items as &$item) {
+            $item['comments'] = $comments[(int) $item['id']] ?? [];
+        }
+        unset($item);
+        return $items;
+    }
+
+    /** @return array<int, list<array<string, mixed>>> */
+    private function commentsForList(int $listId): array
+    {
+        $stmt = db()->prepare(<<<'SQL'
+            SELECT c.id, c.item_id, c.body, c.created_at, u.id AS user_id, u.name AS author_name
+            FROM todo_item_comments c
+            JOIN todo_items i ON i.id = c.item_id
+            JOIN users u ON u.id = c.user_id
+            WHERE i.list_id = ?
+            ORDER BY c.id ASC
+        SQL);
+        $stmt->execute([$listId]);
+        $comments = [];
+        foreach ($stmt->fetchAll() as $comment) {
+            $comments[(int) $comment['item_id']][] = $comment;
+        }
+        return $comments;
     }
 
     public function members(int $listId): array
@@ -84,6 +110,14 @@ final class TodoList
             'is_completed' => (bool) $item['is_completed'],
             'creator_name' => $item['creator_name'],
             'completer_name' => $item['completer_name'],
+            'comment_count' => (int) $item['comment_count'],
+            'comments' => array_map(static fn(array $comment): array => [
+                'id' => (int) $comment['id'],
+                'body' => $comment['body'],
+                'created_at' => $comment['created_at'],
+                'user_id' => (int) $comment['user_id'],
+                'author_name' => $comment['author_name'],
+            ], $item['comments']),
         ], $this->items($listId));
         $members = array_map(static fn(array $member): array => [
             'id' => (int) $member['id'],
@@ -124,6 +158,20 @@ final class TodoList
         $stmt = db()->prepare('INSERT INTO todo_items (list_id, created_by, title) VALUES (?, ?, ?)');
         $stmt->execute([$listId, $userId, trim($title)]);
         db()->prepare('UPDATE todo_lists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$listId]);
+    }
+
+    public function addComment(int $itemId, int $listId, int $userId, string $body): bool
+    {
+        $stmt = db()->prepare(<<<'SQL'
+            INSERT INTO todo_item_comments (item_id, user_id, body)
+            SELECT id, ?, ? FROM todo_items WHERE id = ? AND list_id = ?
+        SQL);
+        $stmt->execute([$userId, trim($body), $itemId, $listId]);
+        if ($stmt->rowCount() === 0) {
+            return false;
+        }
+        db()->prepare('UPDATE todo_lists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$listId]);
+        return true;
     }
 
     public function toggleItem(int $itemId, int $listId, int $userId): ?array

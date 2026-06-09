@@ -46,12 +46,14 @@ final class ListController extends Controller
             return;
         }
         (new User())->touchPresence((int) $user['id']);
+        $state = $this->lists->liveState((int) $id);
         view('lists/show', [
             'title' => $list['title'],
             'user' => $user,
             'list' => $list,
-            'items' => $this->lists->items((int) $id),
-            'members' => $this->lists->members((int) $id),
+            'items' => $state['items'],
+            'members' => $state['members'],
+            'initialState' => $state,
         ]);
     }
 
@@ -78,6 +80,22 @@ final class ListController extends Controller
             return;
         }
         redirect('/lists/' . $id);
+    }
+
+    public function addComment(string $listId, string $itemId): void
+    {
+        $user = $this->auth();
+        $this->verifyCsrf();
+        $this->accessible((int) $listId, (int) $user['id']);
+        $body = trim((string) ($_POST['body'] ?? ''));
+        if ($body !== '' && mb_strlen($body) <= 1000) {
+            $this->lists->addComment((int) $itemId, (int) $listId, (int) $user['id'], $body);
+        }
+        if ($this->wantsJson()) {
+            $this->respondWithState((int) $listId);
+            return;
+        }
+        redirect('/lists/' . $listId);
     }
 
     public function toggle(string $listId, string $itemId): void

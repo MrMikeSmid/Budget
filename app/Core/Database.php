@@ -80,7 +80,18 @@ final class Database
                 FOREIGN KEY (completed_by) REFERENCES users(id) ON DELETE SET NULL
             );
 
+            CREATE TABLE IF NOT EXISTS todo_item_comments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                body TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (item_id) REFERENCES todo_items(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+
             CREATE INDEX IF NOT EXISTS idx_items_list ON todo_items(list_id);
+            CREATE INDEX IF NOT EXISTS idx_item_comments_item ON todo_item_comments(item_id);
             CREATE INDEX IF NOT EXISTS idx_members_user ON list_members(user_id);
 
             CREATE TABLE IF NOT EXISTS app_settings (
