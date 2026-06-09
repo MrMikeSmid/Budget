@@ -103,6 +103,22 @@ assert_true($lists->forUser((int) $activeRemoval['id']) === [], 'removed lists d
 assert_true(!in_array((int) $activeRemoval['id'], $lists->participantIdsExcept($listId, (int) $owner['id']), true), 'removed members no longer receive list notifications');
 assert_true(!$lists->removeMember($listId, (int) $owner['id'], (int) $owner['id']), 'the owner cannot remove themselves as a member');
 assert_true($lists->findAccessible($listId, (int) $outsider['id']) === null, 'users outside a shared list cannot access it');
+
+$sortingListId = $lists->create((int) $owner['id'], 'Sorteertest', '✨', 'lavender');
+$lists->addItem($sortingListId, (int) $owner['id'], 'Zonder prioriteit, vroeg', 'none', '2026-06-10');
+$lists->addItem($sortingListId, (int) $owner['id'], 'Hoog, laat', 'high', '2026-07-20');
+$lists->addItem($sortingListId, (int) $owner['id'], 'Hoog, vroeg', 'high', '2026-06-12');
+$lists->addItem($sortingListId, (int) $owner['id'], 'Normaal, vroeg', 'medium', '2026-06-11');
+$lists->addItem($sortingListId, (int) $owner['id'], 'Hoog, zonder datum', 'high');
+$sortedTitles = array_column($lists->items($sortingListId), 'title');
+assert_true($sortedTitles === [
+    'Hoog, vroeg',
+    'Hoog, laat',
+    'Hoog, zonder datum',
+    'Normaal, vroeg',
+    'Zonder prioriteit, vroeg',
+], 'tasks are sorted by descending priority and then ascending due date, with missing dates last');
+
 $lists->addItem($listId, (int) $owner['id'], 'Treinkaartjes boeken');
 $item = $lists->items($listId)[0];
 $toggled = $lists->toggleItem((int) $item['id'], $listId, (int) $member['id']);
@@ -150,6 +166,8 @@ $listPage = render_view('lists/show', [
 assert_true(str_contains($listPage, 'id="new-task"'), 'list pages include the detailed task creation modal');
 assert_true(str_contains($listPage, 'name="priority"'), 'the task modal offers a priority field');
 assert_true(str_contains($listPage, 'name="due_date"'), 'the task modal offers a due date field');
+assert_true(str_contains($listPage, 'data-task-sort'), 'list pages offer a task sorting dropdown');
+assert_true(str_contains($listPage, 'value="priority_due"'), 'priority and due date are the default sorting option');
 assert_true(str_contains($listPage, 'name="image"'), 'the task modal offers an image upload');
 assert_true(str_contains($listPage, '/lists/' . $listId . '/members/' . $member['id'] . '/delete'), 'owners can remove active members from the member list');
 assert_true(str_contains($listPage, 'data-member-delete-url='), 'live member updates retain the member removal endpoint');

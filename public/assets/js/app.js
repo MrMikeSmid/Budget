@@ -28,6 +28,17 @@ if (liveList) {
   const detailImage = commentsModal?.querySelector('[data-task-detail-image]');
   const detailBadges = commentsModal?.querySelector('[data-task-detail-badges]');
   const initialStateElement = document.querySelector('[data-initial-list-state]');
+  const taskSort = liveList.querySelector('[data-task-sort]');
+  const sortStorageKey = `samen-task-sort-${liveList.dataset.listId}`;
+  const taskSortOptions = new Set(['priority_due', 'due_date', 'priority', 'newest', 'alphabetical']);
+  let currentSort = 'priority_due';
+  try {
+    const storedSort = window.localStorage.getItem(sortStorageKey);
+    if (taskSortOptions.has(storedSort)) currentSort = storedSort;
+  } catch (error) {
+    console.warn('Sorteervoorkeur kon niet worden geladen.', error);
+  }
+  if (taskSort) taskSort.value = currentSort;
   let currentState = initialStateElement ? JSON.parse(initialStateElement.textContent) : null;
   const imageItemIds = new Set(
     (currentState?.items ?? []).filter((item) => item.has_image).map((item) => Number(item.id)),
@@ -45,6 +56,23 @@ if (liveList) {
     const [year, month, day] = date.split('-');
     return `Vervalt ${day}-${month}-${year}`;
   };
+
+  const priorityRank = { none: 0, low: 1, medium: 2, high: 3 };
+  const comparePriority = (first, second) => (priorityRank[second.priority] ?? 0) - (priorityRank[first.priority] ?? 0);
+  const compareDueDate = (first, second) => {
+    if (!first.due_date && !second.due_date) return 0;
+    if (!first.due_date) return 1;
+    if (!second.due_date) return -1;
+    return first.due_date.localeCompare(second.due_date);
+  };
+  const compareNewest = (first, second) => Number(second.id) - Number(first.id);
+  const sortTasks = (items) => [...items].sort((first, second) => {
+    if (currentSort === 'due_date') return compareDueDate(first, second) || comparePriority(first, second) || compareNewest(first, second);
+    if (currentSort === 'priority') return comparePriority(first, second) || compareNewest(first, second);
+    if (currentSort === 'newest') return compareNewest(first, second);
+    if (currentSort === 'alphabetical') return first.title.localeCompare(second.title, 'nl-NL', { sensitivity: 'base' }) || compareNewest(first, second);
+    return comparePriority(first, second) || compareDueDate(first, second) || compareNewest(first, second);
+  });
 
   const taskHasImage = (item) => item.has_image || imageItemIds.has(Number(item.id));
 
@@ -320,8 +348,8 @@ if (liveList) {
     liveList.querySelector('[data-open-count]').textContent = `${open} open`;
     liveList.querySelector('[data-completed-count]').textContent = `${done} klaar`;
 
-    const openItems = state.items.filter((item) => !item.is_completed);
-    const completedItems = state.items.filter((item) => item.is_completed);
+    const openItems = sortTasks(state.items.filter((item) => !item.is_completed));
+    const completedItems = sortTasks(state.items.filter((item) => item.is_completed));
     const openContainer = liveList.querySelector('[data-task-container="open"]');
     const completedContainer = liveList.querySelector('[data-task-container="completed"]');
     const completedSection = liveList.querySelector('[data-task-section="completed"]');
@@ -371,6 +399,17 @@ if (liveList) {
       pollInProgress = false;
     }
   };
+
+  taskSort?.addEventListener('change', () => {
+    if (!taskSortOptions.has(taskSort.value)) return;
+    currentSort = taskSort.value;
+    try {
+      window.localStorage.setItem(sortStorageKey, currentSort);
+    } catch (error) {
+      console.warn('Sorteervoorkeur kon niet worden opgeslagen.', error);
+    }
+    if (currentState) applyState(currentState, ++requestSequence, true);
+  });
 
   liveList.addEventListener('click', (event) => {
     const detailsButton = event.target.closest('[data-task-details]');
@@ -435,6 +474,9 @@ if (liveList) {
     taskImagePreview?.replaceChildren(Object.assign(document.createElement('strong'), { textContent: '＋' }));
   });
 
+  if (currentState && currentSort !== 'priority_due') {
+    applyState(currentState, ++requestSequence, true);
+  }
   requestState();
   const pollTimer = window.setInterval(requestState, 2000);
   document.addEventListener('visibilitychange', () => {

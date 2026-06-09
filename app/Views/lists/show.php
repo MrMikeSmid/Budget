@@ -58,6 +58,7 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
 <section
     class="detail-page detail-page--<?= e($list['color']) ?><?= $isPending ? ' detail-page--pending' : '' ?>"
     data-live-list
+    data-list-id="<?= (int) $list['id'] ?>"
     data-state-url="<?= e(url('/lists/' . $list['id'] . '/state')) ?>"
     data-toggle-url="<?= e(url('/lists/' . $list['id'] . '/items/__ITEM_ID__/toggle')) ?>"
     data-delete-url="<?= e(url('/lists/' . $list['id'] . '/items/__ITEM_ID__/delete')) ?>"
@@ -94,7 +95,22 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
             <button>Toevoegen</button>
         </form>
         <section class="task-section" data-task-section="open">
-            <div class="task-heading"><div><span class="eyebrow">Nog te doen</span><h2>Open taken</h2></div><span data-open-count><?= count($openItems) ?> open</span></div>
+            <div class="task-heading">
+                <div><span class="eyebrow">Nog te doen</span><h2>Open taken</h2></div>
+                <div class="task-heading__actions">
+                    <label class="task-sort">
+                        <span class="sr-only">Sorteer taken</span>
+                        <select data-task-sort aria-label="Sorteer taken">
+                            <option value="priority_due">Prio &amp; vervaldatum</option>
+                            <option value="due_date">Vervaldatum</option>
+                            <option value="priority">Prioriteit</option>
+                            <option value="newest">Nieuwste eerst</option>
+                            <option value="alphabetical">Naam A–Z</option>
+                        </select>
+                    </label>
+                    <span data-open-count><?= count($openItems) ?> open</span>
+                </div>
+            </div>
             <div data-task-container="open">
                 <?php if ($openItems): ?><div class="task-list"><?php foreach ($openItems as $item) { $renderTask($item); } ?></div><?php else: ?><div class="tasks-empty tasks-empty--compact"><span>✓</span><h3>Alles is gedaan</h3><p>Voeg gerust een nieuwe taak toe.</p></div><?php endif; ?>
             </div>
