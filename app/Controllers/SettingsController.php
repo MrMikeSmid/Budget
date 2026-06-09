@@ -50,9 +50,10 @@ final class SettingsController extends Controller
         redirect('/settings');
     }
 
-    public function profileImage(): void
+    public function profileImage(string $id): void
     {
-        $user = $this->auth();
+        $this->auth();
+        $user = (new User())->find((int) $id);
         $filename = basename((string) ($user['profile_image'] ?? ''));
         $path = $this->profileImageDirectory() . '/' . $filename;
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));

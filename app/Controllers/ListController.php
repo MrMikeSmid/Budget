@@ -80,7 +80,7 @@ final class ListController extends Controller
     {
         $user = $this->auth();
         $this->verifyCsrf();
-        $list = $this->accessible((int) $id, (int) $user['id']);
+        $list = $this->participating((int) $id, (int) $user['id']);
         $title = trim((string) ($_POST['title'] ?? ''));
         if ($title === '' || mb_strlen($title) > 160) {
             $this->itemError($id, 'Geef je taak een korte naam.');
@@ -154,7 +154,7 @@ final class ListController extends Controller
     {
         $user = $this->auth();
         $this->verifyCsrf();
-        $this->accessible((int) $listId, (int) $user['id']);
+        $this->participating((int) $listId, (int) $user['id']);
         $body = trim((string) ($_POST['body'] ?? ''));
         if ($body !== '' && mb_strlen($body) <= 1000) {
             $this->lists->addComment((int) $itemId, (int) $listId, (int) $user['id'], $body);
@@ -170,7 +170,7 @@ final class ListController extends Controller
     {
         $user = $this->auth();
         $this->verifyCsrf();
-        $list = $this->accessible((int) $listId, (int) $user['id']);
+        $list = $this->participating((int) $listId, (int) $user['id']);
         $item = $this->lists->toggleItem((int) $itemId, (int) $listId, (int) $user['id']);
         if ($item) {
             $this->notify(static fn(ListNotificationService $notifications) => (bool) $item['is_completed']
@@ -188,7 +188,7 @@ final class ListController extends Controller
     {
         $user = $this->auth();
         $this->verifyCsrf();
-        $this->accessible((int) $listId, (int) $user['id']);
+        $this->participating((int) $listId, (int) $user['id']);
         $imageFilename = $this->lists->itemImage((int) $itemId, (int) $listId);
         if ($this->lists->deleteCompletedItem((int) $itemId, (int) $listId)) {
             $this->deleteTaskImage($imageFilename);
@@ -220,7 +220,19 @@ final class ListController extends Controller
         if ($sent) {
             flash('success', 'De uitnodiging is naar ' . $email . ' verstuurd.');
         } else {
-            flash('error', $member['name'] . ' kan nu meedoen, maar de e-mail kon niet worden verstuurd.');
+            flash('error', 'De uitnodiging staat klaar voor ' . $member['name'] . ', maar de e-mail kon niet worden verstuurd.');
+        }
+        redirect('/lists/' . $id);
+    }
+
+
+    public function acceptInvitation(string $id): void
+    {
+        $user = $this->auth();
+        $this->verifyCsrf();
+        $this->accessible((int) $id, (int) $user['id']);
+        if ($this->lists->acceptInvitation((int) $id, (int) $user['id'])) {
+            flash('success', 'Je doet nu actief mee aan dit lijstje.');
         }
         redirect('/lists/' . $id);
     }
@@ -319,6 +331,17 @@ final class ListController extends Controller
         if (!$list) {
             http_response_code(403);
             exit('Geen toegang tot deze lijst.');
+        }
+        return $list;
+    }
+
+
+    private function participating(int $id, int $userId): array
+    {
+        $list = $this->accessible($id, $userId);
+        if (!$this->lists->canParticipate($id, $userId)) {
+            http_response_code(403);
+            exit('Accepteer eerst de uitnodiging om mee te doen.');
         }
         return $list;
     }

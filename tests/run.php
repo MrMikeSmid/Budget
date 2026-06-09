@@ -57,7 +57,23 @@ assert_true(str_contains(file_get_contents(dirname(__DIR__) . '/app/Core/Auth.ph
 $lists = new TodoList();
 $listId = $lists->create((int) $owner['id'], 'Vakantie', '✈️', 'coral');
 $lists->share($listId, (int) $owner['id'], (int) $member['id']);
-assert_true(count($lists->forUser((int) $member['id'])) === 1, 'shared lists are visible to members');
+assert_true(count($lists->forUser((int) $member['id'])) === 1, 'pending invitations are visible to invited users');
+assert_true((int) $lists->forUser((int) $member['id'])[0]['invitation_pending'] === 1, 'list overviews identify pending invitations');
+assert_true(!$lists->canParticipate($listId, (int) $member['id']), 'invited users are not active participants before accepting');
+$pendingState = $lists->liveState($listId);
+$pendingMember = array_values(array_filter($pendingState['members'], static fn(array $person): bool => (int) $person['id'] === (int) $member['id']))[0];
+assert_true($pendingMember['is_active'] === false, 'pending members are exposed as invited instead of active');
+$pendingPage = render_view('lists/show', [
+    'user' => $member,
+    'list' => $lists->findAccessible($listId, (int) $member['id']),
+    'items' => $pendingState['items'],
+    'members' => $pendingState['members'],
+    'initialState' => $pendingState,
+]);
+assert_true(str_contains($pendingPage, 'Uitnodiging accepteren'), 'invited users see an explicit invitation acceptance action');
+assert_true(str_contains($pendingPage, 'Uitgenodigd'), 'pending members are labelled as invited in the member list');
+assert_true($lists->acceptInvitation($listId, (int) $member['id']), 'an invited user can accept the invitation');
+assert_true($lists->canParticipate($listId, (int) $member['id']), 'accepted users become active participants');
 assert_true($lists->findAccessible($listId, (int) $outsider['id']) === null, 'users outside a shared list cannot access it');
 $lists->addItem($listId, (int) $owner['id'], 'Treinkaartjes boeken');
 $item = $lists->items($listId)[0];
@@ -246,6 +262,8 @@ assert_true(str_contains($routes, "'/admin/accounts'"), 'administrators can open
 assert_true(str_contains($routes, "'/notifications/subscribe'"), 'signed-in users can register a OneSignal subscription');
 assert_true(str_contains($routes, "'/notifications/unsubscribe'"), 'signed-in users can remove a OneSignal subscription');
 assert_true(str_contains($routes, "'/lists/{listId}/items/{itemId}/comments'"), 'task comments have a dedicated signed-in route');
+assert_true(str_contains($routes, "'/lists/{id}/accept'"), 'invited users have a dedicated invitation acceptance route');
+assert_true(str_contains($routes, "'/users/{id}/profile-image'"), 'member profile images have a user-specific route');
 $readme = file_get_contents(dirname(__DIR__) . '/README.md');
 assert_true(str_contains($readme, 'iOS/iPadOS 16.4'), 'the README documents iOS web-push requirements');
 
