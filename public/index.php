@@ -54,6 +54,7 @@ $router->post('/lists/{listId}/members/{memberId}/delete', [ListController::clas
 $router->post('/lists/{id}/delete', [ListController::class, 'delete']);
 $router->get('/settings', [SettingsController::class, 'show']);
 $router->post('/settings/profile', [SettingsController::class, 'profile']);
+$router->post('/settings/notifications', [SettingsController::class, 'notifications']);
 $router->get('/users/{id}/profile-image', [SettingsController::class, 'profileImage']);
 $router->post('/settings/password', [SettingsController::class, 'password']);
 $router->dispatch(new Request());

@@ -46,6 +46,29 @@ $isAdmin = \App\Core\Auth::isAdmin($user);
         <button class="button button--soft">Wijzigingen bewaren</button>
     </form>
 </div>
+<div class="settings-section" id="notificaties">
+    <span class="eyebrow">Meldingen</span><h2>Notificaties</h2>
+    <p class="section-intro">Kies welke pushnotificaties je van Samen wilt ontvangen. Deze instelling geldt voor al je aangemelde apparaten.</p>
+    <form method="post" action="<?= e(url('/settings/notifications')) ?>">
+        <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
+        <?php $notificationPreference = $user['notification_preference'] ?? 'all'; ?>
+        <div class="notification-preferences">
+            <label class="notification-preference">
+                <input type="radio" name="notification_preference" value="all" <?= $notificationPreference === 'all' ? 'checked' : '' ?>>
+                <span class="notification-preference__content"><span class="notification-preference__indicator" aria-hidden="true"></span><span class="notification-preference__copy"><strong>Alle notificaties</strong><small>Ontvang updates over gedeelde lijsten, herinneringen en vervallen taken.</small></span></span>
+            </label>
+            <label class="notification-preference">
+                <input type="radio" name="notification_preference" value="expired_only" <?= $notificationPreference === 'expired_only' ? 'checked' : '' ?>>
+                <span class="notification-preference__content"><span class="notification-preference__indicator" aria-hidden="true"></span><span class="notification-preference__copy"><strong>Alleen vervallen taken</strong><small>Schakel alle andere notificaties uit, maar krijg nog wel een melding zodra een taak is vervallen.</small></span></span>
+            </label>
+            <label class="notification-preference">
+                <input type="radio" name="notification_preference" value="none" <?= $notificationPreference === 'none' ? 'checked' : '' ?>>
+                <span class="notification-preference__content"><span class="notification-preference__indicator" aria-hidden="true"></span><span class="notification-preference__copy"><strong>Alle notificaties uit</strong><small>Ontvang geen pushnotificaties, ook niet voor vervallen taken.</small></span></span>
+            </label>
+        </div>
+        <button class="button button--soft">Voorkeur bewaren</button>
+    </form>
+</div>
 <div class="settings-section" id="wachtwoord"><span class="eyebrow">Beveiliging</span><h2><?= $user['password_hash'] ? 'Wachtwoord wijzigen' : 'Wachtwoord aanmaken' ?></h2><p class="section-intro"><?= $user['password_hash'] ? 'Kies een nieuw wachtwoord van minimaal 8 tekens.' : 'Hierna vragen we bij iedere nieuwe login naast je e-mailadres ook om dit wachtwoord.' ?></p><form method="post" action="<?= e(url('/settings/password')) ?>"><input type="hidden" name="_token" value="<?= e(csrf_token()) ?>"><label class="field"><span>Nieuw wachtwoord</span><input type="password" name="password" minlength="8" autocomplete="new-password" placeholder="Minimaal 8 tekens" required></label><label class="field"><span>Nog een keer</span><input type="password" name="password_confirmation" minlength="8" autocomplete="new-password" placeholder="Herhaal je wachtwoord" required></label><button class="button button--primary"><?= $user['password_hash'] ? 'Wachtwoord wijzigen' : 'Account beveiligen' ?> <span class="ui-icon ui-icon--arrow-right" aria-hidden="true"></span></button></form></div>
 <form method="post" action="<?= e(url('/logout')) ?>" class="logout-form" data-logout-form><input type="hidden" name="_token" value="<?= e(csrf_token()) ?>"><button class="button button--outline button--wide">Uitloggen</button></form>
 </section>

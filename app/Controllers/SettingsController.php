@@ -55,6 +55,29 @@ final class SettingsController extends Controller
         redirect('/settings');
     }
 
+    public function notifications(): void
+    {
+        $user = $this->auth();
+        $this->verifyCsrf();
+        $preference = (string) ($_POST['notification_preference'] ?? '');
+
+        if (!in_array($preference, User::NOTIFICATION_PREFERENCES, true)) {
+            flash('error', 'Kies een geldige notificatie-instelling.');
+            redirect('/settings#notificaties');
+        }
+
+        (new User())->setNotificationPreference((int) $user['id'], $preference);
+        $labels = [
+            'all' => 'Alle notificaties',
+            'expired_only' => 'Alleen vervallen taken',
+            'none' => 'Alle notificaties uit',
+        ];
+        $this->audit($user, 'account.notifications_updated', 'Notificatievoorkeur gewijzigd naar "' . $labels[$preference] . '"', 'Instellingen');
+
+        flash('success', 'Je notificatievoorkeur is bijgewerkt.');
+        redirect('/settings#notificaties');
+    }
+
     public function profileImage(string $id): void
     {
         $this->auth();

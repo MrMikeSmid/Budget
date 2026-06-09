@@ -40,6 +40,7 @@ final class Database
                 email TEXT NOT NULL UNIQUE COLLATE NOCASE,
                 name TEXT NOT NULL,
                 password_hash TEXT,
+                notification_preference TEXT NOT NULL DEFAULT 'all',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
@@ -176,6 +177,9 @@ final class Database
         }
         if (!in_array('is_admin', $columnNames, true)) {
             $this->pdo->exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+        }
+        if (!in_array('notification_preference', $columnNames, true)) {
+            $this->pdo->exec("ALTER TABLE users ADD COLUMN notification_preference TEXT NOT NULL DEFAULT 'all'");
         }
 
         $memberColumns = $this->pdo->query('PRAGMA table_info(list_members)')->fetchAll();

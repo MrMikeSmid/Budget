@@ -33,16 +33,24 @@ final class NotificationSubscriptionService
     }
 
     /** @param list<int> $userIds @return list<string> */
-    public function idsForUsers(array $userIds): array
+    public function idsForUsers(array $userIds, string $notificationType = 'general'): array
     {
         $userIds = array_values(array_unique(array_filter(array_map('intval', $userIds), static fn(int $id): bool => $id > 0)));
         if ($userIds === []) {
             return [];
         }
 
-        $placeholders = implode(',', array_fill(0, count($userIds), '?'));
-        $stmt = db()->prepare('SELECT subscription_id FROM notification_subscriptions WHERE user_id IN (' . $placeholders . ') ORDER BY id ASC');
-        $stmt->execute($userIds);
+        $allowedPreferences = $notificationType === 'expired' ? ['all', 'expired_only'] : ['all'];
+        $userPlaceholders = implode(',', array_fill(0, count($userIds), '?'));
+        $preferencePlaceholders = implode(',', array_fill(0, count($allowedPreferences), '?'));
+        $stmt = db()->prepare(
+            'SELECT ns.subscription_id FROM notification_subscriptions ns '
+            . 'INNER JOIN users u ON u.id = ns.user_id '
+            . 'WHERE ns.user_id IN (' . $userPlaceholders . ') '
+            . 'AND u.notification_preference IN (' . $preferencePlaceholders . ') '
+            . 'ORDER BY ns.id ASC'
+        );
+        $stmt->execute([...$userIds, ...$allowedPreferences]);
         return array_values(array_column($stmt->fetchAll(), 'subscription_id'));
     }
 

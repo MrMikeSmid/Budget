@@ -6,6 +6,8 @@ namespace App\Models;
 
 final class User
 {
+    public const NOTIFICATION_PREFERENCES = ['all', 'expired_only', 'none'];
+
     public function find(int $id): ?array
     {
         $stmt = db()->prepare('SELECT * FROM users WHERE id = ?');
@@ -97,6 +99,16 @@ final class User
     {
         $stmt = db()->prepare('UPDATE users SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
         $stmt->execute([trim($name), $id]);
+    }
+
+    public function setNotificationPreference(int $id, string $preference): void
+    {
+        if (!in_array($preference, self::NOTIFICATION_PREFERENCES, true)) {
+            throw new \InvalidArgumentException('Ongeldige notificatievoorkeur.');
+        }
+
+        $stmt = db()->prepare('UPDATE users SET notification_preference = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+        $stmt->execute([$preference, $id]);
     }
 
     public function setProfileImage(int $id, string $filename): void
