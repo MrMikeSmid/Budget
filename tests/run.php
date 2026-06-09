@@ -196,11 +196,12 @@ $overdueHomePage = render_view('lists/index', [
     'lists' => $lists->forUser((int) $owner['id']),
     'overdueTasks' => $ownerOverdueTasks,
 ]);
-assert_true(str_contains($overdueHomePage, 'id="overdue-tasks-title">Vervallen taken</h3>'), 'the dashboard shows expired tasks directly below the list heading');
+assert_true(str_contains($overdueHomePage, 'id="overdue-tasks-title">Vervallen taken</h2>'), 'the dashboard gives expired tasks a standalone heading');
+assert_true(strpos($overdueHomePage, 'id="overdue-tasks-title"') < strpos($overdueHomePage, '<h2>Jouw lijstjes</h2>'), 'the expired-task section appears above the list heading');
 assert_true(str_contains($overdueHomePage, 'Verlopen taak') && str_contains($overdueHomePage, 'Vervallen 01-01-2025'), 'dashboard expired-task cards show the task and formatted due date');
-assert_true(str_contains($overdueHomePage, 'class="overdue-tasks"'), 'dashboard expired tasks use the pastel-red attention panel');
+assert_true(str_contains($overdueHomePage, 'class="overdue-tasks__list"') && str_contains($overdueHomePage, 'class="overdue-task"'), 'dashboard expired tasks remain in distinct task cards');
 $lists->toggleItem($overdueItemId, $listId, (int) $owner['id']);
-assert_true($lists->overdueTasksForUser((int) $owner['id']) === [], 'completed expired tasks disappear from the dashboard attention panel');
+assert_true($lists->overdueTasksForUser((int) $owner['id']) === [], 'completed expired tasks disappear from the dashboard attention section');
 assert_true($richItem['has_image'] === true, 'task state reports an attached image without exposing its filename');
 assert_true($lists->itemImage($richItemId, $listId) === 'voorbeeld.webp', 'task images can be resolved inside their list');
 $storedImageBytes = "\x89PNG\r\n\x1a\nblijvende-testafbeelding";

@@ -23,13 +23,12 @@
             <div class="hero-card__art" aria-hidden="true"><div class="sun-shape"></div><div class="mini-card mini-card-a">✓</div><div class="mini-card mini-card-b">♥</div><div class="hero-person"></div></div>
         </section>
     <?php endif; ?>
-    <div class="section-heading"><div><span class="eyebrow">Alles bij elkaar</span><h2>Jouw lijstjes</h2></div><span class="count-badge"><?= count($lists) ?></span></div>
     <?php $overdueTasks = $overdueTasks ?? []; ?>
     <?php if ($overdueTasks): ?>
         <section class="overdue-tasks" aria-labelledby="overdue-tasks-title">
             <header class="overdue-tasks__header">
                 <span class="overdue-tasks__alert" aria-hidden="true">!</span>
-                <div><span class="eyebrow">Even aandacht voor</span><h3 id="overdue-tasks-title">Vervallen taken</h3></div>
+                <div><span class="eyebrow">Even aandacht voor</span><h2 id="overdue-tasks-title">Vervallen taken</h2></div>
                 <span class="overdue-tasks__count"><?= count($overdueTasks) ?></span>
             </header>
             <div class="overdue-tasks__list">
@@ -45,6 +44,7 @@
             </div>
         </section>
     <?php endif; ?>
+    <div class="section-heading"><div><span class="eyebrow">Alles bij elkaar</span><h2>Jouw lijstjes</h2></div><span class="count-badge"><?= count($lists) ?></span></div>
     <?php if ($lists): ?>
         <div class="list-grid">
         <?php foreach ($lists as $list): $total=(int)$list['item_count']; $done=(int)($list['completed_count'] ?? 0); $percent=$total ? round(($done/$total)*100) : 0; ?>
