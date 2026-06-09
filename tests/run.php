@@ -90,6 +90,7 @@ $homePage = render_page('lists/index', [
 ]);
 assert_true(str_contains($homePage, 'class="nav-create" data-open-modal="new-list"'), 'the dashboard plus button opens the new-list modal when lists already exist');
 assert_true(str_contains($homePage, '<dialog class="modal" id="new-list">'), 'the dashboard renders the modal targeted by its plus button');
+assert_true(!str_contains($homePage, 'list-card__footer') && !str_contains($homePage, 'Samen met') && !str_contains($homePage, 'Alleen van jou'), 'dashboard list cards omit the collaboration footer to remain compact');
 $lists->share($listId, (int) $owner['id'], (int) $member['id']);
 assert_true(count($lists->forUser((int) $member['id'])) === 1, 'pending invitations are visible to invited users');
 assert_true((int) $lists->forUser((int) $member['id'])[0]['invitation_pending'] === 1, 'list overviews identify pending invitations');
