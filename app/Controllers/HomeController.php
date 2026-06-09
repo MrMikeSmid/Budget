@@ -12,7 +12,12 @@ final class HomeController extends Controller
     public function index(): void
     {
         $user = $this->auth();
-        $lists = (new TodoList())->forUser((int) $user['id']);
-        view('lists/index', ['title' => 'Mijn lijstjes', 'user' => $user, 'lists' => $lists]);
+        $listRepository = new TodoList();
+        view('lists/index', [
+            'title' => 'Mijn lijstjes',
+            'user' => $user,
+            'lists' => $listRepository->forUser((int) $user['id']),
+            'overdueTasks' => $listRepository->overdueTasksForUser((int) $user['id']),
+        ]);
     }
 }

@@ -27,6 +27,26 @@ final class TodoList
         return $stmt->fetchAll();
     }
 
+    public function overdueTasksForUser(int $userId): array
+    {
+        $stmt = db()->prepare(<<<'SQL'
+            SELECT i.id, i.list_id, i.title, i.due_date, l.title AS list_title
+            FROM todo_items i
+            JOIN todo_lists l ON l.id = i.list_id
+            LEFT JOIN list_members access ON access.list_id = l.id AND access.user_id = :user_id
+            WHERE i.is_completed = 0
+                AND i.due_date IS NOT NULL
+                AND i.due_date < :today
+                AND (l.owner_id = :user_id OR access.accepted_at IS NOT NULL)
+            ORDER BY i.due_date ASC, i.id ASC
+        SQL);
+        $stmt->execute([
+            'user_id' => $userId,
+            'today' => date('Y-m-d'),
+        ]);
+        return $stmt->fetchAll();
+    }
+
     public function create(int $ownerId, string $title, string $emoji, string $color): int
     {
         $stmt = db()->prepare('INSERT INTO todo_lists (owner_id, title, emoji, color) VALUES (?, ?, ?, ?)');

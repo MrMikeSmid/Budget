@@ -172,7 +172,20 @@ $overduePage = render_view('lists/show', [
     'initialState' => $lists->liveState($listId),
 ]);
 assert_true(str_contains($overduePage, 'task--overdue') && str_contains($overduePage, 'Vervallen 01-01-2025'), 'server-rendered overdue tasks receive the pastel-red state and expired label');
+$ownerOverdueTasks = $lists->overdueTasksForUser((int) $owner['id']);
+assert_true(count($ownerOverdueTasks) === 1 && (int) $ownerOverdueTasks[0]['id'] === $overdueItemId, 'the dashboard query returns incomplete expired tasks for the list owner');
+assert_true(count($lists->overdueTasksForUser((int) $member['id'])) === 1, 'accepted list members see shared expired tasks on their dashboard');
+assert_true($lists->overdueTasksForUser((int) $outsider['id']) === [], 'expired tasks remain hidden from users without list access');
+$overdueHomePage = render_view('lists/index', [
+    'user' => $owner,
+    'lists' => $lists->forUser((int) $owner['id']),
+    'overdueTasks' => $ownerOverdueTasks,
+]);
+assert_true(str_contains($overdueHomePage, 'id="overdue-tasks-title">Vervallen taken</h3>'), 'the dashboard shows expired tasks directly below the list heading');
+assert_true(str_contains($overdueHomePage, 'Verlopen taak') && str_contains($overdueHomePage, 'Vervallen 01-01-2025'), 'dashboard expired-task cards show the task and formatted due date');
+assert_true(str_contains($overdueHomePage, 'class="overdue-tasks"'), 'dashboard expired tasks use the pastel-red attention panel');
 $lists->toggleItem($overdueItemId, $listId, (int) $owner['id']);
+assert_true($lists->overdueTasksForUser((int) $owner['id']) === [], 'completed expired tasks disappear from the dashboard attention panel');
 assert_true($richItem['has_image'] === true, 'task state reports an attached image without exposing its filename');
 assert_true($lists->itemImage($richItemId, $listId) === 'voorbeeld.webp', 'task images can be resolved inside their list');
 $storedImageBytes = "\x89PNG\r\n\x1a\nblijvende-testafbeelding";
