@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\InvitationEmailSettings;
 
@@ -34,6 +35,23 @@ final class AdminController extends Controller
         view('admin/accounts', [
             'title' => 'Accounts',
             'accounts' => (new User())->allForAdmin(),
+        ]);
+    }
+
+    public function events(): void
+    {
+        $this->admin();
+        $search = trim((string) ($_GET['q'] ?? ''));
+        $category = in_array($_GET['category'] ?? '', ['account', 'list', 'member', 'task'], true)
+            ? (string) $_GET['category']
+            : '';
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+
+        view('admin/events', [
+            'title' => 'Gebeurtenissen',
+            'audit' => (new AuditLog())->forAdmin($search, $category, $page),
+            'search' => $search,
+            'category' => $category,
         ]);
     }
 

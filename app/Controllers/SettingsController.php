@@ -46,6 +46,11 @@ final class SettingsController extends Controller
             $this->deleteProfileImage($user['profile_image'] ?? null);
         }
 
+        $this->audit($user, 'account.profile_updated', 'Profielnaam gewijzigd naar "' . $name . '"', 'Instellingen');
+        if (is_string($newImage)) {
+            $this->audit($user, 'account.image_uploaded', 'Nieuwe profielfoto geüpload', 'Instellingen');
+        }
+
         flash('success', 'Je profiel is bijgewerkt.');
         redirect('/settings');
     }
@@ -78,7 +83,9 @@ final class SettingsController extends Controller
         $confirmation = (string) ($_POST['password_confirmation'] ?? '');
         if (mb_strlen($password) < 8) { flash('error', 'Kies een wachtwoord van minimaal 8 tekens.'); redirect('/settings'); }
         if ($password !== $confirmation) { flash('error', 'De wachtwoorden zijn niet hetzelfde.'); redirect('/settings'); }
+        $hadPassword = !empty($user['password_hash']);
         (new User())->setPassword((int) $user['id'], $password);
+        $this->audit($user, 'account.password_' . ($hadPassword ? 'changed' : 'created'), $hadPassword ? 'Wachtwoord gewijzigd' : 'Wachtwoord aangemaakt', 'Instellingen');
         flash('success', 'Mooi! Je account is nu beveiligd met een wachtwoord.'); redirect('/settings');
     }
 

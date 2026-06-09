@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Core;
 
+use App\Models\AuditLog;
+
 abstract class Controller
 {
     protected function auth(): array
@@ -31,6 +33,11 @@ abstract class Controller
         }
 
         return $user;
+    }
+
+    protected function audit(array $user, string $event, string $description, string $location, array $metadata = []): void
+    {
+        (new AuditLog())->record($user, $event, $description, $location, $metadata);
     }
 
     protected function verifyCsrf(): void
