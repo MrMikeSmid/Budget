@@ -57,6 +57,10 @@ if (liveList) {
     window.setTimeout(() => { image.src = retryUrl.toString(); }, 250);
   };
 
+  liveList.querySelectorAll('.task-thumbnail').forEach((thumbnail) => {
+    thumbnail.addEventListener('error', handleTaskImageError);
+  });
+
   const taskBadge = (label, modifier) => {
     const badge = document.createElement('span');
     badge.className = `task-badge task-badge--${modifier}`;
