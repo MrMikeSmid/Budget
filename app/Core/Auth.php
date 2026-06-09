@@ -13,6 +13,7 @@ final class Auth
         session_regenerate_id(true);
         $_SESSION['user_id'] = (int) $user['id'];
         $_SESSION['authenticated_at'] = time();
+        (new User())->recordLogin((int) $user['id']);
     }
 
     public static function logout(): void

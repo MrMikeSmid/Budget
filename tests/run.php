@@ -49,6 +49,10 @@ assert_true(str_contains($adminProfilePage, 'href="/development/admin"'), 'the a
 assert_true(!str_contains($memberProfilePage, 'href="/development/admin"'), 'regular profiles do not expose the admin page link');
 assert_true($users->findOrCreate('OWNER@example.nl')['id'] === $owner['id'], 'e-mail addresses are case-insensitively unique');
 assert_true(!array_key_exists('push_external_id', $owner), 'new user records no longer expose the legacy provider identifier');
+$users->setPassword((int) $member['id'], 'veilig-wachtwoord');
+$users->recordLogin((int) $member['id']);
+assert_true($users->find((int) $member['id'])['last_login_at'] !== null, 'a successful login timestamp can be recorded');
+assert_true(str_contains(file_get_contents(dirname(__DIR__) . '/app/Core/Auth.php'), 'recordLogin'), 'successful authentication records the last login timestamp');
 
 $lists = new TodoList();
 $listId = $lists->create((int) $owner['id'], 'Vakantie', '✈️', 'coral');
@@ -120,6 +124,15 @@ assert_true($storedSubscriptions[0]['user_agent'] === 'Updated Browser', 'a repe
 $subscriptions->save((int) $member['id'], '22222222-2222-4222-8222-222222222222', 'Member Browser');
 $subscriptions->save((int) $outsider['id'], '33333333-3333-4333-8333-333333333333', 'Outsider Browser');
 assert_true($subscriptions->idsForUsers([(int) $member['id']]) === ['22222222-2222-4222-8222-222222222222'], 'subscription IDs can be selected for notification recipients');
+$adminAccounts = $users->allForAdmin();
+$memberAccount = array_values(array_filter($adminAccounts, static fn(array $account): bool => (int) $account['id'] === (int) $member['id']))[0];
+assert_true((int) $memberAccount['notification_subscription_count'] === 1, 'the admin account overview counts active notification devices');
+assert_true((int) $memberAccount['has_password'] === 1, 'the admin account overview exposes whether a password is configured');
+assert_true(!array_key_exists('password_hash', $memberAccount), 'the admin account overview does not expose password hashes');
+$accountsPage = render_view('admin/accounts', ['accounts' => $adminAccounts]);
+assert_true(str_contains($accountsPage, 'member@example.nl'), 'the admin account page lists registered users');
+assert_true(str_contains($accountsPage, 'Ingesteld'), 'the admin account page shows configured password status');
+assert_true(str_contains($accountsPage, 'Laatst ingelogd'), 'the admin account page shows the last login column');
 
 $requests = [];
 $push = new OneSignalNotificationService(function (string $method, string $url, array $headers, ?string $payload) use (&$requests): array {
@@ -169,6 +182,7 @@ $adminPage = render_view('admin/index', [
     'invitation_tokens' => InvitationEmailSettings::tokens(),
 ]);
 assert_true(str_contains($adminPage, 'OneSignal-testomgeving'), 'the admin page links to the OneSignal notification test');
+assert_true(str_contains($adminPage, 'href="/development/admin/accounts"'), 'the admin page links to the registered account overview');
 assert_true(str_contains($adminPage, 'data-rich-editor'), 'the invitation rich-text editor remains available');
 
 $listView = file_get_contents(dirname(__DIR__) . '/app/Views/lists/show.php');
@@ -202,6 +216,7 @@ $manifestController = file_get_contents(dirname(__DIR__) . '/app/Controllers/Pwa
 assert_true(str_contains($manifestController, 'OneSignalSDK.sw.js'), 'the PWA service worker imports the OneSignal worker');
 assert_true(str_contains($manifestController, "'display' => 'standalone'"), 'the web app manifest enables standalone display');
 $routes = file_get_contents(dirname(__DIR__) . '/public/index.php');
+assert_true(str_contains($routes, "'/admin/accounts'"), 'administrators can open the account overview route');
 assert_true(str_contains($routes, "'/notifications/subscribe'"), 'signed-in users can register a OneSignal subscription');
 assert_true(str_contains($routes, "'/notifications/unsubscribe'"), 'signed-in users can remove a OneSignal subscription');
 assert_true(str_contains($routes, "'/lists/{listId}/items/{itemId}/comments'"), 'task comments have a dedicated signed-in route');

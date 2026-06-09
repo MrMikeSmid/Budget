@@ -131,6 +131,9 @@ final class Database
         if (!in_array('last_seen_at', $columnNames, true)) {
             $this->pdo->exec('ALTER TABLE users ADD COLUMN last_seen_at TEXT');
         }
+        if (!in_array('last_login_at', $columnNames, true)) {
+            $this->pdo->exec('ALTER TABLE users ADD COLUMN last_login_at TEXT');
+        }
         if (!in_array('is_admin', $columnNames, true)) {
             $this->pdo->exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
         }

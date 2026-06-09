@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Models\User;
 use App\Services\InvitationEmailSettings;
 
 final class AdminController extends Controller
@@ -23,6 +24,16 @@ final class AdminController extends Controller
             'invitation_message_html' => $invitationEmail->message(),
             'invitation_preview_html' => $invitationEmail->renderEmail($sampleInviter, $sampleList, 'vriend@voorbeeld.nl'),
             'invitation_tokens' => InvitationEmailSettings::tokens(),
+        ]);
+    }
+
+    public function accounts(): void
+    {
+        $this->admin();
+
+        view('admin/accounts', [
+            'title' => 'Accounts',
+            'accounts' => (new User())->allForAdmin(),
         ]);
     }
 
