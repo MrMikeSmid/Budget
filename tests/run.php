@@ -385,6 +385,7 @@ assert_true(str_contains($listView, '>Afgerond</h2>'), 'completed tasks have the
 assert_true(str_contains($listView, 'data-live-delete'), 'completed tasks expose a dedicated delete action');
 assert_true(str_contains($listView, 'data-task-details'), 'task cards open their comments dialog');
 assert_true(str_contains($listView, 'data-live-comment'), 'the comments dialog exposes a live comment form');
+assert_true(str_contains($listView, 'task-comment-count--active'), 'server-rendered task rows highlight comment counts only when comments exist');
 assert_true(!str_contains($listView, '<small>Verwijder</small>'), 'the oversized completed-task delete label is removed');
 $listModal = file_get_contents(dirname(__DIR__) . '/app/Views/layouts/app.php');
 assert_true(substr_count($listModal, 'name="color"') === 1, 'the list modal renders its color selector from one reusable loop');
@@ -409,6 +410,8 @@ assert_true(str_contains($javascript, "[data-live-comment]"), 'task comments are
 assert_true(str_contains($javascript, "[data-live-edit]"), 'task edits are submitted asynchronously');
 assert_true(str_contains($javascript, "taskEditForm.action = updateUrl.replace"), 'the task edit form targets the selected task');
 assert_true(str_contains($javascript, 'comment.author_name'), 'comment rendering shows the author name');
+assert_true(str_contains($javascript, 'commentDateTimeLabel(comment.created_at)'), 'comment rendering shows the localized creation date and time');
+assert_true(str_contains($javascript, "commentCount.classList.add('task-comment-count--active')"), 'live task rows highlight comment counts only when comments exist');
 assert_true(str_contains($javascript, 'const imageItemIds = new Set('), 'live updates remember which tasks have an attached image');
 assert_true(str_contains($javascript, "memberDeleteUrl.replace('__MEMBER_ID__'"), 'live member cards keep owner removal actions after synchronization');
 assert_true(str_contains($javascript, 'if (isOwner && !member.is_owner)'), 'live updates never expose a removal action for the list owner');

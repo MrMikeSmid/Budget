@@ -44,7 +44,7 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
                     <?php if (!empty($item['due_date'])): ?><span class="task-badge task-badge--date"><?= $isOverdue ? 'Vervallen' : 'Vervalt' ?> <?= e($formatDueDate($item['due_date'])) ?></span><?php endif; ?>
                 </span>
             <?php endif; ?>
-            <small><span><?= $isCompleted ? 'Afgevinkt door ' . e($item['completer_name']) : 'Toegevoegd door ' . e($item['creator_name']) ?></span><span data-comment-count><?= e($commentLabel($item)) ?></span></small>
+            <small><span><?= $isCompleted ? 'Afgevinkt door ' . e($item['completer_name']) : 'Toegevoegd door ' . e($item['creator_name']) ?></span><span class="task-comment-count<?= (int) $item['comment_count'] > 0 ? ' task-comment-count--active' : '' ?>" data-comment-count><?= e($commentLabel($item)) ?></span></small>
         </button>
         <?php if ($isCompleted): ?>
             <form method="post" action="<?= e(url('/lists/' . $list['id'] . '/items/' . $item['id'] . '/delete')) ?>" class="task-delete-form" data-live-delete>

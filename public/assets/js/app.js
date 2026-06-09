@@ -53,6 +53,19 @@ if (liveList) {
   let pollInProgress = false;
 
   const commentCountLabel = (count) => `${count} ${count === 1 ? 'reactie' : 'reacties'}`;
+  const commentDateTimeLabel = (value) => {
+    if (!value) return '';
+    const normalizedValue = value.includes('T') ? value : `${value.replace(' ', 'T')}Z`;
+    const date = new Date(normalizedValue);
+    if (Number.isNaN(date.getTime())) return '';
+    return new Intl.DateTimeFormat('nl-NL', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  };
   const priorityLabels = { low: 'Lage prioriteit', medium: 'Normale prioriteit', high: 'Hoge prioriteit' };
   const dueDateLabel = (date, isOverdue = false) => {
     if (!date) return '';
@@ -250,6 +263,8 @@ if (liveList) {
       ? `Afgevinkt door ${item.completer_name}`
       : `Toegevoegd door ${item.creator_name}`;
     const commentCount = document.createElement('span');
+    commentCount.className = 'task-comment-count';
+    if (item.comment_count > 0) commentCount.classList.add('task-comment-count--active');
     commentCount.dataset.commentCount = '';
     commentCount.textContent = commentCountLabel(item.comment_count);
     meta.append(attribution, commentCount);
@@ -321,11 +336,16 @@ if (liveList) {
     commentsList.replaceChildren(...item.comments.map((comment) => {
       const entry = document.createElement('article');
       entry.className = 'comment';
+      const header = document.createElement('header');
       const author = document.createElement('strong');
       author.textContent = comment.author_name;
+      const timestamp = document.createElement('time');
+      timestamp.dateTime = comment.created_at;
+      timestamp.textContent = commentDateTimeLabel(comment.created_at);
+      header.append(author, timestamp);
       const body = document.createElement('p');
       body.textContent = comment.body;
-      entry.append(author, body);
+      entry.append(header, body);
       return entry;
     }));
   };
