@@ -64,9 +64,10 @@ $pushEnabled = $oneSignal?->isConfigured() ?? false;
                 <div class="modal-heading"><div><span class="eyebrow">Iets nieuws</span><h2>Maak een lijstje</h2></div><button type="button" class="icon-button" data-close-modal aria-label="Sluiten">×</button></div>
                 <label class="field"><span>Naam van je lijst</span><input name="title" maxlength="80" placeholder="Bijv. Weekendje weg" required autofocus></label>
                 <fieldset class="choice-group"><legend>Kies een sfeer</legend><div class="emoji-choices">
-                    <?php foreach (['✨','🛒','🏠','✈️','🎉'] as $index => $emoji): ?><label><input type="radio" name="emoji" value="<?= $emoji ?>" <?= $index === 0 ? 'checked' : '' ?>><span><?= $emoji ?></span></label><?php endforeach; ?>
-                </div><div class="color-choices">
-                    <?php foreach (['violet','coral','mint','sun'] as $index => $color): ?><label><input type="radio" name="color" value="<?= $color ?>" <?= $index === 0 ? 'checked' : '' ?>><span class="swatch swatch--<?= $color ?>"></span></label><?php endforeach; ?>
+                    <?php foreach (list_mood_options() as $mood => $label): ?><label title="<?= e($label) ?>"><input type="radio" name="emoji" value="<?= e($mood) ?>" <?= $mood === 'sparkles' ? 'checked' : '' ?>><span><?= render_list_mood_icon($mood) ?><small><?= e($label) ?></small></span></label><?php endforeach; ?>
+                </div></fieldset>
+                <fieldset class="choice-group"><legend>Kies een pastelkleur</legend><div class="color-choices">
+                    <?php foreach (['violet' => 'Lila', 'coral' => 'Koraal', 'mint' => 'Mint', 'sun' => 'Vanille', 'rose' => 'Roze', 'peach' => 'Perzik', 'sky' => 'Hemelsblauw', 'sage' => 'Salie', 'lavender' => 'Lavendel'] as $color => $label): ?><label title="<?= e($label) ?>"><input type="radio" name="color" value="<?= e($color) ?>" <?= $color === 'violet' ? 'checked' : '' ?>><span class="swatch swatch--<?= e($color) ?>"><span class="sr-only"><?= e($label) ?></span></span></label><?php endforeach; ?>
                 </div></fieldset>
                 <button class="button button--primary button--wide">Lijstje maken <span class="ui-icon ui-icon--arrow-right" aria-hidden="true"></span></button>
             </form>

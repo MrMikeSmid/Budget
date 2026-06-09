@@ -38,6 +38,7 @@ $router->get('/lists/{id}', [ListController::class, 'show']);
 $router->get('/lists/{id}/state', [ListController::class, 'state']);
 $router->post('/lists/{id}/items', [ListController::class, 'addItem']);
 $router->post('/lists/{listId}/items/{itemId}/toggle', [ListController::class, 'toggle']);
+$router->post('/lists/{listId}/items/{itemId}/delete', [ListController::class, 'deleteItem']);
 $router->post('/lists/{id}/share', [ListController::class, 'share']);
 $router->post('/lists/{id}/delete', [ListController::class, 'delete']);
 $router->get('/settings', [SettingsController::class, 'show']);

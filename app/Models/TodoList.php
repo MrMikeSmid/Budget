@@ -142,6 +142,17 @@ final class TodoList
         return $item->fetch() ?: null;
     }
 
+    public function deleteCompletedItem(int $itemId, int $listId): bool
+    {
+        $stmt = db()->prepare('DELETE FROM todo_items WHERE id = ? AND list_id = ? AND is_completed = 1');
+        $stmt->execute([$itemId, $listId]);
+        if ($stmt->rowCount() === 0) {
+            return false;
+        }
+        db()->prepare('UPDATE todo_lists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$listId]);
+        return true;
+    }
+
     public function share(int $listId, int $ownerId, int $memberId): void
     {
         $stmt = db()->prepare('INSERT OR IGNORE INTO list_members (list_id, user_id, invited_by) VALUES (?, ?, ?)');

@@ -13,6 +13,7 @@ const liveList = document.querySelector('[data-live-list]');
 if (liveList) {
   const stateUrl = liveList.dataset.stateUrl;
   const toggleUrl = liveList.dataset.toggleUrl;
+  const deleteUrl = liveList.dataset.deleteUrl;
   const csrfToken = liveList.dataset.csrfToken;
   let currentRevision = null;
   let requestSequence = 0;
@@ -42,13 +43,13 @@ if (liveList) {
 
   const renderEmptyState = () => {
     const empty = document.createElement('div');
-    empty.className = 'tasks-empty';
+    empty.className = 'tasks-empty tasks-empty--compact';
     const icon = document.createElement('span');
-    icon.textContent = '☻';
+    icon.textContent = '✓';
     const title = document.createElement('h3');
-    title.textContent = 'Nog lekker rustig hier';
+    title.textContent = 'Alles is gedaan';
     const copy = document.createElement('p');
-    copy.textContent = 'Welke kleine stap zetten jullie als eerste?';
+    copy.textContent = 'Voeg gerust een nieuwe taak toe.';
     empty.append(icon, title, copy);
     return empty;
   };
@@ -84,6 +85,36 @@ if (liveList) {
     return form;
   };
 
+  const renderCompletedTask = (item) => {
+    const row = document.createElement('div');
+    row.className = 'completed-task-row';
+    row.append(renderTask(item));
+
+    const deleteForm = document.createElement('form');
+    deleteForm.method = 'post';
+    deleteForm.action = deleteUrl.replace('__ITEM_ID__', encodeURIComponent(item.id));
+    deleteForm.className = 'task-delete-form';
+    deleteForm.dataset.liveDelete = '';
+
+    const token = document.createElement('input');
+    token.type = 'hidden';
+    token.name = '_token';
+    token.value = csrfToken;
+
+    const button = document.createElement('button');
+    button.className = 'task-delete';
+    button.setAttribute('aria-label', `Verwijder ${item.title}`);
+    const icon = document.createElement('span');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = '×';
+    const label = document.createElement('small');
+    label.textContent = 'Verwijder';
+    button.append(icon, label);
+    deleteForm.append(token, button);
+    row.append(deleteForm);
+    return row;
+  };
+
   const applyState = (state, sequence) => {
     if (sequence < appliedSequence) return;
     appliedSequence = sequence;
@@ -96,15 +127,31 @@ if (liveList) {
       : 'Voeg hieronder jullie eerste taak toe.';
     liveList.querySelector('[data-progress-bar]').style.width = `${percent}%`;
     liveList.querySelector('[data-open-count]').textContent = `${open} open`;
+    liveList.querySelector('[data-completed-count]').textContent = `${done} klaar`;
 
-    const taskContainer = liveList.querySelector('[data-task-container]');
-    if (state.items.length === 0) {
-      taskContainer.replaceChildren(renderEmptyState());
+    const openItems = state.items.filter((item) => !item.is_completed);
+    const completedItems = state.items.filter((item) => item.is_completed);
+    const openContainer = liveList.querySelector('[data-task-container="open"]');
+    const completedContainer = liveList.querySelector('[data-task-container="completed"]');
+    const completedSection = liveList.querySelector('[data-task-section="completed"]');
+
+    if (openItems.length === 0) {
+      openContainer.replaceChildren(renderEmptyState());
     } else {
       const taskList = document.createElement('div');
       taskList.className = 'task-list';
-      taskList.append(...state.items.map(renderTask));
-      taskContainer.replaceChildren(taskList);
+      taskList.append(...openItems.map(renderTask));
+      openContainer.replaceChildren(taskList);
+    }
+
+    completedSection.hidden = completedItems.length === 0;
+    if (completedItems.length === 0) {
+      completedContainer.replaceChildren();
+    } else {
+      const taskList = document.createElement('div');
+      taskList.className = 'task-list';
+      taskList.append(...completedItems.map(renderCompletedTask));
+      completedContainer.replaceChildren(taskList);
     }
 
     renderMembers(state.members);
@@ -129,10 +176,11 @@ if (liveList) {
   };
 
   document.addEventListener('submit', async (event) => {
-    const form = event.target.closest('[data-live-add], [data-live-toggle]');
+    const form = event.target.closest('[data-live-add], [data-live-toggle], [data-live-delete]');
     if (!form || !liveList.contains(form)) return;
     event.preventDefault();
     if (form.dataset.submitting === 'true') return;
+    if (form.matches('[data-live-delete]') && !window.confirm('Wil je deze afgeronde taak verwijderen?')) return;
 
     form.dataset.submitting = 'true';
     const sequence = ++requestSequence;
