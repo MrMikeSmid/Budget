@@ -16,7 +16,9 @@ $formatDueDate = static function (?string $date): string {
 };
 $renderTask = static function (array $item) use ($list, $commentLabel, $priorityLabels, $formatDueDate): void {
     $isCompleted = (int) $item['is_completed'] === 1;
-    $hasImage = !empty($item['image_filename']);
+    $hasImage = !empty($item['has_image'])
+        || !empty($item['has_image_data'])
+        || !empty($item['image_filename']);
     ?>
     <article class="task<?= $isCompleted ? ' task--done' : '' ?>">
         <form method="post" action="<?= e(url('/lists/' . $list['id'] . '/items/' . $item['id'] . '/toggle')) ?>" class="task-toggle-form" data-live-toggle>

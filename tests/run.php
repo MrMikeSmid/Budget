@@ -95,12 +95,13 @@ $storedImage = $lists->itemImageData($storedImageId, $listId);
 assert_true($storedImage !== null && $storedImage['data'] === $storedImageBytes, 'task image bytes remain stored with the task');
 assert_true($storedImage['mime_type'] === 'image/png', 'task image MIME types remain stored with the task');
 assert_true($lists->liveState($listId)['items'][0]['has_image'] === true, 'database-backed task images remain visible after state reloads');
+$renderedState = $lists->liveState($listId);
 $listPage = render_view('lists/show', [
     'user' => $owner,
     'list' => $lists->findAccessible($listId, (int) $owner['id']),
-    'items' => $lists->items($listId),
-    'members' => $lists->members($listId),
-    'initialState' => $lists->liveState($listId),
+    'items' => $renderedState['items'],
+    'members' => $renderedState['members'],
+    'initialState' => $renderedState,
 ]);
 assert_true(str_contains($listPage, 'id="new-task"'), 'list pages include the detailed task creation modal');
 assert_true(str_contains($listPage, 'name="priority"'), 'the task modal offers a priority field');
@@ -229,7 +230,12 @@ assert_true(str_contains($javascript, 'comment.author_name'), 'comment rendering
 assert_true(str_contains($javascript, 'const imageItemIds = new Set('), 'live updates remember which tasks have an attached image');
 assert_true(str_contains($javascript, 'if (item.has_image) imageItemIds.add(Number(item.id));'), 'live updates preserve known task images across later state refreshes');
 assert_true(str_contains($javascript, "thumbnail.addEventListener('error', handleTaskImageError)"), 'task thumbnails retry once after a temporary image loading failure');
+assert_true(str_contains($javascript, "liveList.querySelectorAll('.task-thumbnail')"), 'server-rendered task thumbnails also receive image retry handling');
 assert_true(str_contains($listPage, 'class="task-thumbnail"'), 'server-rendered task rows include attached image thumbnails');
+assert_true(
+    str_contains($listPage, '/lists/' . $listId . '/items/' . $storedImageId . '/image'),
+    'server-rendered live-state rows show database-backed task images'
+);
 assert_true(str_contains($listPage, 'width="48" height="48" decoding="async"'), 'task thumbnails reserve stable space and load immediately');
 
 $manifestController = file_get_contents(dirname(__DIR__) . '/app/Controllers/PwaController.php');
