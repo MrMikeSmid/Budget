@@ -24,7 +24,7 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
             <button class="task-check" aria-label="<?= $isCompleted ? 'Markeer als niet gedaan' : 'Vink af' ?>"><?= $isCompleted ? '✓' : '' ?></button>
         </form>
         <?php if ($hasImage): ?>
-            <img class="task-thumbnail" src="<?= e(url('/lists/' . $list['id'] . '/items/' . $item['id'] . '/image')) ?>" alt="" loading="lazy">
+            <img class="task-thumbnail" src="<?= e(url('/lists/' . $list['id'] . '/items/' . $item['id'] . '/image')) ?>" alt="" width="48" height="48" decoding="async">
         <?php endif; ?>
         <button type="button" class="task-content" data-task-details="<?= (int) $item['id'] ?>">
             <strong><?= e($item['title']) ?></strong>

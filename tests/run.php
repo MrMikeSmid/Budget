@@ -211,6 +211,11 @@ assert_true(str_contains($javascript, "state.items.filter((item) => !item.is_com
 assert_true(str_contains($javascript, "[data-live-delete]"), 'live updates submit completed-task deletions asynchronously');
 assert_true(str_contains($javascript, "[data-live-comment]"), 'task comments are submitted asynchronously');
 assert_true(str_contains($javascript, 'comment.author_name'), 'comment rendering shows the author name');
+assert_true(str_contains($javascript, 'const imageItemIds = new Set('), 'live updates remember which tasks have an attached image');
+assert_true(str_contains($javascript, 'if (item.has_image) imageItemIds.add(Number(item.id));'), 'live updates preserve known task images across later state refreshes');
+assert_true(str_contains($javascript, "thumbnail.addEventListener('error', handleTaskImageError)"), 'task thumbnails retry once after a temporary image loading failure');
+assert_true(str_contains($listPage, 'class="task-thumbnail"'), 'server-rendered task rows include attached image thumbnails');
+assert_true(str_contains($listPage, 'width="48" height="48" decoding="async"'), 'task thumbnails reserve stable space and load immediately');
 
 $manifestController = file_get_contents(dirname(__DIR__) . '/app/Controllers/PwaController.php');
 assert_true(str_contains($manifestController, 'OneSignalSDK.sw.js'), 'the PWA service worker imports the OneSignal worker');

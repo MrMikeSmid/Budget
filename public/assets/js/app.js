@@ -27,6 +27,9 @@ if (liveList) {
   const detailBadges = commentsModal?.querySelector('[data-task-detail-badges]');
   const initialStateElement = document.querySelector('[data-initial-list-state]');
   let currentState = initialStateElement ? JSON.parse(initialStateElement.textContent) : null;
+  const imageItemIds = new Set(
+    (currentState?.items ?? []).filter((item) => item.has_image).map((item) => Number(item.id)),
+  );
   let activeCommentItemId = null;
   let currentRevision = currentState?.revision ?? null;
   let requestSequence = 0;
@@ -39,6 +42,19 @@ if (liveList) {
     if (!date) return '';
     const [year, month, day] = date.split('-');
     return `Vervalt ${day}-${month}-${year}`;
+  };
+
+  const taskHasImage = (item) => item.has_image || imageItemIds.has(Number(item.id));
+
+  const taskImageUrl = (itemId) => imageUrl.replace('__ITEM_ID__', encodeURIComponent(itemId));
+
+  const handleTaskImageError = (event) => {
+    const image = event.currentTarget;
+    if (image.dataset.retryAttempted === 'true') return;
+    image.dataset.retryAttempted = 'true';
+    const retryUrl = new URL(image.src, window.location.href);
+    retryUrl.searchParams.set('retry', Date.now().toString());
+    window.setTimeout(() => { image.src = retryUrl.toString(); }, 250);
   };
 
   const taskBadge = (label, modifier) => {
@@ -104,12 +120,15 @@ if (liveList) {
     toggleForm.append(token, check);
 
     let thumbnail = null;
-    if (item.has_image) {
+    if (taskHasImage(item)) {
       thumbnail = document.createElement('img');
       thumbnail.className = 'task-thumbnail';
-      thumbnail.src = imageUrl.replace('__ITEM_ID__', encodeURIComponent(item.id));
+      thumbnail.src = taskImageUrl(item.id);
       thumbnail.alt = '';
-      thumbnail.loading = 'lazy';
+      thumbnail.width = 48;
+      thumbnail.height = 48;
+      thumbnail.decoding = 'async';
+      thumbnail.addEventListener('error', handleTaskImageError);
     }
 
     const content = document.createElement('button');
@@ -170,9 +189,10 @@ if (liveList) {
     commentForm.action = commentUrl.replace('__ITEM_ID__', encodeURIComponent(item.id));
 
     if (detailMedia && detailImage) {
-      detailMedia.hidden = !item.has_image;
-      detailImage.src = item.has_image ? imageUrl.replace('__ITEM_ID__', encodeURIComponent(item.id)) : '';
-      detailImage.alt = item.has_image ? `Afbeelding bij ${item.title}` : '';
+      const hasImage = taskHasImage(item);
+      detailMedia.hidden = !hasImage;
+      detailImage.src = hasImage ? taskImageUrl(item.id) : '';
+      detailImage.alt = hasImage ? `Afbeelding bij ${item.title}` : '';
     }
     if (detailBadges) {
       const badges = [];
@@ -218,6 +238,9 @@ if (liveList) {
   const applyState = (state, sequence, force = false) => {
     if (sequence < appliedSequence) return;
     appliedSequence = sequence;
+    state.items.forEach((item) => {
+      if (item.has_image) imageItemIds.add(Number(item.id));
+    });
     currentState = state;
     if (!force && state.revision === currentRevision) return;
     currentRevision = state.revision;
