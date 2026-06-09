@@ -52,7 +52,6 @@
                 <div class="list-card__top"><span class="list-emoji"><?= render_list_mood_icon($list['emoji']) ?></span><span class="member-stack"><i><?= e(mb_strtoupper(mb_substr($list['owner_name'],0,1))) ?></i><?php if ((int)$list['member_count'] > 1): ?><i>+<?= (int)$list['member_count']-1 ?></i><?php endif; ?></span></div>
                 <h3><?= e($list['title']) ?></h3><p><?= $total ? "$done van $total gedaan" : 'Klaar voor jullie eerste taak' ?></p>
                 <div class="progress"><span style="width:<?= $percent ?>%"></span></div>
-                <div class="list-card__footer"><span><?php if ((int) $list['invitation_pending'] === 1): ?>Uitnodiging van <?= e($list['owner_name']) ?><?php elseif ((int) $list['invited_count'] > 0): ?><?= (int) $list['invited_count'] ?> <?= (int) $list['invited_count'] === 1 ? 'uitnodiging open' : 'uitnodigingen open' ?><?php else: ?><?= (int)$list['member_count'] > 1 ? 'Samen met ' . ((int)$list['member_count']-1) : 'Alleen van jou' ?><?php endif; ?></span><span class="ui-icon ui-icon--arrow-right" aria-hidden="true"></span></div>
             </a>
         <?php endforeach; ?></div>
     <?php else: ?>
