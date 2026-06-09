@@ -28,9 +28,10 @@ final class ListController extends Controller
             flash('error', 'Geef je lijst een korte naam.');
             redirect('/');
         }
-        $allowedColors = ['violet', 'coral', 'mint', 'sun'];
+        $allowedColors = ['violet', 'coral', 'mint', 'sun', 'rose', 'peach', 'sky', 'sage', 'lavender'];
         $color = in_array($_POST['color'] ?? '', $allowedColors, true) ? $_POST['color'] : 'violet';
-        $emoji = mb_substr(trim((string) ($_POST['emoji'] ?? '✨')), 0, 2) ?: '✨';
+        $requestedMood = trim((string) ($_POST['emoji'] ?? 'sparkles'));
+        $emoji = array_key_exists($requestedMood, list_mood_options()) ? $requestedMood : 'sparkles';
         $id = $this->lists->create((int) $user['id'], $title, $emoji, $color);
         redirect('/lists/' . $id);
     }
@@ -90,6 +91,19 @@ final class ListController extends Controller
                 ? $notifications->taskCompleted($list, $user, $item['title'])
                 : $notifications->taskChanged($list, $user, $item['title']));
         }
+        if ($this->wantsJson()) {
+            $this->respondWithState((int) $listId);
+            return;
+        }
+        redirect('/lists/' . $listId);
+    }
+
+    public function deleteItem(string $listId, string $itemId): void
+    {
+        $user = $this->auth();
+        $this->verifyCsrf();
+        $this->accessible((int) $listId, (int) $user['id']);
+        $this->lists->deleteCompletedItem((int) $itemId, (int) $listId);
         if ($this->wantsJson()) {
             $this->respondWithState((int) $listId);
             return;

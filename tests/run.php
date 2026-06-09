@@ -60,6 +60,11 @@ $item = $lists->items($listId)[0];
 $toggled = $lists->toggleItem((int) $item['id'], $listId, (int) $member['id']);
 assert_true((bool) $toggled['is_completed'], 'members can complete shared tasks');
 assert_true($lists->liveState($listId)['stats']['percent'] === 100, 'live state reports completion progress');
+$lists->addItem($listId, (int) $owner['id'], 'Niet afgeronde taak');
+$openItem = $lists->items($listId)[0];
+assert_true(!$lists->deleteCompletedItem((int) $openItem['id'], $listId), 'open tasks cannot be deleted through the completed-task action');
+assert_true($lists->deleteCompletedItem((int) $item['id'], $listId), 'completed tasks can be deleted');
+assert_true($lists->liveState($listId)['stats']['total'] === 1, 'deleting a completed task refreshes list statistics');
 
 $users->setPassword((int) $owner['id'], 'een-veilig-wachtwoord');
 assert_true(password_verify('een-veilig-wachtwoord', $users->find((int) $owner['id'])['password_hash']), 'passwords are securely hashed');
@@ -144,6 +149,14 @@ $adminPage = render_view('admin/index', [
 assert_true(str_contains($adminPage, 'OneSignal-testomgeving'), 'the admin page links to the OneSignal notification test');
 assert_true(str_contains($adminPage, 'data-rich-editor'), 'the invitation rich-text editor remains available');
 
+$listView = file_get_contents(dirname(__DIR__) . '/app/Views/lists/show.php');
+assert_true(str_contains($listView, '>Afgerond</h2>'), 'completed tasks have their own section heading');
+assert_true(str_contains($listView, 'data-live-delete'), 'completed tasks expose a dedicated delete action');
+$listModal = file_get_contents(dirname(__DIR__) . '/app/Views/layouts/app.php');
+assert_true(substr_count($listModal, 'name="color"') === 1, 'the list modal renders its color selector from one reusable loop');
+assert_true(str_contains($listModal, "'lavender' => 'Lavendel'"), 'the list modal offers additional pastel colors');
+assert_true(str_contains($listModal, 'list_mood_options()'), 'the list modal offers the SVG mood icon collection');
+
 $javascript = file_get_contents(dirname(__DIR__) . '/public/assets/js/app.js');
 assert_true(str_contains($javascript, 'OneSignal.init'), 'the browser initializes the OneSignal web SDK');
 assert_true(str_contains($javascript, 'User.PushSubscription.optIn()'), 'the browser can subscribe through OneSignal');
@@ -152,6 +165,8 @@ assert_true(str_contains($javascript, "addEventListener('change'"), 'OneSignal s
 assert_true(str_contains($javascript, 'serviceWorkerPath: serviceWorkerUrl'), 'OneSignal reuses the existing PWA service worker');
 assert_true(str_contains($javascript, 'iOS 16.4'), 'iOS users receive the required home-screen installation instructions');
 assert_true(str_contains($javascript, 'registerDevice(false)'), 'previously granted devices are synchronized automatically in the background');
+assert_true(str_contains($javascript, "state.items.filter((item) => !item.is_completed)"), 'live updates keep open and completed tasks in separate sections');
+assert_true(str_contains($javascript, "[data-live-delete]"), 'live updates submit completed-task deletions asynchronously');
 
 $manifestController = file_get_contents(dirname(__DIR__) . '/app/Controllers/PwaController.php');
 assert_true(str_contains($manifestController, 'OneSignalSDK.sw.js'), 'the PWA service worker imports the OneSignal worker');

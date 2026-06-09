@@ -64,6 +64,26 @@ function asset(string $path): string {
     $assetUrl = url('/public/assets/' . $relativePath);
     return $version !== '' ? $assetUrl . '?v=' . rawurlencode($version) : $assetUrl;
 }
+function list_mood_options(): array {
+    return [
+        'sparkles' => 'Sprankelend',
+        'heart' => 'Liefde',
+        'home' => 'Thuis',
+        'cart' => 'Boodschappen',
+        'plane' => 'Reizen',
+        'party' => 'Feest',
+        'flower' => 'Natuur',
+        'coffee' => 'Ontspannen',
+        'paw' => 'Huisdieren',
+        'gift' => 'Cadeaus',
+    ];
+}
+function render_list_mood_icon(string $value, string $class = ''): string {
+    if (array_key_exists($value, list_mood_options())) {
+        return '<span class="mood-icon mood-icon--' . e($value) . ($class !== '' ? ' ' . e($class) : '') . '" aria-hidden="true"></span>';
+    }
+    return '<span class="mood-emoji' . ($class !== '' ? ' ' . e($class) : '') . '" aria-hidden="true">' . e($value) . '</span>';
+}
 function profile_image_url(array $user): ?string {
     if (empty($user['profile_image'])) { return null; }
     return url('/settings/profile-image') . '?v=' . rawurlencode((string) $user['profile_image']);
