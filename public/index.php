@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Controllers\AdminController;
+use App\Controllers\EmailController;
 use App\Controllers\AuthController;
 use App\Controllers\HomeController;
 use App\Controllers\LegalController;
@@ -22,6 +23,9 @@ $router->get('/sw.js', [PwaController::class, 'serviceWorker']);
 $router->get('/', [HomeController::class, 'index']);
 $router->get('/admin', [AdminController::class, 'show']);
 $router->get('/admin/accounts', [AdminController::class, 'accounts']);
+$router->get('/admin/email', [EmailController::class, 'show']);
+$router->post('/admin/email/settings', [EmailController::class, 'updateSettings']);
+$router->post('/admin/email/test', [EmailController::class, 'sendTest']);
 $router->get('/admin/events', [AdminController::class, 'events']);
 $router->get('/admin/notifications', [NotificationController::class, 'show']);
 $router->post('/admin/notifications/settings', [NotificationController::class, 'updateSettings']);
