@@ -35,6 +35,32 @@ final class User
         return $this->find((int) db()->lastInsertId());
     }
 
+    public function allForAdmin(): array
+    {
+        $stmt = db()->query(<<<'SQL'
+            SELECT
+                u.id,
+                u.name,
+                u.email,
+                CASE WHEN u.password_hash IS NOT NULL AND u.password_hash != '' THEN 1 ELSE 0 END AS has_password,
+                u.is_admin,
+                u.created_at,
+                u.last_login_at,
+                COUNT(ns.id) AS notification_subscription_count
+            FROM users u
+            LEFT JOIN notification_subscriptions ns ON ns.user_id = u.id
+            GROUP BY u.id
+            ORDER BY u.created_at DESC, u.id DESC
+        SQL);
+
+        return $stmt->fetchAll();
+    }
+
+    public function recordLogin(int $id): void
+    {
+        db()->prepare('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$id]);
+    }
+
     public function updateProfile(int $id, string $name): void
     {
         $stmt = db()->prepare('UPDATE users SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');

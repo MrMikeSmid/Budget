@@ -1,5 +1,5 @@
 <section class="settings-page admin-page">
-<header class="topbar"><div><span class="eyebrow">Beheer</span><h1>Admin</h1></div><div class="admin-header-actions"><a class="button button--soft button--small" href="<?= e(url('/admin/notifications')) ?>">Notificatietest</a><a class="icon-button" href="<?= e(url('/')) ?>">×</a></div></header>
+<header class="topbar"><div><span class="eyebrow">Beheer</span><h1>Admin</h1></div><div class="admin-header-actions"><a class="button button--soft button--small" href="<?= e(url('/admin/accounts')) ?>">Accounts</a><a class="button button--soft button--small" href="<?= e(url('/admin/notifications')) ?>">Notificatietest</a><a class="icon-button" href="<?= e(url('/')) ?>">×</a></div></header>
 <div class="admin-grid">
     <div class="settings-section admin-card admin-card--email" id="uitnodigingsmail">
         <span class="eyebrow">E-mail</span><h2>Uitnodigingsmail</h2>
