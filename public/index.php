@@ -43,9 +43,10 @@ $router->post('/lists/{listId}/items/{itemId}/comments', [ListController::class,
 $router->post('/lists/{listId}/items/{itemId}/toggle', [ListController::class, 'toggle']);
 $router->post('/lists/{listId}/items/{itemId}/delete', [ListController::class, 'deleteItem']);
 $router->post('/lists/{id}/share', [ListController::class, 'share']);
+$router->post('/lists/{id}/accept', [ListController::class, 'acceptInvitation']);
 $router->post('/lists/{id}/delete', [ListController::class, 'delete']);
 $router->get('/settings', [SettingsController::class, 'show']);
 $router->post('/settings/profile', [SettingsController::class, 'profile']);
-$router->get('/settings/profile-image', [SettingsController::class, 'profileImage']);
+$router->get('/users/{id}/profile-image', [SettingsController::class, 'profileImage']);
 $router->post('/settings/password', [SettingsController::class, 'password']);
 $router->dispatch(new Request());

@@ -3,6 +3,8 @@ $done = count(array_filter($items, fn($item) => (int) $item['is_completed'] === 
 $total = count($items);
 $percent = $total ? round($done / $total * 100) : 0;
 $isOwner = (int) $list['owner_id'] === (int) $user['id'];
+$isPending = !$isOwner && $list['membership_accepted_at'] === null;
+$activeMemberCount = count(array_filter($members, static fn(array $member): bool => (bool) $member['is_active']));
 $openItems = array_values(array_filter($items, fn($item) => (int) $item['is_completed'] === 0));
 $completedItems = array_values(array_filter($items, fn($item) => (int) $item['is_completed'] === 1));
 $commentLabel = static fn(array $item): string => (int) $item['comment_count'] . ' ' . ((int) $item['comment_count'] === 1 ? 'reactie' : 'reacties');
@@ -13,6 +15,11 @@ $formatDueDate = static function (?string $date): string {
     }
     $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
     return $parsed ? $parsed->format('d-m-Y') : '';
+};
+$renderMemberAvatar = static function (array $member): void {
+    $status = !$member['is_active'] ? 'uitgenodigd' : ($member['is_online'] ? 'online' : 'actief');
+    $imageUrl = $member['profile_image_url'] ?? null;
+    ?><i class="<?= $member['is_online'] ? 'member-avatar--online' : '' ?><?= !$member['is_active'] ? ' member-avatar--pending' : '' ?>" title="<?= e($member['name']) ?> is <?= e($status) ?>" aria-label="<?= e($member['name']) ?> is <?= e($status) ?>"><?php if ($imageUrl): ?><img src="<?= e($imageUrl) ?>" alt=""><?php else: ?><?= e(mb_strtoupper(mb_substr($member['name'], 0, 1))) ?><?php endif; ?></i><?php
 };
 $renderTask = static function (array $item) use ($list, $commentLabel, $priorityLabels, $formatDueDate): void {
     $isCompleted = (int) $item['is_completed'] === 1;
@@ -49,7 +56,7 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
 };
 ?>
 <section
-    class="detail-page detail-page--<?= e($list['color']) ?>"
+    class="detail-page detail-page--<?= e($list['color']) ?><?= $isPending ? ' detail-page--pending' : '' ?>"
     data-live-list
     data-state-url="<?= e(url('/lists/' . $list['id'] . '/state')) ?>"
     data-toggle-url="<?= e(url('/lists/' . $list['id'] . '/items/__ITEM_ID__/toggle')) ?>"
@@ -60,17 +67,24 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
 >
     <header class="detail-header">
         <a class="icon-button icon-button--glass" href="<?= e(url('/')) ?>" aria-label="Terug"><span class="ui-icon ui-icon--arrow-left" aria-hidden="true"></span></a>
-        <div class="member-stack member-stack--large" data-member-stack="header"><?php foreach (array_slice($members, 0, 3) as $member): ?><i class="<?= $member['is_online'] ? 'member-avatar--online' : '' ?>" title="<?= e($member['name']) ?> is <?= $member['is_online'] ? 'online' : 'offline' ?>" aria-label="<?= e($member['name']) ?> is <?= $member['is_online'] ? 'online' : 'offline' ?>"><?= e(mb_strtoupper(mb_substr($member['name'], 0, 1))) ?></i><?php endforeach; ?></div>
+        <div class="member-stack member-stack--large" data-member-stack="header"><?php foreach (array_slice($members, 0, 3) as $member) { $renderMemberAvatar($member); } ?></div>
         <?php if ($isOwner): ?><button class="icon-button icon-button--glass" type="button" data-open-modal="share-list" aria-label="Delen">↗</button><?php else: ?><span class="icon-button icon-button--glass">♡</span><?php endif; ?>
     </header>
     <div class="detail-title">
         <span class="detail-emoji"><?= render_list_mood_icon($list['emoji']) ?></span>
-        <span class="eyebrow" data-plan-label><?= count($members) > 1 ? 'Een plan van jullie samen' : 'Jouw persoonlijke plan' ?></span>
+        <span class="eyebrow" data-plan-label><?= $activeMemberCount > 1 ? 'Een plan van jullie samen' : 'Jouw persoonlijke plan' ?></span>
         <h1><?= e($list['title']) ?></h1>
         <p data-progress-copy><?= $total ? "$done van de $total taken afgevinkt" : 'Voeg hieronder jullie eerste taak toe.' ?></p>
     </div>
     <div class="detail-progress"><span style="width:<?= $percent ?>%" data-progress-bar></span></div>
     <div class="task-sheet">
+        <?php if ($isPending): ?>
+            <section class="invitation-banner">
+                <span class="invitation-banner__icon">♡</span>
+                <div><span class="eyebrow">Uitnodiging</span><h2>Wil je meedoen aan dit lijstje?</h2><p>Na je akkoord word je actief lid en kun je taken toevoegen, afvinken en reageren.</p></div>
+                <form method="post" action="<?= e(url('/lists/' . $list['id'] . '/accept')) ?>"><input type="hidden" name="_token" value="<?= e(csrf_token()) ?>"><button class="button button--primary">Uitnodiging accepteren</button></form>
+            </section>
+        <?php endif; ?>
         <form method="post" action="<?= e(url('/lists/' . $list['id'] . '/items')) ?>" class="quick-add" data-live-add>
             <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
             <button type="button" class="quick-add__more" data-open-modal="new-task" aria-label="Taak met details toevoegen">＋</button>
@@ -87,16 +101,22 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
             <div class="task-heading task-heading--completed"><div><span class="eyebrow">Lekker bezig</span><h2>Afgerond</h2></div><span data-completed-count><?= count($completedItems) ?> klaar</span></div>
             <div data-task-container="completed"><?php if ($completedItems): ?><div class="task-list"><?php foreach ($completedItems as $item) { $renderTask($item); } ?></div><?php endif; ?></div>
         </section>
-        <div class="people-row">
-            <div><span class="eyebrow">In dit lijstje</span><h3 data-member-count><?= count($members) ?> <?= count($members) === 1 ? 'persoon' : 'personen' ?></h3></div>
-            <div class="member-stack member-stack--large" data-member-stack="people"><?php foreach (array_slice($members, 0, 4) as $member): ?><i class="<?= $member['is_online'] ? 'member-avatar--online' : '' ?>" title="<?= e($member['name']) ?> is <?= $member['is_online'] ? 'online' : 'offline' ?>" aria-label="<?= e($member['name']) ?> is <?= $member['is_online'] ? 'online' : 'offline' ?>"><?= e(mb_strtoupper(mb_substr($member['name'], 0, 1))) ?></i><?php endforeach; ?></div>
+        <div class="people-heading"><div><span class="eyebrow">In dit lijstje</span><h3 data-member-count><?= count($members) ?> <?= count($members) === 1 ? 'persoon' : 'personen' ?></h3></div></div>
+        <div class="member-list" data-member-list>
+            <?php foreach ($members as $member): $memberStatus = !$member['is_active'] ? 'Uitgenodigd' : ($member['is_online'] ? 'Nu actief' : 'Actief op lijst'); ?>
+                <article class="member-card<?= !$member['is_active'] ? ' member-card--pending' : '' ?>">
+                    <div class="member-card__avatar"><?php if ($member['profile_image_url']): ?><img src="<?= e($member['profile_image_url']) ?>" alt="Profielfoto van <?= e($member['name']) ?>"><?php else: ?><?= e(mb_strtoupper(mb_substr($member['name'], 0, 1))) ?><?php endif; ?><span class="member-card__presence"></span></div>
+                    <div><strong><?= e($member['name']) ?></strong><small><?= $member['is_owner'] ? 'Eigenaar · ' : '' ?><?= e($memberStatus) ?></small></div>
+                    <span class="member-status member-status--<?= $member['is_active'] ? 'active' : 'pending' ?>"><?= $member['is_active'] ? 'Actief' : 'Uitgenodigd' ?></span>
+                </article>
+            <?php endforeach; ?>
         </div>
         <?php if ($isOwner): ?><button type="button" class="share-callout" data-open-modal="share-list"><span class="share-callout__icon">♡</span><span><strong>Nodig iemand uit</strong><small>Samen afvinken is leuker</small></span><span class="ui-icon ui-icon--arrow-right" aria-hidden="true"></span></button><?php endif; ?>
         <?php if ($isOwner): ?><form method="post" action="<?= e(url('/lists/' . $list['id'] . '/delete')) ?>" onsubmit="return confirm('Weet je zeker dat je dit lijstje wilt verwijderen?')" class="delete-form"><input type="hidden" name="_token" value="<?= e(csrf_token()) ?>"><button class="text-link text-link--danger">Lijstje verwijderen</button></form><?php endif; ?>
     </div>
 </section>
 <script type="application/json" data-initial-list-state><?= json_encode($initialState, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR) ?></script>
-<dialog class="modal task-create-modal" id="new-task">
+<?php if (!$isPending): ?><dialog class="modal task-create-modal" id="new-task">
     <form method="post" action="<?= e(url('/lists/' . $list['id'] . '/items')) ?>" enctype="multipart/form-data" class="modal-card" data-live-add data-task-create-form>
         <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
         <div class="modal-handle"></div>
@@ -113,7 +133,7 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
         </div>
         <button class="button button--primary button--wide">Taak toevoegen <span class="ui-icon ui-icon--arrow-right" aria-hidden="true"></span></button>
     </form>
-</dialog>
+</dialog><?php endif; ?>
 <dialog class="modal task-comments-modal" id="task-comments">
     <div class="modal-card">
         <div class="modal-handle"></div>
@@ -121,11 +141,11 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
         <div class="task-detail-media" data-task-detail-media hidden><img data-task-detail-image src="" alt=""></div>
         <div class="task-detail-badges" data-task-detail-badges></div>
         <div class="comment-list" data-comment-list></div>
-        <form method="post" class="comment-form" data-live-comment>
+        <form method="post" class="comment-form" data-live-comment<?= $isPending ? ' data-pending-invitation hidden' : '' ?>>
             <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
             <label class="field"><span>Nieuwe reactie</span><textarea name="body" maxlength="1000" rows="3" placeholder="Schrijf een reactie..." required></textarea></label>
             <button class="button button--primary button--wide">Reactie plaatsen</button>
         </form>
     </div>
 </dialog>
-<?php if ($isOwner): ?><dialog class="modal" id="share-list"><form method="post" action="<?= e(url('/lists/' . $list['id'] . '/share')) ?>" class="modal-card"><input type="hidden" name="_token" value="<?= e(csrf_token()) ?>"><div class="modal-handle"></div><div class="modal-heading"><div><span class="eyebrow">Samen is leuker</span><h2>Nodig iemand uit</h2></div><button type="button" class="icon-button" data-close-modal>×</button></div><p class="modal-intro">Vul het e-mailadres in. We maken alvast een plek voor diegene; inloggen kan direct met hetzelfde adres.</p><label class="field"><span>E-mailadres</span><input type="email" name="email" placeholder="vriend@voorbeeld.nl" required></label><button class="button button--primary button--wide">Uitnodigen <span>♡</span></button></form></dialog><?php endif; ?>
+<?php if ($isOwner): ?><dialog class="modal" id="share-list"><form method="post" action="<?= e(url('/lists/' . $list['id'] . '/share')) ?>" class="modal-card"><input type="hidden" name="_token" value="<?= e(csrf_token()) ?>"><div class="modal-handle"></div><div class="modal-heading"><div><span class="eyebrow">Samen is leuker</span><h2>Nodig iemand uit</h2></div><button type="button" class="icon-button" data-close-modal>×</button></div><p class="modal-intro">Vul het e-mailadres in. De ontvanger verschijnt als uitgenodigd en wordt pas actief nadat de uitnodiging is geaccepteerd.</p><label class="field"><span>E-mailadres</span><input type="email" name="email" placeholder="vriend@voorbeeld.nl" required></label><button class="button button--primary button--wide">Uitnodigen <span>♡</span></button></form></dialog><?php endif; ?>

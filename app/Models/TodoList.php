@@ -14,7 +14,9 @@ final class TodoList
             SELECT l.*, u.name AS owner_name,
                 (SELECT COUNT(*) FROM todo_items i WHERE i.list_id = l.id) AS item_count,
                 (SELECT COUNT(*) FROM todo_items i WHERE i.list_id = l.id AND i.is_completed = 1) AS completed_count,
-                (SELECT COUNT(*) + 1 FROM list_members lm WHERE lm.list_id = l.id) AS member_count
+                (SELECT COUNT(*) + 1 FROM list_members lm WHERE lm.list_id = l.id AND lm.accepted_at IS NOT NULL) AS member_count,
+                (SELECT COUNT(*) FROM list_members lm WHERE lm.list_id = l.id AND lm.accepted_at IS NULL) AS invited_count,
+                CASE WHEN access.accepted_at IS NULL AND access.user_id IS NOT NULL THEN 1 ELSE 0 END AS invitation_pending
             FROM todo_lists l
             JOIN users u ON u.id = l.owner_id
             LEFT JOIN list_members access ON access.list_id = l.id AND access.user_id = :user_id
@@ -35,7 +37,7 @@ final class TodoList
     public function findAccessible(int $id, int $userId): ?array
     {
         $stmt = db()->prepare(<<<'SQL'
-            SELECT l.*, u.name AS owner_name, u.email AS owner_email
+            SELECT l.*, u.name AS owner_name, u.email AS owner_email, m.accepted_at AS membership_accepted_at
             FROM todo_lists l
             JOIN users u ON u.id = l.owner_id
             LEFT JOIN list_members m ON m.list_id = l.id AND m.user_id = ?
@@ -91,15 +93,19 @@ final class TodoList
     public function members(int $listId): array
     {
         $stmt = db()->prepare(<<<'SQL'
-            SELECT u.id, u.name, u.email, u.last_seen_at, 0 AS is_owner FROM list_members m JOIN users u ON u.id = m.user_id WHERE m.list_id = ?
+            SELECT u.id, u.name, u.email, u.profile_image, u.last_seen_at, 0 AS is_owner,
+                CASE WHEN m.accepted_at IS NOT NULL THEN 1 ELSE 0 END AS is_active
+            FROM list_members m JOIN users u ON u.id = m.user_id WHERE m.list_id = ?
             UNION ALL
-            SELECT u.id, u.name, u.email, u.last_seen_at, 1 AS is_owner FROM todo_lists l JOIN users u ON u.id = l.owner_id WHERE l.id = ?
+            SELECT u.id, u.name, u.email, u.profile_image, u.last_seen_at, 1 AS is_owner, 1 AS is_active
+            FROM todo_lists l JOIN users u ON u.id = l.owner_id WHERE l.id = ?
             ORDER BY is_owner DESC, name ASC
         SQL);
         $stmt->execute([$listId, $listId]);
         return array_map(static function (array $member): array {
             $lastSeen = $member['last_seen_at'] ? strtotime($member['last_seen_at'] . ' UTC') : false;
-            $member['is_online'] = $lastSeen !== false && $lastSeen >= time() - self::ONLINE_THRESHOLD_SECONDS;
+            $member['is_active'] = (bool) $member['is_active'];
+            $member['is_online'] = $member['is_active'] && $lastSeen !== false && $lastSeen >= time() - self::ONLINE_THRESHOLD_SECONDS;
             unset($member['last_seen_at']);
             return $member;
         }, $stmt->fetchAll());
@@ -130,7 +136,9 @@ final class TodoList
             'id' => (int) $member['id'],
             'name' => $member['name'],
             'is_owner' => (bool) $member['is_owner'],
+            'is_active' => (bool) $member['is_active'],
             'is_online' => (bool) $member['is_online'],
+            'profile_image_url' => profile_image_url($member),
         ], $this->members($listId));
         $done = count(array_filter($items, static fn(array $item): bool => $item['is_completed']));
         $total = count($items);
@@ -154,7 +162,7 @@ final class TodoList
         $stmt = db()->prepare(<<<'SQL'
             SELECT owner_id AS user_id FROM todo_lists WHERE id = :list_id AND owner_id != :user_id
             UNION
-            SELECT user_id FROM list_members WHERE list_id = :list_id AND user_id != :user_id
+            SELECT user_id FROM list_members WHERE list_id = :list_id AND user_id != :user_id AND accepted_at IS NOT NULL
         SQL);
         $stmt->execute(['list_id' => $listId, 'user_id' => $userId]);
         return array_map('intval', array_column($stmt->fetchAll(), 'user_id'));
@@ -250,8 +258,26 @@ final class TodoList
 
     public function share(int $listId, int $ownerId, int $memberId): void
     {
-        $stmt = db()->prepare('INSERT OR IGNORE INTO list_members (list_id, user_id, invited_by) VALUES (?, ?, ?)');
+        $stmt = db()->prepare('INSERT OR IGNORE INTO list_members (list_id, user_id, invited_by, accepted_at) VALUES (?, ?, ?, NULL)');
         $stmt->execute([$listId, $memberId, $ownerId]);
+    }
+
+    public function acceptInvitation(int $listId, int $userId): bool
+    {
+        $stmt = db()->prepare('UPDATE list_members SET accepted_at = CURRENT_TIMESTAMP WHERE list_id = ? AND user_id = ? AND accepted_at IS NULL');
+        $stmt->execute([$listId, $userId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    public function canParticipate(int $listId, int $userId): bool
+    {
+        $stmt = db()->prepare(<<<'SQL'
+            SELECT 1 FROM todo_lists l
+            LEFT JOIN list_members m ON m.list_id = l.id AND m.user_id = ? AND m.accepted_at IS NOT NULL
+            WHERE l.id = ? AND (l.owner_id = ? OR m.user_id IS NOT NULL)
+        SQL);
+        $stmt->execute([$userId, $listId, $userId]);
+        return (bool) $stmt->fetchColumn();
     }
 
     /** @return list<string> */

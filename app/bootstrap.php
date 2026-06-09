@@ -102,7 +102,7 @@ function render_list_mood_icon(string $value, string $class = ''): string {
 }
 function profile_image_url(array $user): ?string {
     if (empty($user['profile_image'])) { return null; }
-    return url('/settings/profile-image') . '?v=' . rawurlencode((string) $user['profile_image']);
+    return url('/users/' . (int) $user['id'] . '/profile-image') . '?v=' . rawurlencode((string) $user['profile_image']);
 }
 function redirect(string $path): never { header('Location: ' . url($path)); exit; }
 function flash(string $type, string $message): void { $_SESSION['_flash'][$type] = $message; }

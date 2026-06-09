@@ -70,15 +70,54 @@ if (liveList) {
 
   const memberAvatar = (member) => {
     const avatar = document.createElement('i');
-    avatar.className = member.is_online ? 'member-avatar--online' : '';
-    avatar.title = `${member.name} is ${member.is_online ? 'online' : 'offline'}`;
+    const status = !member.is_active ? 'uitgenodigd' : (member.is_online ? 'online' : 'actief');
+    avatar.className = `${member.is_online ? 'member-avatar--online' : ''}${!member.is_active ? ' member-avatar--pending' : ''}`.trim();
+    avatar.title = `${member.name} is ${status}`;
     avatar.setAttribute('aria-label', avatar.title);
-    avatar.textContent = Array.from(member.name.trim().toLocaleUpperCase('nl-NL'))[0] || '?';
+    if (member.profile_image_url) {
+      const image = document.createElement('img');
+      image.src = member.profile_image_url;
+      image.alt = '';
+      avatar.append(image);
+    } else {
+      avatar.textContent = Array.from(member.name.trim().toLocaleUpperCase('nl-NL'))[0] || '?';
+    }
     return avatar;
   };
 
+  const memberCard = (member) => {
+    const card = document.createElement('article');
+    card.className = `member-card${member.is_active ? '' : ' member-card--pending'}`;
+    const avatar = document.createElement('div');
+    avatar.className = 'member-card__avatar';
+    if (member.profile_image_url) {
+      const image = document.createElement('img');
+      image.src = member.profile_image_url;
+      image.alt = `Profielfoto van ${member.name}`;
+      avatar.append(image);
+    } else {
+      avatar.append(document.createTextNode(Array.from(member.name.trim().toLocaleUpperCase('nl-NL'))[0] || '?'));
+    }
+    const presence = document.createElement('span');
+    presence.className = 'member-card__presence';
+    avatar.append(presence);
+    const copy = document.createElement('div');
+    const name = document.createElement('strong');
+    name.textContent = member.name;
+    const detail = document.createElement('small');
+    const statusText = !member.is_active ? 'Uitgenodigd' : (member.is_online ? 'Nu actief' : 'Actief op lijst');
+    detail.textContent = `${member.is_owner ? 'Eigenaar · ' : ''}${statusText}`;
+    copy.append(name, detail);
+    const badge = document.createElement('span');
+    badge.className = `member-status member-status--${member.is_active ? 'active' : 'pending'}`;
+    badge.textContent = member.is_active ? 'Actief' : 'Uitgenodigd';
+    card.append(avatar, copy, badge);
+    return card;
+  };
+
   const renderMembers = (members) => {
-    liveList.querySelector('[data-plan-label]').textContent = members.length > 1
+    const activeMembers = members.filter((member) => member.is_active);
+    liveList.querySelector('[data-plan-label]').textContent = activeMembers.length > 1
       ? 'Een plan van jullie samen'
       : 'Jouw persoonlijke plan';
     liveList.querySelector('[data-member-count]').textContent = `${members.length} ${members.length === 1 ? 'persoon' : 'personen'}`;
@@ -87,6 +126,7 @@ if (liveList) {
       const limit = stack.dataset.memberStack === 'header' ? 3 : 4;
       stack.replaceChildren(...members.slice(0, limit).map(memberAvatar));
     });
+    liveList.querySelector('[data-member-list]')?.replaceChildren(...members.map(memberCard));
   };
 
   const renderEmptyState = () => {

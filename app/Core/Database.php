@@ -59,6 +59,7 @@ final class Database
                 list_id INTEGER NOT NULL,
                 user_id INTEGER NOT NULL,
                 invited_by INTEGER NOT NULL,
+                accepted_at TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (list_id, user_id),
                 FOREIGN KEY (list_id) REFERENCES todo_lists(id) ON DELETE CASCADE,
@@ -138,6 +139,13 @@ final class Database
         }
         if (!in_array('is_admin', $columnNames, true)) {
             $this->pdo->exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0');
+        }
+
+        $memberColumns = $this->pdo->query('PRAGMA table_info(list_members)')->fetchAll();
+        $memberColumnNames = array_column($memberColumns, 'name');
+        if (!in_array('accepted_at', $memberColumnNames, true)) {
+            $this->pdo->exec('ALTER TABLE list_members ADD COLUMN accepted_at TEXT');
+            $this->pdo->exec('UPDATE list_members SET accepted_at = created_at');
         }
 
         $itemColumns = $this->pdo->query('PRAGMA table_info(todo_items)')->fetchAll();
