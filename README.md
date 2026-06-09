@@ -12,6 +12,7 @@ Een mobiele PHP/SQLite-app waarmee mensen lijstjes maken, delen en samen afvinke
 - Automatische pushmeldingen voor andere deelnemers wanneer een taak wordt toegevoegd, afgerond of opnieuw geopend.
 - Responsive, mobile-first community-interface met bottom navigation.
 - Installeerbare PWA voor iOS en Android, met app-iconen, standalone-weergave en een offline terugvalscherm.
+- Beheerbaar auditlog met gebruiker, gebeurtenis, context, datum, tijd, IP-adres en apparaatinformatie.
 - CSRF-beveiliging, gehashte wachtwoorden, prepared statements en escaped HTML-uitvoer.
 
 > De gevraagde e-mail-only login geeft iedereen die een onbeveiligd e-mailadres kent toegang tot dat account. De interface benoemt dit bewust subtiel maar duidelijk en stuurt aan op het instellen van een wachtwoord.

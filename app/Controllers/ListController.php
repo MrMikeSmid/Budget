@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Models\AuditLog;
 use App\Models\TodoList;
 use App\Models\User;
 use App\Services\InvitationMailer;
@@ -44,6 +45,7 @@ final class ListController extends Controller
         $requestedMood = trim((string) ($_POST['emoji'] ?? 'sparkles'));
         $emoji = array_key_exists($requestedMood, list_mood_options()) ? $requestedMood : 'sparkles';
         $id = $this->lists->create((int) $user['id'], $title, $emoji, $color);
+        $this->audit($user, 'list.created', 'Lijst "' . $title . '" aangemaakt', 'Lijst: ' . $title, ['list_id' => $id]);
         redirect('/lists/' . $id);
     }
 
@@ -99,7 +101,7 @@ final class ListController extends Controller
             $this->itemError($id, 'Gebruik een JPG-, PNG-, WebP- of GIF-afbeelding van maximaal 5 MB.');
         }
 
-        $this->lists->addItem(
+        $itemId = $this->lists->addItem(
             (int) $id,
             (int) $user['id'],
             $title,
@@ -109,6 +111,10 @@ final class ListController extends Controller
             $image['data'] ?? null,
             $image['mime_type'] ?? null
         );
+        $this->audit($user, 'task.created', 'Taak "' . $title . '" aangemaakt', 'Lijst: ' . $list['title'], ['list_id' => (int) $id, 'item_id' => $itemId, 'image_uploaded' => $image !== null]);
+        if ($image !== null) {
+            $this->audit($user, 'task.image_uploaded', 'Afbeelding geüpload bij taak "' . $title . '"', 'Lijst: ' . $list['title'], ['list_id' => (int) $id, 'item_id' => $itemId]);
+        }
         $this->notify(fn(ListNotificationService $notifications) => $notifications->taskCreated($list, $user, $title));
 
         if ($this->wantsJson()) {
@@ -154,7 +160,7 @@ final class ListController extends Controller
     {
         $user = $this->auth();
         $this->verifyCsrf();
-        $this->participating((int) $listId, (int) $user['id']);
+        $list = $this->participating((int) $listId, (int) $user['id']);
         $title = trim((string) ($_POST['title'] ?? ''));
         if ($title === '' || mb_strlen($title) > 160) {
             $this->itemError($listId, 'Geef je taak een korte naam.');
@@ -171,6 +177,7 @@ final class ListController extends Controller
         if (!$this->lists->updateItem((int) $itemId, (int) $listId, $title, $priority, $dueDate)) {
             $this->itemError($listId, 'Deze taak bestaat niet meer.');
         }
+        $this->audit($user, 'task.updated', 'Taak "' . $title . '" gewijzigd', 'Lijst: ' . $list['title'], ['list_id' => (int) $listId, 'item_id' => (int) $itemId]);
 
         if ($this->wantsJson()) {
             $this->respondWithState((int) $listId);
@@ -183,10 +190,11 @@ final class ListController extends Controller
     {
         $user = $this->auth();
         $this->verifyCsrf();
-        $this->participating((int) $listId, (int) $user['id']);
+        $list = $this->participating((int) $listId, (int) $user['id']);
         $body = trim((string) ($_POST['body'] ?? ''));
         if ($body !== '' && mb_strlen($body) <= 1000) {
             $this->lists->addComment((int) $itemId, (int) $listId, (int) $user['id'], $body);
+            $this->audit($user, 'task.comment_added', 'Reactie bij taak toegevoegd', 'Lijst: ' . $list['title'], ['list_id' => (int) $listId, 'item_id' => (int) $itemId]);
         }
         if ($this->wantsJson()) {
             $this->respondWithState((int) $listId);
@@ -202,6 +210,7 @@ final class ListController extends Controller
         $list = $this->participating((int) $listId, (int) $user['id']);
         $item = $this->lists->toggleItem((int) $itemId, (int) $listId, (int) $user['id']);
         if ($item) {
+            $this->audit($user, (bool) $item['is_completed'] ? 'task.completed' : 'task.reopened', ((bool) $item['is_completed'] ? 'Taak afgerond: "' : 'Taak heropend: "') . $item['title'] . '"', 'Lijst: ' . $list['title'], ['list_id' => (int) $listId, 'item_id' => (int) $itemId]);
             $this->notify(static fn(ListNotificationService $notifications) => (bool) $item['is_completed']
                 ? $notifications->taskCompleted($list, $user, $item['title'])
                 : $notifications->taskChanged($list, $user, $item['title']));
@@ -217,9 +226,10 @@ final class ListController extends Controller
     {
         $user = $this->auth();
         $this->verifyCsrf();
-        $this->participating((int) $listId, (int) $user['id']);
+        $list = $this->participating((int) $listId, (int) $user['id']);
         $imageFilename = $this->lists->itemImage((int) $itemId, (int) $listId);
         if ($this->lists->deleteCompletedItem((int) $itemId, (int) $listId)) {
+            $this->audit($user, 'task.deleted', 'Afgeronde taak #' . (int) $itemId . ' verwijderd', 'Lijst: ' . $list['title'], ['list_id' => (int) $listId, 'item_id' => (int) $itemId]);
             $this->deleteTaskImage($imageFilename);
         }
         if ($this->wantsJson()) {
@@ -243,8 +253,14 @@ final class ListController extends Controller
             flash('error', 'Vul het e-mailadres van iemand anders in.');
             redirect('/lists/' . $id);
         }
-        $member = (new User())->findOrCreate($email);
+        $users = new User();
+        $member = $users->findByEmail($email);
+        if ($member === null) {
+            $member = $users->findOrCreate($email);
+            (new AuditLog())->recordRegistration($member);
+        }
         $this->lists->share((int) $id, (int) $user['id'], (int) $member['id']);
+        $this->audit($user, 'member.invited', $member['name'] . ' (' . $member['email'] . ') uitgenodigd', 'Lijst: ' . $list['title'], ['list_id' => (int) $id, 'member_id' => (int) $member['id']]);
         $sent = (new InvitationMailer())->send($email, $user, $list);
         if ($sent) {
             flash('success', 'De uitnodiging is naar ' . $email . ' verstuurd.');
@@ -261,6 +277,7 @@ final class ListController extends Controller
         $this->verifyCsrf();
         $list = $this->accessible((int) $id, (int) $user['id']);
         if ($this->lists->acceptInvitation((int) $id, (int) $user['id'])) {
+            $this->audit($user, 'member.invitation_accepted', 'Uitnodiging geaccepteerd', 'Lijst: ' . $list['title'], ['list_id' => (int) $id]);
             $this->notify(fn(ListNotificationService $notifications) => $notifications->invitationAccepted($list, $user));
             flash('success', 'Je doet nu actief mee aan dit lijstje.');
         }
@@ -277,7 +294,10 @@ final class ListController extends Controller
             redirect('/lists/' . $listId);
         }
 
+        $member = (new User())->find((int) $memberId);
         if ($this->lists->removeMember((int) $listId, (int) $user['id'], (int) $memberId)) {
+            $memberLabel = $member ? $member['name'] . ' (' . $member['email'] . ')' : 'Gebruiker #' . (int) $memberId;
+            $this->audit($user, 'member.removed', $memberLabel . ' uit de lijst verwijderd', 'Lijst: ' . $list['title'], ['list_id' => (int) $listId, 'member_id' => (int) $memberId]);
             flash('success', 'De persoon is uit het lijstje verwijderd en ontvangt geen updates meer.');
         } else {
             flash('error', 'Deze persoon kon niet uit het lijstje worden verwijderd.');
@@ -289,8 +309,11 @@ final class ListController extends Controller
     {
         $user = $this->auth();
         $this->verifyCsrf();
+        $list = $this->lists->findAccessible((int) $id, (int) $user['id']);
         $imageFilenames = $this->lists->imageFilenames((int) $id);
         if ($this->lists->delete((int) $id, (int) $user['id'])) {
+            $listTitle = (string) ($list['title'] ?? ('#' . (int) $id));
+            $this->audit($user, 'list.deleted', 'Lijst "' . $listTitle . '" verwijderd', 'Lijst: ' . $listTitle, ['list_id' => (int) $id]);
             foreach ($imageFilenames as $imageFilename) {
                 $this->deleteTaskImage($imageFilename);
             }

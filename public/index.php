@@ -22,6 +22,7 @@ $router->get('/sw.js', [PwaController::class, 'serviceWorker']);
 $router->get('/', [HomeController::class, 'index']);
 $router->get('/admin', [AdminController::class, 'show']);
 $router->get('/admin/accounts', [AdminController::class, 'accounts']);
+$router->get('/admin/events', [AdminController::class, 'events']);
 $router->get('/admin/notifications', [NotificationController::class, 'show']);
 $router->post('/admin/notifications/settings', [NotificationController::class, 'updateSettings']);
 $router->post('/notifications/subscribe', [NotificationController::class, 'subscribe']);

@@ -11,6 +11,7 @@ require dirname(__DIR__) . '/app/bootstrap.php';
 
 use App\Core\View;
 use App\Models\AppSetting;
+use App\Models\AuditLog;
 use App\Models\TodoList;
 use App\Models\User;
 use App\Services\OneSignalSettings;
@@ -64,6 +65,20 @@ $users->setPassword((int) $member['id'], 'veilig-wachtwoord');
 $users->recordLogin((int) $member['id']);
 assert_true($users->find((int) $member['id'])['last_login_at'] !== null, 'a successful login timestamp can be recorded');
 assert_true(str_contains(file_get_contents(dirname(__DIR__) . '/app/Core/Auth.php'), 'recordLogin'), 'successful authentication records the last login timestamp');
+
+$_SERVER['REMOTE_ADDR'] = '203.0.113.42';
+$_SERVER['HTTP_USER_AGENT'] = 'Samen testbrowser';
+$auditLog = new AuditLog();
+$auditLog->record($owner, 'list.created', 'Lijst "Testlog" aangemaakt', 'Lijst: Testlog', ['list_id' => 99]);
+$auditResult = $auditLog->forAdmin('Testlog', 'list');
+assert_true($auditResult['total'] === 1, 'audit events can be searched and filtered by category');
+assert_true($auditResult['logs'][0]['ip_address'] === '203.0.113.42', 'audit events retain the originating IP address');
+$eventsPage = render_view('admin/events', ['audit' => $auditResult, 'search' => 'Testlog', 'category' => 'list']);
+assert_true(str_contains($eventsPage, 'Gebruikersactiviteit') && str_contains($eventsPage, '203.0.113.42'), 'the admin audit page shows event and origin details');
+$deletedUser = $users->findOrCreate('deleted@example.nl');
+db()->prepare('DELETE FROM users WHERE id = ?')->execute([(int) $deletedUser['id']]);
+$deletedAudit = $auditLog->forAdmin('deleted@example.nl', 'account');
+assert_true($deletedAudit['total'] === 1 && $deletedAudit['logs'][0]['event'] === 'account.deleted', 'account deletion remains recorded after the user is removed');
 
 $lists = new TodoList();
 $listId = $lists->create((int) $owner['id'], 'Vakantie', '✈️', 'coral');
@@ -411,6 +426,7 @@ assert_true(str_contains($manifestController, 'OneSignalSDK.sw.js'), 'the PWA se
 assert_true(str_contains($manifestController, "'display' => 'standalone'"), 'the web app manifest enables standalone display');
 $routes = file_get_contents(dirname(__DIR__) . '/public/index.php');
 assert_true(str_contains($routes, "'/admin/accounts'"), 'administrators can open the account overview route');
+assert_true(str_contains($routes, "'/admin/events'"), 'administrators can open the audit log route');
 assert_true(str_contains($routes, "'/notifications/subscribe'"), 'signed-in users can register a OneSignal subscription');
 assert_true(str_contains($routes, "'/notifications/unsubscribe'"), 'signed-in users can remove a OneSignal subscription');
 assert_true(str_contains($routes, "'/lists/{listId}/items/{itemId}/comments'"), 'task comments have a dedicated signed-in route');

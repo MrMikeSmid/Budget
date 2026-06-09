@@ -128,6 +128,33 @@ final class Database
             );
 
             CREATE INDEX IF NOT EXISTS idx_due_task_notifications_item ON due_task_notifications(item_id);
+
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                user_name TEXT NOT NULL,
+                user_email TEXT NOT NULL,
+                event TEXT NOT NULL,
+                description TEXT NOT NULL,
+                location TEXT NOT NULL,
+                request_path TEXT NOT NULL DEFAULT '',
+                ip_address TEXT NOT NULL DEFAULT '',
+                user_agent TEXT NOT NULL DEFAULT '',
+                metadata TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id);
+            CREATE INDEX IF NOT EXISTS idx_audit_logs_event ON audit_logs(event);
+
+            CREATE TRIGGER IF NOT EXISTS audit_user_deleted
+            AFTER DELETE ON users
+            BEGIN
+                INSERT INTO audit_logs (user_id, user_name, user_email, event, description, location, request_path, ip_address, user_agent)
+                VALUES (NULL, OLD.name, OLD.email, 'account.deleted', 'Account verwijderd', 'Account', '', 'Onbekend', 'Database');
+            END;
         SQL);
 
         // Provider migration: old device identifiers and credentials cannot be reused by OneSignal.
