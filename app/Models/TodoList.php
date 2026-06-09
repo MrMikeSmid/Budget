@@ -274,6 +274,33 @@ final class TodoList
         return (int) db()->lastInsertId();
     }
 
+    public function updateItem(
+        int $itemId,
+        int $listId,
+        string $title,
+        string $priority,
+        ?string $dueDate
+    ): bool {
+        $existing = db()->prepare('SELECT due_date FROM todo_items WHERE id = ? AND list_id = ?');
+        $existing->execute([$itemId, $listId]);
+        $currentDueDate = $existing->fetchColumn();
+        if ($currentDueDate === false) {
+            return false;
+        }
+
+        $stmt = db()->prepare(<<<'SQL'
+            UPDATE todo_items
+            SET title = ?, priority = ?, due_date = ?
+            WHERE id = ? AND list_id = ?
+        SQL);
+        $stmt->execute([trim($title), $priority, $dueDate, $itemId, $listId]);
+        if ($currentDueDate !== $dueDate) {
+            db()->prepare('DELETE FROM due_task_notifications WHERE item_id = ?')->execute([$itemId]);
+        }
+        db()->prepare('UPDATE todo_lists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$listId]);
+        return true;
+    }
+
     public function itemImage(int $itemId, int $listId): ?string
     {
         $stmt = db()->prepare('SELECT image_filename FROM todo_items WHERE id = ? AND list_id = ?');
