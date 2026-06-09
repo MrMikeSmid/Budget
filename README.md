@@ -10,6 +10,7 @@ Een mobiele PHP/SQLite-app waarmee mensen lijstjes maken, delen en samen afvinke
 - Gedeelde todo-lijsten op basis van het e-mailadres van de andere gebruiker.
 - Taken toevoegen met een optionele afbeelding, prioriteit en vervaldatum, en door iedere deelnemer afvinken, inclusief registratie wie dat deed.
 - Automatische pushmeldingen voor andere deelnemers wanneer een taak wordt toegevoegd, afgerond of opnieuw geopend.
+- Persoonlijke notificatievoorkeuren: alles ontvangen, alleen meldingen voor vervallen taken of alle pushnotificaties uitschakelen.
 - Responsive, mobile-first community-interface met bottom navigation.
 - Installeerbare PWA voor iOS en Android, met app-iconen, standalone-weergave en een offline terugvalscherm.
 - Beheerbaar auditlog met gebruiker, gebeurtenis, context, datum, tijd, IP-adres en apparaatinformatie.

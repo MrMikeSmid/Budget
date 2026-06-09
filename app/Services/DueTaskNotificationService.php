@@ -39,6 +39,7 @@ final class DueTaskNotificationService
                 (string) $item['list_title'],
                 $message,
                 '/lists/' . (int) $item['list_id'],
+                $notificationType,
             );
 
             if (!$sent) {

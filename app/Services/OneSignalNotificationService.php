@@ -32,9 +32,9 @@ final class OneSignalNotificationService
     }
 
     /** @param list<int> $userIds */
-    public function sendUsers(array $userIds, string $title, string $message, string $path = '/'): bool
+    public function sendUsers(array $userIds, string $title, string $message, string $path = '/', string $notificationType = 'general'): bool
     {
-        $subscriptionIds = (new NotificationSubscriptionService())->idsForUsers($userIds);
+        $subscriptionIds = (new NotificationSubscriptionService())->idsForUsers($userIds, $notificationType);
         if ($subscriptionIds === []) {
             return true;
         }
