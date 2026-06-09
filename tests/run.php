@@ -9,6 +9,7 @@ $_SERVER['REQUEST_URI'] = '/development/';
 $_SERVER['REQUEST_METHOD'] = 'GET';
 require dirname(__DIR__) . '/app/bootstrap.php';
 
+use App\Core\View;
 use App\Models\AppSetting;
 use App\Models\TodoList;
 use App\Models\User;
@@ -36,6 +37,13 @@ function render_view(string $view, array $variables): string
     return (string) ob_get_clean();
 }
 
+function render_page(string $view, array $variables): string
+{
+    ob_start();
+    View::render($view, $variables);
+    return (string) ob_get_clean();
+}
+
 $users = new User();
 $owner = $users->findOrCreate('owner@example.nl');
 $member = $users->findOrCreate('member@example.nl');
@@ -58,6 +66,14 @@ assert_true(str_contains(file_get_contents(dirname(__DIR__) . '/app/Core/Auth.ph
 
 $lists = new TodoList();
 $listId = $lists->create((int) $owner['id'], 'Vakantie', '✈️', 'coral');
+$_SESSION['user_id'] = (int) $owner['id'];
+$homePage = render_page('lists/index', [
+    'title' => 'Mijn lijstjes',
+    'user' => $owner,
+    'lists' => $lists->forUser((int) $owner['id']),
+]);
+assert_true(str_contains($homePage, 'class="nav-create" data-open-modal="new-list"'), 'the dashboard plus button opens the new-list modal when lists already exist');
+assert_true(str_contains($homePage, '<dialog class="modal" id="new-list">'), 'the dashboard renders the modal targeted by its plus button');
 $lists->share($listId, (int) $owner['id'], (int) $member['id']);
 assert_true(count($lists->forUser((int) $member['id'])) === 1, 'pending invitations are visible to invited users');
 assert_true((int) $lists->forUser((int) $member['id'])[0]['invitation_pending'] === 1, 'list overviews identify pending invitations');

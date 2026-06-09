@@ -3,7 +3,7 @@ $viewer = current_user();
 $flashes = pull_flashes();
 $oneSignal = $viewer ? new \App\Services\OneSignalSettings() : null;
 $pushEnabled = $oneSignal?->isConfigured() ?? false;
-$taskCreateAvailable = isset($list['id']);
+$taskCreateAvailable = $view === 'lists/show' && isset($list['id']);
 ?>
 <!doctype html>
 <html lang="nl">
