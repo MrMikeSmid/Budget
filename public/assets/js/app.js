@@ -16,6 +16,8 @@ if (liveList) {
   const deleteUrl = liveList.dataset.deleteUrl;
   const commentUrl = liveList.dataset.commentUrl;
   const imageUrl = liveList.dataset.imageUrl;
+  const memberDeleteUrl = liveList.dataset.memberDeleteUrl;
+  const isOwner = liveList.dataset.isOwner === 'true';
   const csrfToken = liveList.dataset.csrfToken;
   const taskCreateModal = document.getElementById('new-task');
   const commentsModal = document.getElementById('task-comments');
@@ -112,6 +114,27 @@ if (liveList) {
     badge.className = `member-status member-status--${member.is_active ? 'active' : 'pending'}`;
     badge.textContent = member.is_active ? 'Actief' : 'Uitgenodigd';
     card.append(avatar, copy, badge);
+    if (isOwner && !member.is_owner) {
+      const form = document.createElement('form');
+      form.method = 'post';
+      form.action = memberDeleteUrl.replace('__MEMBER_ID__', encodeURIComponent(member.id));
+      form.className = 'member-remove-form';
+      form.addEventListener('submit', (event) => {
+        const label = member.is_active ? 'dit lid' : 'deze uitnodiging';
+        if (!window.confirm(`Weet je zeker dat je ${label} wilt verwijderen?`)) event.preventDefault();
+      });
+      const token = document.createElement('input');
+      token.type = 'hidden';
+      token.name = '_token';
+      token.value = csrfToken;
+      const button = document.createElement('button');
+      button.className = 'member-remove';
+      button.setAttribute('aria-label', `${member.name} verwijderen`);
+      button.title = member.is_active ? 'Lid verwijderen' : 'Uitnodiging verwijderen';
+      button.textContent = '×';
+      form.append(token, button);
+      card.append(form);
+    }
     return card;
   };
 

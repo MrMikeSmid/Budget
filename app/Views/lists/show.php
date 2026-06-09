@@ -63,6 +63,8 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
     data-delete-url="<?= e(url('/lists/' . $list['id'] . '/items/__ITEM_ID__/delete')) ?>"
     data-comment-url="<?= e(url('/lists/' . $list['id'] . '/items/__ITEM_ID__/comments')) ?>"
     data-image-url="<?= e(url('/lists/' . $list['id'] . '/items/__ITEM_ID__/image')) ?>"
+    data-member-delete-url="<?= e(url('/lists/' . $list['id'] . '/members/__MEMBER_ID__/delete')) ?>"
+    data-is-owner="<?= $isOwner ? 'true' : 'false' ?>"
     data-csrf-token="<?= e(csrf_token()) ?>"
 >
     <header class="detail-header">
@@ -108,6 +110,12 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
                     <div class="member-card__avatar"><?php if ($member['profile_image_url']): ?><img src="<?= e($member['profile_image_url']) ?>" alt="Profielfoto van <?= e($member['name']) ?>"><?php else: ?><?= e(mb_strtoupper(mb_substr($member['name'], 0, 1))) ?><?php endif; ?><span class="member-card__presence"></span></div>
                     <div><strong><?= e($member['name']) ?></strong><small><?= $member['is_owner'] ? 'Eigenaar · ' : '' ?><?= e($memberStatus) ?></small></div>
                     <span class="member-status member-status--<?= $member['is_active'] ? 'active' : 'pending' ?>"><?= $member['is_active'] ? 'Actief' : 'Uitgenodigd' ?></span>
+                    <?php if ($isOwner && !$member['is_owner']): ?>
+                        <form method="post" action="<?= e(url('/lists/' . $list['id'] . '/members/' . $member['id'] . '/delete')) ?>" class="member-remove-form" onsubmit="return confirm('Weet je zeker dat je <?= $member['is_active'] ? 'dit lid' : 'deze uitnodiging' ?> wilt verwijderen?')">
+                            <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
+                            <button class="member-remove" aria-label="<?= e($member['name']) ?> verwijderen" title="<?= $member['is_active'] ? 'Lid verwijderen' : 'Uitnodiging verwijderen' ?>">×</button>
+                        </form>
+                    <?php endif; ?>
                 </article>
             <?php endforeach; ?>
         </div>

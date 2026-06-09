@@ -40,6 +40,8 @@ $users = new User();
 $owner = $users->findOrCreate('owner@example.nl');
 $member = $users->findOrCreate('member@example.nl');
 $outsider = $users->findOrCreate('outsider@example.nl');
+$pendingRemoval = $users->findOrCreate('pending-removal@example.nl');
+$activeRemoval = $users->findOrCreate('active-removal@example.nl');
 assert_true($owner['name'] === 'Owner', 'account is created from an e-mail address');
 assert_true((int) $owner['is_admin'] === 1, 'the first account becomes the initial administrator');
 assert_true((int) $member['is_admin'] === 0, 'later accounts do not receive administrator access');
@@ -74,6 +76,32 @@ assert_true(str_contains($pendingPage, 'Uitnodiging accepteren'), 'invited users
 assert_true(str_contains($pendingPage, 'Uitgenodigd'), 'pending members are labelled as invited in the member list');
 assert_true($lists->acceptInvitation($listId, (int) $member['id']), 'an invited user can accept the invitation');
 assert_true($lists->canParticipate($listId, (int) $member['id']), 'accepted users become active participants');
+
+$lists->share($listId, (int) $owner['id'], (int) $pendingRemoval['id']);
+$pendingRemovalState = $lists->liveState($listId);
+$pendingRemovalPage = render_view('lists/show', [
+    'user' => $owner,
+    'list' => $lists->findAccessible($listId, (int) $owner['id']),
+    'items' => $pendingRemovalState['items'],
+    'members' => $pendingRemovalState['members'],
+    'initialState' => $pendingRemovalState,
+]);
+assert_true(str_contains($pendingRemovalPage, '/members/' . $pendingRemoval['id'] . '/delete'), 'owners can remove pending invitations from the member list');
+assert_true(str_contains($pendingRemovalPage, 'Uitnodiging verwijderen'), 'pending invitation removal is clearly labelled');
+assert_true(!$lists->removeMember($listId, (int) $outsider['id'], (int) $pendingRemoval['id']), 'non-owners cannot remove invitations');
+assert_true($lists->removeMember($listId, (int) $owner['id'], (int) $pendingRemoval['id']), 'owners can remove pending invitations');
+assert_true($lists->findAccessible($listId, (int) $pendingRemoval['id']) === null, 'removed invitees immediately lose list access');
+assert_true($lists->forUser((int) $pendingRemoval['id']) === [], 'removed invitations disappear from the invitee dashboard');
+
+$lists->share($listId, (int) $owner['id'], (int) $activeRemoval['id']);
+assert_true($lists->acceptInvitation($listId, (int) $activeRemoval['id']), 'a removable test member can accept the invitation');
+assert_true(in_array((int) $activeRemoval['id'], $lists->participantIdsExcept($listId, (int) $owner['id']), true), 'active members initially receive list updates');
+assert_true($lists->removeMember($listId, (int) $owner['id'], (int) $activeRemoval['id']), 'owners can remove active members');
+assert_true(!$lists->canParticipate($listId, (int) $activeRemoval['id']), 'removed members immediately lose participation rights');
+assert_true($lists->findAccessible($listId, (int) $activeRemoval['id']) === null, 'removed members can no longer open the list');
+assert_true($lists->forUser((int) $activeRemoval['id']) === [], 'removed lists disappear from a former member dashboard');
+assert_true(!in_array((int) $activeRemoval['id'], $lists->participantIdsExcept($listId, (int) $owner['id']), true), 'removed members no longer receive list notifications');
+assert_true(!$lists->removeMember($listId, (int) $owner['id'], (int) $owner['id']), 'the owner cannot remove themselves as a member');
 assert_true($lists->findAccessible($listId, (int) $outsider['id']) === null, 'users outside a shared list cannot access it');
 $lists->addItem($listId, (int) $owner['id'], 'Treinkaartjes boeken');
 $item = $lists->items($listId)[0];
@@ -123,6 +151,9 @@ assert_true(str_contains($listPage, 'id="new-task"'), 'list pages include the de
 assert_true(str_contains($listPage, 'name="priority"'), 'the task modal offers a priority field');
 assert_true(str_contains($listPage, 'name="due_date"'), 'the task modal offers a due date field');
 assert_true(str_contains($listPage, 'name="image"'), 'the task modal offers an image upload');
+assert_true(str_contains($listPage, '/lists/' . $listId . '/members/' . $member['id'] . '/delete'), 'owners can remove active members from the member list');
+assert_true(str_contains($listPage, 'data-member-delete-url='), 'live member updates retain the member removal endpoint');
+assert_true(str_contains($listPage, 'data-is-owner="true"'), 'the live list identifies owners who may remove members');
 
 $users->setPassword((int) $owner['id'], 'een-veilig-wachtwoord');
 assert_true(password_verify('een-veilig-wachtwoord', $users->find((int) $owner['id'])['password_hash']), 'passwords are securely hashed');
@@ -244,6 +275,8 @@ assert_true(str_contains($javascript, "[data-live-delete]"), 'live updates submi
 assert_true(str_contains($javascript, "[data-live-comment]"), 'task comments are submitted asynchronously');
 assert_true(str_contains($javascript, 'comment.author_name'), 'comment rendering shows the author name');
 assert_true(str_contains($javascript, 'const imageItemIds = new Set('), 'live updates remember which tasks have an attached image');
+assert_true(str_contains($javascript, "memberDeleteUrl.replace('__MEMBER_ID__'"), 'live member cards keep owner removal actions after synchronization');
+assert_true(str_contains($javascript, 'if (isOwner && !member.is_owner)'), 'live updates never expose a removal action for the list owner');
 assert_true(str_contains($javascript, 'if (item.has_image) imageItemIds.add(Number(item.id));'), 'live updates preserve known task images across later state refreshes');
 assert_true(str_contains($javascript, "thumbnail.addEventListener('error', handleTaskImageError)"), 'task thumbnails retry once after a temporary image loading failure');
 assert_true(str_contains($javascript, "liveList.querySelectorAll('.task-thumbnail')"), 'server-rendered task thumbnails also receive image retry handling');
@@ -263,6 +296,7 @@ assert_true(str_contains($routes, "'/notifications/subscribe'"), 'signed-in user
 assert_true(str_contains($routes, "'/notifications/unsubscribe'"), 'signed-in users can remove a OneSignal subscription');
 assert_true(str_contains($routes, "'/lists/{listId}/items/{itemId}/comments'"), 'task comments have a dedicated signed-in route');
 assert_true(str_contains($routes, "'/lists/{id}/accept'"), 'invited users have a dedicated invitation acceptance route');
+assert_true(str_contains($routes, "'/lists/{listId}/members/{memberId}/delete'"), 'owners have a dedicated member removal route');
 assert_true(str_contains($routes, "'/users/{id}/profile-image'"), 'member profile images have a user-specific route');
 $readme = file_get_contents(dirname(__DIR__) . '/README.md');
 assert_true(str_contains($readme, 'iOS/iPadOS 16.4'), 'the README documents iOS web-push requirements');

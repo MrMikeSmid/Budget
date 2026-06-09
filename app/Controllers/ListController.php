@@ -237,6 +237,24 @@ final class ListController extends Controller
         redirect('/lists/' . $id);
     }
 
+    public function removeMember(string $listId, string $memberId): void
+    {
+        $user = $this->auth();
+        $this->verifyCsrf();
+        $list = $this->accessible((int) $listId, (int) $user['id']);
+        if ((int) $list['owner_id'] !== (int) $user['id']) {
+            flash('error', 'Alleen de eigenaar kan mensen uit dit lijstje verwijderen.');
+            redirect('/lists/' . $listId);
+        }
+
+        if ($this->lists->removeMember((int) $listId, (int) $user['id'], (int) $memberId)) {
+            flash('success', 'De persoon is uit het lijstje verwijderd en ontvangt geen updates meer.');
+        } else {
+            flash('error', 'Deze persoon kon niet uit het lijstje worden verwijderd.');
+        }
+        redirect('/lists/' . $listId);
+    }
+
     public function delete(string $id): void
     {
         $user = $this->auth();
