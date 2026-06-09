@@ -96,7 +96,7 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
         </form>
         <section class="task-section" data-task-section="open">
             <div class="task-heading">
-                <div><span class="eyebrow">Nog te doen</span><h2>Open taken</h2></div>
+                <div><span class="eyebrow">Nog te doen</span><h2 data-open-count><?= count($openItems) ?> open taken</h2></div>
                 <div class="task-heading__actions">
                     <label class="task-sort">
                         <span class="sr-only">Sorteer taken</span>
@@ -108,7 +108,6 @@ $renderTask = static function (array $item) use ($list, $commentLabel, $priority
                             <option value="alphabetical">Naam A–Z</option>
                         </select>
                     </label>
-                    <span data-open-count><?= count($openItems) ?> open</span>
                 </div>
             </div>
             <div data-task-container="open">

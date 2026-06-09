@@ -167,6 +167,7 @@ assert_true(str_contains($listPage, 'id="new-task"'), 'list pages include the de
 assert_true(str_contains($listPage, 'name="priority"'), 'the task modal offers a priority field');
 assert_true(str_contains($listPage, 'name="due_date"'), 'the task modal offers a due date field');
 assert_true(str_contains($listPage, 'data-task-sort'), 'list pages offer a task sorting dropdown');
+assert_true(str_contains($listPage, '<h2 data-open-count>') && str_contains($listPage, ' open taken</h2>'), 'the open task count is part of the open tasks heading');
 assert_true(str_contains($listPage, 'value="priority_due"'), 'priority and due date are the default sorting option');
 assert_true(str_contains($listPage, 'name="image"'), 'the task modal offers an image upload');
 assert_true(str_contains($listPage, '/lists/' . $listId . '/members/' . $member['id'] . '/delete'), 'owners can remove active members from the member list');
@@ -295,6 +296,7 @@ assert_true(str_contains($javascript, 'serviceWorkerPath: serviceWorkerUrl'), 'O
 assert_true(str_contains($javascript, 'iOS 16.4'), 'iOS users receive the required home-screen installation instructions');
 assert_true(str_contains($javascript, 'registerDevice(false)'), 'previously granted devices are synchronized automatically in the background');
 assert_true(str_contains($javascript, "state.items.filter((item) => !item.is_completed)"), 'live updates keep open and completed tasks in separate sections');
+assert_true(str_contains($javascript, '`${open} open taken`'), 'live updates keep the open task count in the section heading');
 assert_true(str_contains($javascript, "[data-live-delete]"), 'live updates submit completed-task deletions asynchronously');
 assert_true(str_contains($javascript, "[data-live-comment]"), 'task comments are submitted asynchronously');
 assert_true(str_contains($javascript, 'comment.author_name'), 'comment rendering shows the author name');

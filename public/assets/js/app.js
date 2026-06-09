@@ -345,7 +345,7 @@ if (liveList) {
       ? `${done} van de ${total} taken afgevinkt`
       : 'Voeg hieronder jullie eerste taak toe.';
     liveList.querySelector('[data-progress-bar]').style.width = `${percent}%`;
-    liveList.querySelector('[data-open-count]').textContent = `${open} open`;
+    liveList.querySelector('[data-open-count]').textContent = `${open} open taken`;
     liveList.querySelector('[data-completed-count]').textContent = `${done} klaar`;
 
     const openItems = sortTasks(state.items.filter((item) => !item.is_completed));
