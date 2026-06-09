@@ -53,7 +53,39 @@ final class User
             ORDER BY u.created_at DESC, u.id DESC
         SQL);
 
-        return $stmt->fetchAll();
+        $accounts = $stmt->fetchAll();
+        $listsByUser = [];
+        $memberships = db()->query(<<<'SQL'
+            SELECT memberships.user_id, memberships.id, memberships.title, memberships.emoji, memberships.is_owner
+            FROM (
+                SELECT l.owner_id AS user_id, l.id, l.title, l.emoji, 1 AS is_owner
+                FROM todo_lists l
+
+                UNION ALL
+
+                SELECT lm.user_id, l.id, l.title, l.emoji, 0 AS is_owner
+                FROM list_members lm
+                JOIN todo_lists l ON l.id = lm.list_id
+                WHERE lm.accepted_at IS NOT NULL
+            ) memberships
+            ORDER BY memberships.title COLLATE NOCASE ASC, memberships.id ASC
+        SQL)->fetchAll();
+
+        foreach ($memberships as $membership) {
+            $listsByUser[(int) $membership['user_id']][] = [
+                'id' => (int) $membership['id'],
+                'title' => $membership['title'],
+                'emoji' => $membership['emoji'],
+                'is_owner' => (int) $membership['is_owner'],
+            ];
+        }
+
+        foreach ($accounts as &$account) {
+            $account['lists'] = $listsByUser[(int) $account['id']] ?? [];
+        }
+        unset($account);
+
+        return $accounts;
     }
 
     public function recordLogin(int $id): void
