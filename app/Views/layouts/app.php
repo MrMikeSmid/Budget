@@ -4,6 +4,8 @@ $flashes = pull_flashes();
 $oneSignal = $viewer ? new \App\Services\OneSignalSettings() : null;
 $pushEnabled = $oneSignal?->isConfigured() ?? false;
 $taskCreateAvailable = $view === 'lists/show' && isset($list['id']);
+$sessionExpiresAt = $viewer ? \App\Core\Auth::sessionExpiresAt() : null;
+$sessionWarningStartsAt = $viewer ? \App\Core\Auth::sessionWarningStartsAt() : null;
 ?>
 <!doctype html>
 <html lang="nl">
@@ -25,7 +27,7 @@ $taskCreateAvailable = $view === 'lists/show' && isset($list['id']);
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
 </head>
-<body class="<?= $viewer ? 'is-authenticated' : 'is-guest' ?>" data-service-worker="<?= e(url('/sw.js')) ?>" data-app-scope="<?= e(url('/')) ?>"<?php if ($pushEnabled): ?> data-push-notifications data-onesignal-app-id="<?= e($oneSignal->appId()) ?>" data-push-subscribe-endpoint="<?= e(url('/notifications/subscribe')) ?>" data-push-unsubscribe-endpoint="<?= e(url('/notifications/unsubscribe')) ?>" data-csrf-token="<?= e(csrf_token()) ?>"<?php endif; ?>>
+<body class="<?= $viewer ? 'is-authenticated' : 'is-guest' ?>" data-service-worker="<?= e(url('/sw.js')) ?>" data-app-scope="<?= e(url('/')) ?>"<?php if ($sessionExpiresAt && $sessionWarningStartsAt): ?> data-session-expires-at="<?= $sessionExpiresAt ?>" data-session-warning-starts-at="<?= $sessionWarningStartsAt ?>" data-login-url="<?= e(url('/login')) ?>"<?php endif; ?><?php if ($pushEnabled): ?> data-push-notifications data-onesignal-app-id="<?= e($oneSignal->appId()) ?>" data-push-subscribe-endpoint="<?= e(url('/notifications/subscribe')) ?>" data-push-unsubscribe-endpoint="<?= e(url('/notifications/unsubscribe')) ?>" data-csrf-token="<?= e(csrf_token()) ?>"<?php endif; ?>>
 <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
 <div class="app-shell">
     <?php if ($viewer && empty($viewer['password_hash'])): ?>

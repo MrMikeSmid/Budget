@@ -8,6 +8,72 @@ document.addEventListener('click', (event) => {
 });
 setTimeout(() => document.querySelectorAll('.toast').forEach((toast) => toast.classList.add('toast--leaving')), 4500);
 
+const sessionExpiresAt = Number(document.body.dataset.sessionExpiresAt || 0) * 1000;
+const sessionWarningStartsAt = Number(document.body.dataset.sessionWarningStartsAt || 0) * 1000;
+
+if (sessionExpiresAt && sessionWarningStartsAt) {
+  const warningStorageKey = `samen-session-warning-${sessionExpiresAt}`;
+  let warningTimer;
+  let expirationTimer;
+
+  const warningWasShown = () => {
+    try {
+      return window.sessionStorage.getItem(warningStorageKey) === 'shown';
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const rememberWarning = () => {
+    try {
+      window.sessionStorage.setItem(warningStorageKey, 'shown');
+    } catch (error) {
+      console.warn('Sessiewaarschuwing kon niet worden onthouden.', error);
+    }
+  };
+
+  const showSessionWarning = () => {
+    if (Date.now() >= sessionExpiresAt || warningWasShown()) return;
+
+    rememberWarning();
+    const expiresAtLabel = new Intl.DateTimeFormat('nl-NL', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(sessionExpiresAt));
+    const message = `Je sessie verloopt om ${expiresAtLabel}. Log opnieuw in om onderbreking te voorkomen.`;
+    const toast = document.createElement('div');
+    toast.className = 'toast toast--session';
+    toast.setAttribute('role', 'status');
+    toast.innerHTML = `<span>${message}</span><button type="button" aria-label="Sluiten">×</button>`;
+    document.querySelector('.app-shell')?.prepend(toast);
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification('Je Samen-sessie verloopt bijna', { body: message });
+      } catch (error) {
+        console.warn('Sessiemelding kon niet worden getoond.', error);
+      }
+    }
+  };
+
+  const redirectAfterExpiration = () => {
+    window.location.assign(document.body.dataset.loginUrl || '/login');
+  };
+
+  const warningDelay = sessionWarningStartsAt - Date.now();
+  if (warningDelay <= 0) showSessionWarning();
+  else warningTimer = window.setTimeout(showSessionWarning, warningDelay);
+
+  const expirationDelay = sessionExpiresAt - Date.now();
+  if (expirationDelay <= 0) redirectAfterExpiration();
+  else expirationTimer = window.setTimeout(redirectAfterExpiration, expirationDelay);
+
+  window.addEventListener('pagehide', () => {
+    window.clearTimeout(warningTimer);
+    window.clearTimeout(expirationTimer);
+  }, { once: true });
+}
+
 const liveList = document.querySelector('[data-live-list]');
 
 if (liveList) {

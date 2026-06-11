@@ -18,4 +18,6 @@ return [
     'onesignal_rest_api_key' => trim((string) (getenv('SAMEN_ONESIGNAL_REST_API_KEY') ?: '')),
     'admin_email' => mb_strtolower(trim((string) (getenv('SAMEN_ADMIN_EMAIL') ?: ''))),
     'session_name' => 'samen_session',
+    'session_lifetime' => 48 * 60 * 60,
+    'session_warning_time' => 2 * 60 * 60,
 ];
