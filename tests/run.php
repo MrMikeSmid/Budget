@@ -67,7 +67,15 @@ assert_true(!array_key_exists('push_external_id', $owner), 'new user records no 
 $users->setPassword((int) $member['id'], 'veilig-wachtwoord');
 $users->recordLogin((int) $member['id']);
 assert_true($users->find((int) $member['id'])['last_login_at'] !== null, 'a successful login timestamp can be recorded');
-assert_true(str_contains(file_get_contents(dirname(__DIR__) . '/app/Core/Auth.php'), 'recordLogin'), 'successful authentication records the last login timestamp');
+$authSource = file_get_contents(dirname(__DIR__) . '/app/Core/Auth.php');
+assert_true(str_contains($authSource, 'recordLogin'), 'successful authentication records the last login timestamp');
+assert_true(config('session_lifetime') === 48 * 60 * 60, 'authenticated sessions remain valid for 48 hours');
+assert_true(config('session_warning_time') === 2 * 60 * 60, 'authenticated sessions warn two hours before expiration');
+$_SESSION['authenticated_at'] = 1_700_000_000;
+assert_true(\App\Core\Auth::sessionExpiresAt() === 1_700_172_800, 'session expiration is calculated from the login time');
+assert_true(\App\Core\Auth::sessionWarningStartsAt() === 1_700_165_600, 'the session warning starts two hours before expiration');
+unset($_SESSION['authenticated_at']);
+assert_true(str_contains($authSource, 'self::sessionExpiresAt() <= time()'), 'expired authenticated sessions are rejected server-side');
 
 $_SERVER['REMOTE_ADDR'] = '203.0.113.42';
 $_SERVER['HTTP_USER_AGENT'] = 'Samen testbrowser';
@@ -86,6 +94,7 @@ assert_true($deletedAudit['total'] === 1 && $deletedAudit['logs'][0]['event'] ==
 $lists = new TodoList();
 $listId = $lists->create((int) $owner['id'], 'Vakantie', '✈️', 'coral');
 $_SESSION['user_id'] = (int) $owner['id'];
+$_SESSION['authenticated_at'] = time();
 $homePage = render_page('lists/index', [
     'title' => 'Mijn lijstjes',
     'user' => $owner,
@@ -147,10 +156,10 @@ assert_true(!$lists->removeMember($listId, (int) $owner['id'], (int) $owner['id'
 assert_true($lists->findAccessible($listId, (int) $outsider['id']) === null, 'users outside a shared list cannot access it');
 
 $sortingListId = $lists->create((int) $owner['id'], 'Sorteertest', '✨', 'lavender');
-$lists->addItem($sortingListId, (int) $owner['id'], 'Zonder prioriteit, vroeg', 'none', '2026-06-10');
-$lists->addItem($sortingListId, (int) $owner['id'], 'Hoog, laat', 'high', '2026-07-20');
-$lists->addItem($sortingListId, (int) $owner['id'], 'Hoog, vroeg', 'high', '2026-06-12');
-$lists->addItem($sortingListId, (int) $owner['id'], 'Normaal, vroeg', 'medium', '2026-06-11');
+$lists->addItem($sortingListId, (int) $owner['id'], 'Zonder prioriteit, vroeg', 'none', '2027-06-10');
+$lists->addItem($sortingListId, (int) $owner['id'], 'Hoog, laat', 'high', '2027-07-20');
+$lists->addItem($sortingListId, (int) $owner['id'], 'Hoog, vroeg', 'high', '2027-06-12');
+$lists->addItem($sortingListId, (int) $owner['id'], 'Normaal, vroeg', 'medium', '2027-06-11');
 $lists->addItem($sortingListId, (int) $owner['id'], 'Hoog, zonder datum', 'high');
 $sortedTitles = array_column($lists->items($sortingListId), 'title');
 assert_true($sortedTitles === [
@@ -420,6 +429,10 @@ assert_true(str_contains(render_list_mood_icon('sparkles'), '<path d="'), 'inlin
 assert_true(!str_contains(file_get_contents(dirname(__DIR__) . '/public/assets/css/app.css'), '.mood-icon--sparkles{mask-image'), 'mood icons no longer depend on browser CSS mask support');
 
 $javascript = file_get_contents(dirname(__DIR__) . '/public/assets/js/app.js');
+assert_true(str_contains($javascript, 'dataset.sessionExpiresAt'), 'the browser reads the authenticated session expiration time');
+assert_true(str_contains($javascript, 'showSessionWarning'), 'the browser schedules a warning before the authenticated session expires');
+assert_true(str_contains($javascript, "Notification.permission === 'granted'"), 'the session warning also uses an already granted browser notification permission');
+assert_true(str_contains($listModal, 'data-session-warning-starts-at'), 'authenticated pages expose the server-calculated session warning time');
 assert_true(str_contains($javascript, 'OneSignal.init'), 'the browser initializes the OneSignal web SDK');
 assert_true(str_contains($javascript, 'User.PushSubscription.optIn()'), 'the browser can subscribe through OneSignal');
 assert_true(str_contains($javascript, 'User.PushSubscription.optOut()'), 'the browser can unsubscribe through OneSignal');

@@ -20,9 +20,11 @@ $config = require dirname(__DIR__) . '/config/app.php';
 date_default_timezone_set($config['timezone']);
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
+    $sessionLifetime = (int) $config['session_lifetime'];
+    ini_set('session.gc_maxlifetime', (string) $sessionLifetime);
     session_name($config['session_name']);
     session_set_cookie_params([
-        'lifetime' => 0,
+        'lifetime' => $sessionLifetime,
         'path' => '/',
         'secure' => (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off'),
         'httponly' => true,
