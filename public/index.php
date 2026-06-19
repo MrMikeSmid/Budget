@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Controllers\AdminController;
+use App\Controllers\ApiController;
 use App\Controllers\EmailController;
 use App\Controllers\AuthController;
 use App\Controllers\HomeController;
@@ -17,6 +18,18 @@ use App\Core\Router;
 require dirname(__DIR__) . '/app/bootstrap.php';
 
 $router = new Router();
+
+$router->post('/api/auth/login', [ApiController::class, 'login']);
+$router->get('/api/lists', [ApiController::class, 'lists']);
+$router->post('/api/lists', [ApiController::class, 'createList']);
+$router->patch('/api/lists/{listId}', [ApiController::class, 'updateList']);
+$router->delete('/api/lists/{listId}', [ApiController::class, 'deleteList']);
+$router->get('/api/lists/{listId}/items', [ApiController::class, 'items']);
+$router->post('/api/lists/{listId}/items', [ApiController::class, 'createItem']);
+$router->patch('/api/items/{itemId}', [ApiController::class, 'updateItem']);
+$router->delete('/api/items/{itemId}', [ApiController::class, 'deleteItem']);
+$router->post('/api/lists/{listId}/members', [ApiController::class, 'addMember']);
+$router->get('/api/sync', [ApiController::class, 'sync']);
 $router->get('/manifest.webmanifest', [PwaController::class, 'manifest']);
 $router->get('/pwa-icon/{name}', [PwaController::class, 'icon']);
 $router->get('/sw.js', [PwaController::class, 'serviceWorker']);

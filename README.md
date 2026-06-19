@@ -105,3 +105,73 @@ Een vervaldatum loopt tot het einde van de gekozen dag. Samen stuurt om 12:00 uu
 ```
 
 Het commando bewaart per taak welke meldingen al zijn verstuurd, zodat vaker uitvoeren geen dubbele pushmeldingen veroorzaakt.
+
+## JSON API voor Android, iOS/PWA en web
+
+De webapp blijft de eigenaar van de SQLite-database. Mobiele clients verbinden niet direct met SQLite, maar gebruiken HTTPS-endpoints onder `/api`. Alle endpoints geven JSON terug en vereisen na login een `Authorization: Bearer <token>` header.
+
+### Datamodel-mapping
+
+De API publiceert stabiele servervelden en mappt die op het bestaande SQLite-schema:
+
+| API veld | SQLite-bron |
+| --- | --- |
+| `users.display_name` | `users.name` |
+| `lists` | `todo_lists` |
+| `lists.owner_user_id` | `todo_lists.owner_id` |
+| `items` | `todo_items` |
+| `items.completed` | `todo_items.is_completed` |
+| `items.completed_by_user_id` | `todo_items.completed_by` |
+| `notification_preferences` | aparte API-compatibiliteitstabel; bestaande profielinstelling blijft ook in `users.notification_preference` staan |
+
+De migratie voegt API-compatibiliteitskolommen toe waar nodig: `todo_lists.deleted_at`, `list_members.role`, en `todo_items.note`, `todo_items.updated_at`, `todo_items.deleted_at`. API-verwijderingen zijn soft deletes zodat synchronisatie wijzigingen kan ophalen.
+
+### Authenticatie
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{ "email": "owner@example.nl", "password": "veilig-wachtwoord" }
+```
+
+Response:
+
+```json
+{ "token": "...", "user": { "id": 1, "email": "owner@example.nl", "display_name": "Owner" } }
+```
+
+Accounts zonder ingesteld wachtwoord kunnen met een lege of ontbrekende `password` inloggen, gelijk aan de bestaande web-login zonder wachtwoord. Voor productie is het advies om voor mobiele toegang wachtwoorden verplicht te maken. Tokens worden server-side gehasht opgeslagen in `api_tokens` en verlopen standaard na 90 dagen.
+
+### Endpoints
+
+Alle onderstaande voorbeelden gebruiken:
+
+```http
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+- `GET /api/lists` — lijstjes waarvan de gebruiker eigenaar of geaccepteerd lid is.
+- `POST /api/lists` — body `{ "title": "Boodschappen" }`.
+- `PATCH /api/lists/{listId}` — body `{ "title": "Nieuwe titel" }`, eigenaar vereist.
+- `DELETE /api/lists/{listId}` — soft delete, eigenaar vereist.
+- `GET /api/lists/{listId}/items` — taken in een toegankelijk lijstje.
+- `POST /api/lists/{listId}/items` — body `{ "title": "Melk", "note": "Halfvol", "priority": "medium", "due_date": "2026-06-20" }`.
+- `PATCH /api/items/{itemId}` — body kan `title`, `note`, `priority`, `due_date` en/of `completed` bevatten. Bij `completed: true` zet de server `completed_by_user_id` op de huidige gebruiker.
+- `DELETE /api/items/{itemId}` — soft delete voor deelnemers van het lijstje.
+- `POST /api/lists/{listId}/members` — body `{ "email": "lid@example.nl", "role": "member" }`, eigenaar vereist.
+- `GET /api/sync?since=2026-06-19%2000:00:00` — gewijzigde/deleted lijstjes en taken sinds timestamp.
+
+### Android base URL en lokale test
+
+Zet de Android base URL op de publieke HTTPS-origin van de webapp, bijvoorbeeld `https://samen.example.nl/api`. Bewaar alleen het bearer token in veilige app storage; databasepad, SMTP-instellingen en andere secrets blijven uitsluitend op de server.
+
+Lokaal testen kan met de PHP development server:
+
+```bash
+php -S 127.0.0.1:8000 -t public public/router.php
+curl -i -X POST http://127.0.0.1:8000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"owner@example.nl","password":""}'
+```

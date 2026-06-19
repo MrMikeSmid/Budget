@@ -20,7 +20,7 @@ final class TodoList
             FROM todo_lists l
             JOIN users u ON u.id = l.owner_id
             LEFT JOIN list_members access ON access.list_id = l.id AND access.user_id = :user_id
-            WHERE l.owner_id = :user_id OR access.user_id IS NOT NULL
+            WHERE l.deleted_at IS NULL AND (l.owner_id = :user_id OR access.user_id IS NOT NULL)
             ORDER BY l.updated_at DESC, l.id DESC
         SQL);
         $stmt->execute(['user_id' => $userId]);
@@ -61,7 +61,7 @@ final class TodoList
             FROM todo_lists l
             JOIN users u ON u.id = l.owner_id
             LEFT JOIN list_members m ON m.list_id = l.id AND m.user_id = ?
-            WHERE l.id = ? AND (l.owner_id = ? OR m.user_id IS NOT NULL)
+            WHERE l.id = ? AND l.deleted_at IS NULL AND (l.owner_id = ? OR m.user_id IS NOT NULL)
         SQL);
         $stmt->execute([$userId, $id, $userId]);
         return $stmt->fetch() ?: null;
@@ -78,7 +78,7 @@ final class TodoList
             FROM todo_items i
             JOIN users creator ON creator.id = i.created_by
             LEFT JOIN users completer ON completer.id = i.completed_by
-            WHERE i.list_id = ?
+            WHERE i.list_id = ? AND i.deleted_at IS NULL
             ORDER BY i.is_completed ASC,
                 CASE i.priority
                     WHEN 'high' THEN 3
@@ -108,7 +108,7 @@ final class TodoList
             FROM todo_item_comments c
             JOIN todo_items i ON i.id = c.item_id
             JOIN users u ON u.id = c.user_id
-            WHERE i.list_id = ?
+            WHERE i.list_id = ? AND i.deleted_at IS NULL
             ORDER BY c.id ASC
         SQL);
         $stmt->execute([$listId]);
@@ -195,7 +195,7 @@ final class TodoList
     public function participantIds(int $listId): array
     {
         $stmt = db()->prepare(<<<'SQL'
-            SELECT owner_id AS user_id FROM todo_lists WHERE id = :list_id
+            SELECT owner_id AS user_id FROM todo_lists WHERE id = :list_id AND deleted_at IS NULL
             UNION
             SELECT user_id FROM list_members WHERE list_id = :list_id AND accepted_at IS NOT NULL
         SQL);
@@ -210,7 +210,7 @@ final class TodoList
             SELECT i.id, i.list_id, i.title, i.due_date, l.title AS list_title
             FROM todo_items i
             JOIN todo_lists l ON l.id = i.list_id
-            WHERE i.is_completed = 0 AND i.due_date IS NOT NULL
+            WHERE i.is_completed = 0 AND i.deleted_at IS NULL AND i.due_date IS NOT NULL
             ORDER BY i.due_date ASC, i.id ASC
         SQL)->fetchAll();
     }
@@ -239,7 +239,7 @@ final class TodoList
     public function participantIdsExcept(int $listId, int $userId): array
     {
         $stmt = db()->prepare(<<<'SQL'
-            SELECT owner_id AS user_id FROM todo_lists WHERE id = :list_id AND owner_id != :user_id
+            SELECT owner_id AS user_id FROM todo_lists WHERE id = :list_id AND deleted_at IS NULL AND owner_id != :user_id
             UNION
             SELECT user_id FROM list_members WHERE list_id = :list_id AND user_id != :user_id AND accepted_at IS NOT NULL
         SQL);
@@ -290,7 +290,7 @@ final class TodoList
 
         $stmt = db()->prepare(<<<'SQL'
             UPDATE todo_items
-            SET title = ?, priority = ?, due_date = ?
+            SET title = ?, priority = ?, due_date = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ? AND list_id = ?
         SQL);
         $stmt->execute([trim($title), $priority, $dueDate, $itemId, $listId]);
@@ -341,12 +341,13 @@ final class TodoList
             UPDATE todo_items SET
                 is_completed = CASE is_completed WHEN 1 THEN 0 ELSE 1 END,
                 completed_by = CASE is_completed WHEN 1 THEN NULL ELSE ? END,
-                completed_at = CASE is_completed WHEN 1 THEN NULL ELSE CURRENT_TIMESTAMP END
-            WHERE id = ? AND list_id = ?
+                completed_at = CASE is_completed WHEN 1 THEN NULL ELSE CURRENT_TIMESTAMP END,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND list_id = ? AND deleted_at IS NULL
         SQL);
         $stmt->execute([$userId, $itemId, $listId]);
         db()->prepare('UPDATE todo_lists SET updated_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$listId]);
-        $item = db()->prepare('SELECT id, title, is_completed FROM todo_items WHERE id = ? AND list_id = ?');
+        $item = db()->prepare('SELECT id, title, is_completed FROM todo_items WHERE id = ? AND list_id = ? AND deleted_at IS NULL');
         $item->execute([$itemId, $listId]);
         return $item->fetch() ?: null;
     }
@@ -399,7 +400,7 @@ final class TodoList
         $stmt = db()->prepare(<<<'SQL'
             SELECT 1 FROM todo_lists l
             LEFT JOIN list_members m ON m.list_id = l.id AND m.user_id = ? AND m.accepted_at IS NOT NULL
-            WHERE l.id = ? AND (l.owner_id = ? OR m.user_id IS NOT NULL)
+            WHERE l.id = ? AND l.deleted_at IS NULL AND (l.owner_id = ? OR m.user_id IS NOT NULL)
         SQL);
         $stmt->execute([$userId, $listId, $userId]);
         return (bool) $stmt->fetchColumn();
