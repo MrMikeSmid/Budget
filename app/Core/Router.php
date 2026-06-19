@@ -18,6 +18,16 @@ final class Router
         $this->add('POST', $path, $handler);
     }
 
+    public function patch(string $path, callable|array $handler): void
+    {
+        $this->add('PATCH', $path, $handler);
+    }
+
+    public function delete(string $path, callable|array $handler): void
+    {
+        $this->add('DELETE', $path, $handler);
+    }
+
     private function add(string $method, string $path, callable|array $handler): void
     {
         $this->routes[] = compact('method', 'path', 'handler');
@@ -39,6 +49,11 @@ final class Router
                 $handler = [new $handler[0](), $handler[1]];
             }
             $handler(...array_values($params));
+            return;
+        }
+
+        if (str_starts_with($request->path(), '/api')) {
+            JsonResponse::error(404, 'Endpoint niet gevonden.');
             return;
         }
 

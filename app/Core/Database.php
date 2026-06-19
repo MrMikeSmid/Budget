@@ -108,6 +108,13 @@ final class Database
             );
 
 
+            CREATE TABLE IF NOT EXISTS notification_preferences (
+                user_id INTEGER PRIMARY KEY,
+                preference TEXT NOT NULL DEFAULT 'all',
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+
             CREATE TABLE IF NOT EXISTS notification_subscriptions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -129,6 +136,18 @@ final class Database
             );
 
             CREATE INDEX IF NOT EXISTS idx_due_task_notifications_item ON due_task_notifications(item_id);
+
+            CREATE TABLE IF NOT EXISTS api_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                last_used_at TEXT,
+                expires_at TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_api_tokens_user ON api_tokens(user_id);
 
             CREATE TABLE IF NOT EXISTS audit_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -189,6 +208,17 @@ final class Database
             $this->pdo->exec('UPDATE list_members SET accepted_at = created_at');
         }
 
+
+        $listColumns = $this->pdo->query('PRAGMA table_info(todo_lists)')->fetchAll();
+        $listColumnNames = array_column($listColumns, 'name');
+        if (!in_array('deleted_at', $listColumnNames, true)) {
+            $this->pdo->exec('ALTER TABLE todo_lists ADD COLUMN deleted_at TEXT');
+        }
+
+        if (!in_array('role', $memberColumnNames, true)) {
+            $this->pdo->exec("ALTER TABLE list_members ADD COLUMN role TEXT NOT NULL DEFAULT 'member'");
+        }
+
         $itemColumns = $this->pdo->query('PRAGMA table_info(todo_items)')->fetchAll();
         $itemColumnNames = array_column($itemColumns, 'name');
         if (!in_array('image_filename', $itemColumnNames, true)) {
@@ -205,6 +235,16 @@ final class Database
         }
         if (!in_array('due_date', $itemColumnNames, true)) {
             $this->pdo->exec('ALTER TABLE todo_items ADD COLUMN due_date TEXT');
+        }
+        if (!in_array('note', $itemColumnNames, true)) {
+            $this->pdo->exec('ALTER TABLE todo_items ADD COLUMN note TEXT');
+        }
+        if (!in_array('updated_at', $itemColumnNames, true)) {
+            $this->pdo->exec('ALTER TABLE todo_items ADD COLUMN updated_at TEXT');
+            $this->pdo->exec('UPDATE todo_items SET updated_at = COALESCE(completed_at, created_at, CURRENT_TIMESTAMP)');
+        }
+        if (!in_array('deleted_at', $itemColumnNames, true)) {
+            $this->pdo->exec('ALTER TABLE todo_items ADD COLUMN deleted_at TEXT');
         }
 
         $legacyPushColumn = 'push_' . 'external_id';
