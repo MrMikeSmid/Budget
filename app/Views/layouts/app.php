@@ -24,10 +24,22 @@ $currentPath = (new \App\Core\Request())->path();
     <?php if ($viewer): ?>
         <nav class="bottom-nav" aria-label="Hoofdnavigatie">
             <span class="nav-brand desktop-only">Regie</span>
-            <a href="<?= e(url('/')) ?>" class="<?= $currentPath === '/' ? 'active' : '' ?>"><span class="nav-icon" aria-hidden="true">🏠</span><span>Home</span></a>
-            <a href="<?= e(url('/parken')) ?>" class="<?= str_starts_with($currentPath, '/parken') ? 'active' : '' ?>"><span class="nav-icon" aria-hidden="true">📍</span><span>Parken</span></a>
-            <a href="<?= e(url('/personen')) ?>" class="<?= str_starts_with($currentPath, '/personen') ? 'active' : '' ?>"><span class="nav-icon" aria-hidden="true">👥</span><span>Personen</span></a>
-            <a href="<?= e(url('/items')) ?>" class="<?= str_starts_with($currentPath, '/items') ? 'active' : '' ?>"><span class="nav-icon" aria-hidden="true">✅</span><span>Taken</span></a>
+            <a href="<?= e(url('/')) ?>" class="<?= $currentPath === '/' ? 'active' : '' ?>">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-9"/></svg>
+                <span>Home</span>
+            </a>
+            <a href="<?= e(url('/parken')) ?>" class="<?= str_starts_with($currentPath, '/parken') ? 'active' : '' ?>">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.4"/></svg>
+                <span>Parken</span>
+            </a>
+            <a href="<?= e(url('/personen')) ?>" class="<?= str_starts_with($currentPath, '/personen') ? 'active' : '' ?>">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M16 8.2A2.7 2.7 0 1 1 16.2 8"/><path d="M15.5 14.7c2.4.4 4 2.2 4 4.8"/></svg>
+                <span>Personen</span>
+            </a>
+            <a href="<?= e(url('/items')) ?>" class="<?= str_starts_with($currentPath, '/items') ? 'active' : '' ?>">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3 11 14.8l4.8-5.3"/></svg>
+                <span>Taken</span>
+            </a>
             <form method="post" action="<?= e(url('/logout')) ?>" class="desktop-only" style="margin-top:auto">
                 <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
                 <button class="button button--ghost button--small button--wide" type="submit">Uitloggen</button>

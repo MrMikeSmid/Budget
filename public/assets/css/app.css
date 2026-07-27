@@ -79,7 +79,7 @@ legend{margin-bottom:6px;font-size:12px;font-weight:700;color:var(--muted)}
 .bottom-nav{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:560px;display:flex;justify-content:space-around;padding:10px 6px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);backdrop-filter:blur(10px);border-top:1px solid var(--border);z-index:40}
 .bottom-nav a{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 10px;border-radius:12px;color:var(--muted);font-size:10px;font-weight:700}
 .bottom-nav a.active{color:var(--brand);background:var(--brand-soft)}
-.nav-icon{font-size:18px;line-height:1}
+.nav-icon{width:20px;height:20px;flex:0 0 auto}
 .desktop-only{display:none}
 
 @media(min-width:900px){
