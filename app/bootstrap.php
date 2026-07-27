@@ -91,3 +91,17 @@ function review_type_label(string $type): string {
 function is_overdue(?string $dueDate, string $status): bool {
     return $dueDate !== null && $status !== 'afgerond' && $dueDate < date('Y-m-d');
 }
+function schedule_type_label(string $type): string {
+    return $type === 'vanaf_datum' ? 'Vanaf' : 'Op';
+}
+/** @return array{label: string, class: string} */
+function playbook_step_state(array $step): array {
+    if ($step['status'] === 'afgerond') {
+        return ['label' => 'Afgerond', 'class' => 'badge--ok'];
+    }
+    $inEffect = $step['date'] <= date('Y-m-d');
+    if ($step['schedule_type'] === 'vanaf_datum') {
+        return $inEffect ? ['label' => 'Actief', 'class' => 'badge--warn'] : ['label' => 'Gepland', 'class' => 'badge--muted'];
+    }
+    return $inEffect ? ['label' => 'Vervallen', 'class' => 'badge--danger'] : ['label' => 'Gepland', 'class' => 'badge--muted'];
+}

@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 use App\Controllers\AbsenceController;
 use App\Controllers\AuthController;
+use App\Controllers\DepartmentController;
 use App\Controllers\HomeController;
 use App\Controllers\ItemController;
 use App\Controllers\ParkController;
 use App\Controllers\PersonController;
+use App\Controllers\PlaybookController;
+use App\Controllers\PlaybookShareController;
+use App\Controllers\PlaybookStepController;
 use App\Controllers\PrintController;
 use App\Controllers\PwaController;
 use App\Controllers\ReviewController;
@@ -60,6 +64,29 @@ $router->post('/gesprekken/{id}/delete', [ReviewController::class, 'delete']);
 
 $router->get('/personen/{id}/print', [PrintController::class, 'person']);
 $router->get('/parken/{id}/print', [PrintController::class, 'park']);
+
+$router->get('/afdelingen', [DepartmentController::class, 'index']);
+$router->get('/afdelingen/nieuw', [DepartmentController::class, 'create']);
+$router->post('/afdelingen', [DepartmentController::class, 'store']);
+$router->get('/afdelingen/{id}/bewerken', [DepartmentController::class, 'edit']);
+$router->post('/afdelingen/{id}/update', [DepartmentController::class, 'update']);
+$router->post('/afdelingen/{id}/delete', [DepartmentController::class, 'delete']);
+
+$router->get('/draaiboeken', [PlaybookController::class, 'index']);
+$router->get('/draaiboeken/nieuw', [PlaybookController::class, 'create']);
+$router->post('/draaiboeken', [PlaybookController::class, 'store']);
+$router->get('/draaiboeken/{id}', [PlaybookController::class, 'show']);
+$router->get('/draaiboeken/{id}/bewerken', [PlaybookController::class, 'edit']);
+$router->post('/draaiboeken/{id}/update', [PlaybookController::class, 'update']);
+$router->post('/draaiboeken/{id}/delete', [PlaybookController::class, 'delete']);
+$router->post('/draaiboeken/{id}/vernieuw-link', [PlaybookController::class, 'regenerateToken']);
+
+$router->post('/draaiboeken/{playbookId}/stappen', [PlaybookStepController::class, 'store']);
+$router->post('/stappen/{id}/update', [PlaybookStepController::class, 'update']);
+$router->post('/stappen/{id}/toggle', [PlaybookStepController::class, 'toggle']);
+$router->post('/stappen/{id}/delete', [PlaybookStepController::class, 'delete']);
+
+$router->get('/gedeeld/{token}', [PlaybookShareController::class, 'show']);
 
 $router->get('/manifest.webmanifest', [PwaController::class, 'manifest']);
 $router->get('/pwa-icon/{name}', [PwaController::class, 'icon']);

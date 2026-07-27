@@ -40,6 +40,10 @@ $currentPath = (new \App\Core\Request())->path();
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.3 11 14.8l4.8-5.3"/></svg>
                 <span>Taken</span>
             </a>
+            <a href="<?= e(url('/draaiboeken')) ?>" class="<?= str_starts_with($currentPath, '/draaiboeken') || str_starts_with($currentPath, '/afdelingen') ? 'active' : '' ?>">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 3.5v2.2h6V3.5"/><path d="M8.5 11.5h7M8.5 14.7h7M8.5 17.3h4"/></svg>
+                <span>Draaiboeken</span>
+            </a>
             <form method="post" action="<?= e(url('/logout')) ?>" class="desktop-only" style="margin-top:auto">
                 <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
                 <button class="button button--ghost button--small button--wide" type="submit">Uitloggen</button>
