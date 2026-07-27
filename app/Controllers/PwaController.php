@@ -32,8 +32,8 @@ final class PwaController extends Controller
             'scope' => url('/'),
             'display' => 'standalone',
             'orientation' => 'portrait-primary',
-            'background_color' => '#f5f6fa',
-            'theme_color' => '#2f5d62',
+            'background_color' => '#eef3f8',
+            'theme_color' => '#4f7fae',
             'categories' => ['productivity', 'business'],
             'icons' => [
                 [
@@ -89,7 +89,7 @@ final class PwaController extends Controller
             $raw .= "\0";
             for ($x = 0; $x < $size; $x++) {
                 $inCircle = ((($x - $center) ** 2) + (($y - $center) ** 2)) <= $radius ** 2;
-                $color = $inCircle ? [255, 255, 255] : [47, 93, 98];
+                $color = $inCircle ? [255, 255, 255] : [79, 127, 174];
                 $raw .= pack('C3', ...$color);
             }
         }

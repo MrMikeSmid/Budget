@@ -8,7 +8,7 @@ $currentPath = (new \App\Core\Request())->path();
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#2f5d62">
+    <meta name="theme-color" content="#4f7fae">
     <meta name="application-name" content="Regie">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Regie">
