@@ -20,7 +20,7 @@ final class PlaybookStep
             $sql .= ' AND (s.park_id = ? OR s.park_id IS NULL)';
             $params[] = $parkId;
         }
-        $sql .= ' ORDER BY s.date ASC, s.created_at ASC';
+        $sql .= ' ORDER BY s.start_date ASC, s.created_at ASC';
         $stmt = db()->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll();
@@ -34,17 +34,17 @@ final class PlaybookStep
         return $step ?: null;
     }
 
-    public function create(int $playbookId, ?int $parkId, string $title, string $body, string $scheduleType, string $date): int
+    public function create(int $playbookId, ?int $parkId, string $type, string $title, string $body, string $startDate, string $endDate, ?string $recurrenceInterval): int
     {
-        $stmt = db()->prepare('INSERT INTO playbook_steps (playbook_id, park_id, title, body, schedule_type, date) VALUES (?, ?, ?, ?, ?, ?)');
-        $stmt->execute([$playbookId, $parkId, $title, $body, $scheduleType, $date]);
+        $stmt = db()->prepare('INSERT INTO playbook_steps (playbook_id, park_id, type, title, body, start_date, end_date, recurrence_interval) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$playbookId, $parkId, $type, $title, $body, $startDate, $endDate, $recurrenceInterval]);
         return (int) db()->lastInsertId();
     }
 
-    public function update(int $id, ?int $parkId, string $title, string $body, string $scheduleType, string $date): void
+    public function update(int $id, ?int $parkId, string $type, string $title, string $body, string $startDate, string $endDate, ?string $recurrenceInterval): void
     {
-        $stmt = db()->prepare('UPDATE playbook_steps SET park_id = ?, title = ?, body = ?, schedule_type = ?, date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
-        $stmt->execute([$parkId, $title, $body, $scheduleType, $date, $id]);
+        $stmt = db()->prepare('UPDATE playbook_steps SET park_id = ?, type = ?, title = ?, body = ?, start_date = ?, end_date = ?, recurrence_interval = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+        $stmt->execute([$parkId, $type, $title, $body, $startDate, $endDate, $recurrenceInterval, $id]);
     }
 
     public function toggle(int $id): void

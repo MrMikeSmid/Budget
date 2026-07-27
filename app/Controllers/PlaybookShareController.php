@@ -23,10 +23,14 @@ final class PlaybookShareController extends Controller
             view('errors/404', ['title' => 'Draaiboek niet gevonden']);
             return;
         }
+        $steps = (new PlaybookStep())->forPlaybook((int) $playbook['id']);
+        [$calendarStart, $calendarEnd] = playbook_calendar_range($steps);
         view('playbooks/share', [
             'title' => $playbook['title'],
             'playbook' => $playbook,
-            'steps' => (new PlaybookStep())->forPlaybook((int) $playbook['id']),
+            'steps' => $steps,
+            'calendarStart' => $calendarStart,
+            'calendarEnd' => $calendarEnd,
         ], 'print');
     }
 }

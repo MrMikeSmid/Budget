@@ -25,6 +25,9 @@
     </div>
 </div>
 
+<div class="section-heading"><h2>Kalender</h2></div>
+<?php include __DIR__ . '/_calendar.php'; ?>
+
 <div class="section-heading"><h2>Tijdlijn</h2></div>
 <div class="filter-row">
     <select class="filter-select" onchange="location.href=this.value">
@@ -42,10 +45,10 @@
         <?php foreach ($steps as $step): $state = playbook_step_state($step); ?>
             <div class="card">
                 <div class="card-row">
-                    <h3><?= e(schedule_type_label($step['schedule_type'])) ?> <?= e(format_date($step['date'])) ?>: <?= e($step['title']) ?></h3>
+                    <h3><?= e(step_type_label($step['type'])) ?>: <?= e($step['title']) ?></h3>
                     <span class="badge <?= $state['class'] ?>"><?= e($state['label']) ?></span>
                 </div>
-                <small><?= $step['park_name'] ? e($step['park_name']) : 'Alle parken' ?></small>
+                <small><?= e(playbook_step_schedule_label($step)) ?> · <?= $step['park_name'] ? e($step['park_name']) : 'Alle parken' ?></small>
                 <?php if ($step['body']): ?><p style="margin:8px 0 0;font-size:13px;white-space:pre-wrap"><?= e($step['body']) ?></p><?php endif; ?>
                 <div class="card-row" style="margin-top:10px;gap:8px">
                     <form method="post" action="<?= e(url('/stappen/' . $step['id'] . '/toggle')) ?>">
@@ -68,11 +71,21 @@
                                 <fieldset>
                                     <legend>Type</legend>
                                     <div class="choice-row">
-                                        <label><input type="radio" name="schedule_type" value="op_datum" <?= $step['schedule_type'] === 'op_datum' ? 'checked' : '' ?>> Op datum</label>
-                                        <label><input type="radio" name="schedule_type" value="vanaf_datum" <?= $step['schedule_type'] === 'vanaf_datum' ? 'checked' : '' ?>> Vanaf datum</label>
+                                        <label><input type="radio" name="type" value="eenmalig" <?= $step['type'] === 'eenmalig' ? 'checked' : '' ?>> Eenmalig</label>
+                                        <label><input type="radio" name="type" value="periodiek" <?= $step['type'] === 'periodiek' ? 'checked' : '' ?>> Periodiek</label>
                                     </div>
                                 </fieldset>
-                                <label class="field"><span>Datum</span><input type="date" name="date" value="<?= e($step['date']) ?>" required></label>
+                                <div class="field-row">
+                                    <label class="field"><span>Startdatum</span><input type="date" name="start_date" value="<?= e($step['start_date']) ?>" required></label>
+                                    <label class="field"><span>Einddatum</span><input type="date" name="end_date" value="<?= e($step['end_date']) ?>" required></label>
+                                </div>
+                                <label class="field recurrence-field"><span>Herhaling</span>
+                                    <select name="recurrence_interval">
+                                        <?php foreach (['dagelijks' => 'Dagelijks', 'wekelijks' => 'Wekelijks', 'maandelijks' => 'Maandelijks'] as $value => $label): ?>
+                                            <option value="<?= $value ?>" <?= $step['recurrence_interval'] === $value ? 'selected' : '' ?>><?= e($label) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </label>
                                 <label class="field"><span>Titel</span><input name="title" maxlength="160" value="<?= e($step['title']) ?>" required></label>
                                 <label class="field"><span>Toelichting</span><textarea name="body"><?= e($step['body']) ?></textarea></label>
                                 <button class="button button--primary button--wide" type="submit">Opslaan</button>
@@ -105,14 +118,38 @@
             <fieldset>
                 <legend>Type</legend>
                 <div class="choice-row">
-                    <label><input type="radio" name="schedule_type" value="op_datum" checked> Op datum</label>
-                    <label><input type="radio" name="schedule_type" value="vanaf_datum"> Vanaf datum</label>
+                    <label><input type="radio" name="type" value="eenmalig" checked> Eenmalig</label>
+                    <label><input type="radio" name="type" value="periodiek"> Periodiek</label>
                 </div>
             </fieldset>
-            <label class="field"><span>Datum</span><input type="date" name="date" required></label>
+            <div class="field-row">
+                <label class="field"><span>Startdatum</span><input type="date" name="start_date" required></label>
+                <label class="field"><span>Einddatum</span><input type="date" name="end_date" required></label>
+            </div>
+            <label class="field recurrence-field"><span>Herhaling</span>
+                <select name="recurrence_interval">
+                    <option value="dagelijks">Dagelijks</option>
+                    <option value="wekelijks">Wekelijks</option>
+                    <option value="maandelijks">Maandelijks</option>
+                </select>
+            </label>
             <label class="field"><span>Titel</span><input name="title" maxlength="160" required placeholder="Wat moet er gebeuren?"></label>
             <label class="field"><span>Toelichting</span><textarea name="body"></textarea></label>
             <button class="button button--primary button--wide" type="submit">Stap toevoegen</button>
         </form>
     </div>
 </details>
+
+<script>
+(() => {
+    const syncRecurrenceField = (form) => {
+        const checked = form.querySelector('input[name="type"]:checked');
+        const field = form.querySelector('.recurrence-field');
+        if (checked && field) { field.style.display = checked.value === 'periodiek' ? '' : 'none'; }
+    };
+    document.querySelectorAll('form').forEach(syncRecurrenceField);
+    document.addEventListener('change', (event) => {
+        if (event.target.name === 'type') { syncRecurrenceField(event.target.closest('form')); }
+    });
+})();
+</script>

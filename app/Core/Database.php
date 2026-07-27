@@ -155,10 +155,12 @@ final class Database
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 playbook_id INTEGER NOT NULL,
                 park_id INTEGER,
+                type TEXT NOT NULL CHECK (type IN ('eenmalig','periodiek')),
                 title TEXT NOT NULL,
                 body TEXT NOT NULL DEFAULT '',
-                schedule_type TEXT NOT NULL CHECK (schedule_type IN ('op_datum','vanaf_datum')),
-                date TEXT NOT NULL,
+                start_date TEXT NOT NULL,
+                end_date TEXT NOT NULL,
+                recurrence_interval TEXT CHECK (recurrence_interval IN ('dagelijks','wekelijks','maandelijks') OR recurrence_interval IS NULL),
                 status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','afgerond')),
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -166,7 +168,6 @@ final class Database
                 FOREIGN KEY (park_id) REFERENCES parks(id) ON DELETE SET NULL
             );
             CREATE INDEX IF NOT EXISTS idx_playbook_steps_playbook ON playbook_steps(playbook_id);
-            CREATE INDEX IF NOT EXISTS idx_playbook_steps_date ON playbook_steps(date);
         SQL);
 
         $hasDepartments = (int) $this->pdo->query('SELECT COUNT(*) FROM departments')->fetchColumn() > 0;
@@ -218,6 +219,42 @@ final class Database
             $this->pdo->exec('ALTER TABLE playbook_steps ADD COLUMN park_id INTEGER');
         }
         $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_playbook_steps_park ON playbook_steps(park_id)');
+
+        if (in_array('schedule_type', $stepColumnNames, true)) {
+            // Steps used to have a single date (either a one-off "op_datum" or an
+            // open-ended "vanaf_datum"); both now need a start AND end date so they can
+            // be plotted on the calendar, and gain a real recurrence interval. Existing
+            // rows get end_date = start_date as a safe, non-crashing default — the one
+            // playbook step live in production needs a manual follow-up fix after this.
+            $this->pdo->exec('PRAGMA foreign_keys = OFF');
+            $this->pdo->exec(<<<'SQL'
+                CREATE TABLE playbook_steps_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    playbook_id INTEGER NOT NULL,
+                    park_id INTEGER,
+                    type TEXT NOT NULL CHECK (type IN ('eenmalig','periodiek')),
+                    title TEXT NOT NULL,
+                    body TEXT NOT NULL DEFAULT '',
+                    start_date TEXT NOT NULL,
+                    end_date TEXT NOT NULL,
+                    recurrence_interval TEXT CHECK (recurrence_interval IN ('dagelijks','wekelijks','maandelijks') OR recurrence_interval IS NULL),
+                    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','afgerond')),
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+            SQL);
+            $this->pdo->exec(<<<'SQL'
+                INSERT INTO playbook_steps_new (id, playbook_id, park_id, type, title, body, start_date, end_date, recurrence_interval, status, created_at, updated_at)
+                SELECT id, playbook_id, park_id, 'eenmalig', title, body, date, date, NULL, status, created_at, updated_at
+                FROM playbook_steps
+            SQL);
+            $this->pdo->exec('DROP TABLE playbook_steps');
+            $this->pdo->exec('ALTER TABLE playbook_steps_new RENAME TO playbook_steps');
+            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_playbook_steps_playbook ON playbook_steps(playbook_id)');
+            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_playbook_steps_park ON playbook_steps(park_id)');
+            $this->pdo->exec('PRAGMA foreign_keys = ON');
+        }
+        $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_playbook_steps_start_date ON playbook_steps(start_date)');
 
         $playbookColumns = $this->pdo->query('PRAGMA table_info(playbooks)')->fetchAll();
         $playbookColumnNames = array_column($playbookColumns, 'name');

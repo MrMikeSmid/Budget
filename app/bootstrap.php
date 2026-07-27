@@ -91,17 +91,73 @@ function review_type_label(string $type): string {
 function is_overdue(?string $dueDate, string $status): bool {
     return $dueDate !== null && $status !== 'afgerond' && $dueDate < date('Y-m-d');
 }
-function schedule_type_label(string $type): string {
-    return $type === 'vanaf_datum' ? 'Vanaf' : 'Op';
+function step_type_label(string $type): string {
+    return $type === 'periodiek' ? 'Periodiek' : 'Eenmalig';
+}
+function recurrence_interval_label(?string $interval): string {
+    return ['dagelijks' => 'Dagelijks', 'wekelijks' => 'Wekelijks', 'maandelijks' => 'Maandelijks'][$interval ?? ''] ?? '';
 }
 /** @return array{label: string, class: string} */
 function playbook_step_state(array $step): array {
     if ($step['status'] === 'afgerond') {
         return ['label' => 'Afgerond', 'class' => 'badge--ok'];
     }
-    $inEffect = $step['date'] <= date('Y-m-d');
-    if ($step['schedule_type'] === 'vanaf_datum') {
-        return $inEffect ? ['label' => 'Actief', 'class' => 'badge--warn'] : ['label' => 'Gepland', 'class' => 'badge--muted'];
+    $today = date('Y-m-d');
+    if ($today < $step['start_date']) {
+        return ['label' => 'Gepland', 'class' => 'badge--muted'];
     }
-    return $inEffect ? ['label' => 'Vervallen', 'class' => 'badge--danger'] : ['label' => 'Gepland', 'class' => 'badge--muted'];
+    if ($today <= $step['end_date']) {
+        return ['label' => 'Actief', 'class' => 'badge--warn'];
+    }
+    return $step['type'] === 'periodiek'
+        ? ['label' => 'Periode afgelopen', 'class' => 'badge--muted']
+        : ['label' => 'Vervallen', 'class' => 'badge--danger'];
+}
+function playbook_step_schedule_label(array $step): string {
+    $range = $step['start_date'] === $step['end_date']
+        ? format_date($step['start_date'])
+        : format_date($step['start_date']) . ' – ' . format_date($step['end_date']);
+    if ($step['type'] === 'periodiek') {
+        return recurrence_interval_label($step['recurrence_interval']) . ', ' . $range;
+    }
+    return $range;
+}
+/** Whether a step occurs on the given date (respecting its recurrence interval). */
+function playbook_step_occurs_on(array $step, string $date): bool {
+    if ($date < $step['start_date'] || $date > $step['end_date']) {
+        return false;
+    }
+    if ($step['type'] !== 'periodiek') {
+        return true;
+    }
+    $start = new DateTimeImmutable($step['start_date']);
+    $current = new DateTimeImmutable($date);
+    $diffDays = (int) $start->diff($current)->days;
+    return match ($step['recurrence_interval'] ?? '') {
+        'dagelijks' => true,
+        'wekelijks' => $diffDays % 7 === 0,
+        'maandelijks' => (int) $start->format('j') === (int) $current->format('j'),
+        default => false,
+    };
+}
+/**
+ * The [start, end] window to render on the calendar strip, spanning every step's
+ * start/end date but capped to a sane number of days so the page stays usable.
+ * @param array[] $steps
+ * @return array{0: ?string, 1: ?string}
+ */
+function playbook_calendar_range(array $steps, int $maxDays = 180): array {
+    if (empty($steps)) {
+        return [null, null];
+    }
+    $starts = array_column($steps, 'start_date');
+    $ends = array_column($steps, 'end_date');
+    sort($starts);
+    sort($ends);
+    $start = new DateTimeImmutable($starts[0]);
+    $end = new DateTimeImmutable($ends[count($ends) - 1]);
+    if ($start->diff($end)->days > $maxDays) {
+        $end = $start->modify('+' . $maxDays . ' days');
+    }
+    return [$start->format('Y-m-d'), $end->format('Y-m-d')];
 }

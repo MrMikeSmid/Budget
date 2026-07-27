@@ -59,12 +59,16 @@ final class PlaybookController extends Controller
             return;
         }
         $parkId = !empty($_GET['park']) ? (int) $_GET['park'] : null;
+        $steps = (new PlaybookStep())->forPlaybook((int) $id, $parkId);
+        [$calendarStart, $calendarEnd] = playbook_calendar_range($steps);
         view('playbooks/show', [
             'title' => $playbook['title'],
             'playbook' => $playbook,
             'parks' => (new Park())->all(),
             'selectedParkId' => $parkId,
-            'steps' => (new PlaybookStep())->forPlaybook((int) $id, $parkId),
+            'steps' => $steps,
+            'calendarStart' => $calendarStart,
+            'calendarEnd' => $calendarEnd,
             'shareUrl' => absolute_url('/gedeeld/' . $playbook['share_token']),
         ]);
     }
