@@ -26,11 +26,13 @@
 </div>
 
 <div class="section-heading"><h2>Tijdlijn</h2></div>
-<div class="chip-row">
-    <a class="chip <?= $selectedParkId === null ? 'active' : '' ?>" href="<?= e(url('/draaiboeken/' . $playbook['id'])) ?>">Alle parken</a>
-    <?php foreach ($parks as $park): ?>
-        <a class="chip <?= $selectedParkId === (int) $park['id'] ? 'active' : '' ?>" href="<?= e(url('/draaiboeken/' . $playbook['id'] . '?park=' . $park['id'])) ?>"><?= e($park['name']) ?></a>
-    <?php endforeach; ?>
+<div class="filter-row">
+    <select class="filter-select" onchange="location.href=this.value">
+        <option value="<?= e(url('/draaiboeken/' . $playbook['id'])) ?>" <?= $selectedParkId === null ? 'selected' : '' ?>>Alle parken</option>
+        <?php foreach ($parks as $park): ?>
+            <option value="<?= e(url('/draaiboeken/' . $playbook['id'] . '?park=' . $park['id'])) ?>" <?= $selectedParkId === (int) $park['id'] ? 'selected' : '' ?>><?= e($park['name']) ?></option>
+        <?php endforeach; ?>
+    </select>
 </div>
 
 <?php if (empty($steps)): ?>

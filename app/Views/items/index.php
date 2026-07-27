@@ -12,22 +12,24 @@ $qs = function (array $overrides) use ($selectedParkId, $selectedCategory, $sele
     <div><span class="eyebrow">Overzicht</span><h1>Taken &amp; afspraken</h1></div>
 </header>
 
-<div class="chip-row">
-    <a class="chip <?= $selectedParkId === null ? 'active' : '' ?>" href="<?= e(url('/items' . $qs(['park' => null]))) ?>">Alle parken</a>
-    <?php foreach ($parks as $park): ?>
-        <a class="chip <?= $selectedParkId === (int) $park['id'] ? 'active' : '' ?>" href="<?= e(url('/items' . $qs(['park' => $park['id']]))) ?>"><?= e($park['name']) ?></a>
-    <?php endforeach; ?>
-</div>
-<div class="chip-row">
-    <a class="chip <?= $selectedCategory === null ? 'active' : '' ?>" href="<?= e(url('/items' . $qs(['category' => null]))) ?>">Alle categorieën</a>
-    <?php foreach (['personeel', 'park', 'gasten', 'taken'] as $cat): ?>
-        <a class="chip <?= $selectedCategory === $cat ? 'active' : '' ?>" href="<?= e(url('/items' . $qs(['category' => $cat]))) ?>"><?= e(category_label($cat)) ?></a>
-    <?php endforeach; ?>
-</div>
-<div class="chip-row">
-    <a class="chip <?= $selectedStatus === 'open' ? 'active' : '' ?>" href="<?= e(url('/items' . $qs(['status' => 'open']))) ?>">Open</a>
-    <a class="chip <?= $selectedStatus === 'alle' ? 'active' : '' ?>" href="<?= e(url('/items' . $qs(['status' => 'alle']))) ?>">Alle</a>
-    <a class="chip <?= $selectedStatus === 'afgerond' ? 'active' : '' ?>" href="<?= e(url('/items' . $qs(['status' => 'afgerond']))) ?>">Afgerond</a>
+<div class="filter-row">
+    <select class="filter-select" onchange="location.href=this.value">
+        <option value="<?= e(url('/items' . $qs(['park' => null]))) ?>" <?= $selectedParkId === null ? 'selected' : '' ?>>Alle parken</option>
+        <?php foreach ($parks as $park): ?>
+            <option value="<?= e(url('/items' . $qs(['park' => $park['id']]))) ?>" <?= $selectedParkId === (int) $park['id'] ? 'selected' : '' ?>><?= e($park['name']) ?></option>
+        <?php endforeach; ?>
+    </select>
+    <select class="filter-select" onchange="location.href=this.value">
+        <option value="<?= e(url('/items' . $qs(['category' => null]))) ?>" <?= $selectedCategory === null ? 'selected' : '' ?>>Alle categorieën</option>
+        <?php foreach (['personeel', 'park', 'gasten', 'taken'] as $cat): ?>
+            <option value="<?= e(url('/items' . $qs(['category' => $cat]))) ?>" <?= $selectedCategory === $cat ? 'selected' : '' ?>><?= e(category_label($cat)) ?></option>
+        <?php endforeach; ?>
+    </select>
+    <select class="filter-select" onchange="location.href=this.value">
+        <option value="<?= e(url('/items' . $qs(['status' => 'open']))) ?>" <?= $selectedStatus === 'open' ? 'selected' : '' ?>>Open</option>
+        <option value="<?= e(url('/items' . $qs(['status' => 'alle']))) ?>" <?= $selectedStatus === 'alle' ? 'selected' : '' ?>>Alle</option>
+        <option value="<?= e(url('/items' . $qs(['status' => 'afgerond']))) ?>" <?= $selectedStatus === 'afgerond' ? 'selected' : '' ?>>Afgerond</option>
+    </select>
 </div>
 
 <?php if (empty($items)): ?>

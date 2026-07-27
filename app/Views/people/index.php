@@ -3,16 +3,18 @@
     <a class="button button--primary button--small" href="<?= e(url('/personen/nieuw')) ?>">+ Nieuw persoon</a>
 </header>
 
-<div class="chip-row">
-    <a class="chip <?= $selectedParkId === null ? 'active' : '' ?>" href="<?= e(url('/personen')) ?>">Alle parken</a>
-    <?php foreach ($parks as $park): ?>
-        <a class="chip <?= $selectedParkId === (int) $park['id'] ? 'active' : '' ?>" href="<?= e(url('/personen?park=' . $park['id'] . ($selectedType ? '&type=' . $selectedType : ''))) ?>"><?= e($park['name']) ?></a>
-    <?php endforeach; ?>
-</div>
-<div class="chip-row">
-    <a class="chip <?= $selectedType === null ? 'active' : '' ?>" href="<?= e(url('/personen' . ($selectedParkId ? '?park=' . $selectedParkId : ''))) ?>">Alle</a>
-    <a class="chip <?= $selectedType === 'staff' ? 'active' : '' ?>" href="<?= e(url('/personen?type=staff' . ($selectedParkId ? '&park=' . $selectedParkId : ''))) ?>">Medewerkers</a>
-    <a class="chip <?= $selectedType === 'guest' ? 'active' : '' ?>" href="<?= e(url('/personen?type=guest' . ($selectedParkId ? '&park=' . $selectedParkId : ''))) ?>">Gasten</a>
+<div class="filter-row">
+    <select class="filter-select" onchange="location.href=this.value">
+        <option value="<?= e(url('/personen' . ($selectedType ? '?type=' . $selectedType : ''))) ?>" <?= $selectedParkId === null ? 'selected' : '' ?>>Alle parken</option>
+        <?php foreach ($parks as $park): ?>
+            <option value="<?= e(url('/personen?park=' . $park['id'] . ($selectedType ? '&type=' . $selectedType : ''))) ?>" <?= $selectedParkId === (int) $park['id'] ? 'selected' : '' ?>><?= e($park['name']) ?></option>
+        <?php endforeach; ?>
+    </select>
+    <select class="filter-select" onchange="location.href=this.value">
+        <option value="<?= e(url('/personen' . ($selectedParkId ? '?park=' . $selectedParkId : ''))) ?>" <?= $selectedType === null ? 'selected' : '' ?>>Alle types</option>
+        <option value="<?= e(url('/personen?type=staff' . ($selectedParkId ? '&park=' . $selectedParkId : ''))) ?>" <?= $selectedType === 'staff' ? 'selected' : '' ?>>Medewerkers</option>
+        <option value="<?= e(url('/personen?type=guest' . ($selectedParkId ? '&park=' . $selectedParkId : ''))) ?>" <?= $selectedType === 'guest' ? 'selected' : '' ?>>Gasten</option>
+    </select>
 </div>
 
 <?php if (empty($people)): ?>

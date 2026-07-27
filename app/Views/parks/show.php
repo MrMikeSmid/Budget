@@ -49,11 +49,13 @@
 <?php endif; ?>
 
 <div class="section-heading"><h2>Notities, afspraken &amp; taken</h2></div>
-<div class="chip-row">
-    <a class="chip <?= $category === null ? 'active' : '' ?>" href="<?= e(url('/parken/' . $park['id'])) ?>">Alle</a>
-    <?php foreach (['personeel', 'park', 'gasten', 'taken'] as $cat): ?>
-        <a class="chip <?= $category === $cat ? 'active' : '' ?>" href="<?= e(url('/parken/' . $park['id'] . '?category=' . $cat)) ?>"><?= e(category_label($cat)) ?></a>
-    <?php endforeach; ?>
+<div class="filter-row">
+    <select class="filter-select" onchange="location.href=this.value">
+        <option value="<?= e(url('/parken/' . $park['id'])) ?>" <?= $category === null ? 'selected' : '' ?>>Alle categorieën</option>
+        <?php foreach (['personeel', 'park', 'gasten', 'taken'] as $cat): ?>
+            <option value="<?= e(url('/parken/' . $park['id'] . '?category=' . $cat)) ?>" <?= $category === $cat ? 'selected' : '' ?>><?= e(category_label($cat)) ?></option>
+        <?php endforeach; ?>
+    </select>
 </div>
 <a class="button button--primary button--wide" style="margin-bottom:14px" href="<?= e(url('/parken/' . $park['id'] . '/items/nieuw' . ($category ? '?category=' . $category : ''))) ?>">+ Nieuwe notitie / afspraak / taak</a>
 

@@ -19,7 +19,7 @@ final class ItemController extends Controller
         $this->auth();
         $parkId = !empty($_GET['park']) ? (int) $_GET['park'] : null;
         $category = in_array($_GET['category'] ?? '', self::CATEGORIES, true) ? (string) $_GET['category'] : null;
-        $status = in_array($_GET['status'] ?? '', ['open', 'in_uitvoering', 'afgerond', 'gearchiveerd'], true)
+        $status = in_array($_GET['status'] ?? '', ['open', 'in_uitvoering', 'afgerond', 'gearchiveerd', 'alle'], true)
             ? (string) $_GET['status']
             : 'open';
         view('items/index', [

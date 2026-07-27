@@ -10,11 +10,13 @@
     <div class="toast toast--<?= e($type) ?>" role="status"><span><?= e($message) ?></span></div>
 <?php endforeach; ?>
 
-<div class="chip-row">
-    <a class="chip <?= $selectedDepartmentId === null ? 'active' : '' ?>" href="<?= e(url('/draaiboeken')) ?>">Alle afdelingen</a>
-    <?php foreach ($departments as $department): ?>
-        <a class="chip <?= $selectedDepartmentId === (int) $department['id'] ? 'active' : '' ?>" href="<?= e(url('/draaiboeken?department=' . $department['id'])) ?>"><?= e($department['name']) ?></a>
-    <?php endforeach; ?>
+<div class="filter-row">
+    <select class="filter-select" onchange="location.href=this.value">
+        <option value="<?= e(url('/draaiboeken')) ?>" <?= $selectedDepartmentId === null ? 'selected' : '' ?>>Alle afdelingen</option>
+        <?php foreach ($departments as $department): ?>
+            <option value="<?= e(url('/draaiboeken?department=' . $department['id'])) ?>" <?= $selectedDepartmentId === (int) $department['id'] ? 'selected' : '' ?>><?= e($department['name']) ?></option>
+        <?php endforeach; ?>
+    </select>
 </div>
 
 <?php if (empty($playbooks)): ?>
