@@ -1,5 +1,5 @@
 <header class="topbar">
-    <div><span class="eyebrow"><?= e($playbook['department_name']) ?><?= $playbook['park_name'] ? ' · ' . e($playbook['park_name']) : '' ?></span><h1><?= e($playbook['title']) ?></h1></div>
+    <div><span class="eyebrow"><?= e($playbook['department_name']) ?></span><h1><?= e($playbook['title']) ?></h1></div>
     <a class="icon-button" href="<?= e(url('/draaiboeken/' . $playbook['id'] . '/bewerken')) ?>" title="Bewerken">✎</a>
 </header>
 
@@ -26,8 +26,15 @@
 </div>
 
 <div class="section-heading"><h2>Tijdlijn</h2></div>
+<div class="chip-row">
+    <a class="chip <?= $selectedParkId === null ? 'active' : '' ?>" href="<?= e(url('/draaiboeken/' . $playbook['id'])) ?>">Alle parken</a>
+    <?php foreach ($parks as $park): ?>
+        <a class="chip <?= $selectedParkId === (int) $park['id'] ? 'active' : '' ?>" href="<?= e(url('/draaiboeken/' . $playbook['id'] . '?park=' . $park['id'])) ?>"><?= e($park['name']) ?></a>
+    <?php endforeach; ?>
+</div>
+
 <?php if (empty($steps)): ?>
-    <div class="empty">Nog geen stappen toegevoegd.</div>
+    <div class="empty">Nog geen stappen gevonden.</div>
 <?php else: ?>
     <div class="card-list">
         <?php foreach ($steps as $step): $state = playbook_step_state($step); ?>
@@ -36,6 +43,7 @@
                     <h3><?= e(schedule_type_label($step['schedule_type'])) ?> <?= e(format_date($step['date'])) ?>: <?= e($step['title']) ?></h3>
                     <span class="badge <?= $state['class'] ?>"><?= e($state['label']) ?></span>
                 </div>
+                <small><?= $step['park_name'] ? e($step['park_name']) : 'Alle parken' ?></small>
                 <?php if ($step['body']): ?><p style="margin:8px 0 0;font-size:13px;white-space:pre-wrap"><?= e($step['body']) ?></p><?php endif; ?>
                 <div class="card-row" style="margin-top:10px;gap:8px">
                     <form method="post" action="<?= e(url('/stappen/' . $step['id'] . '/toggle')) ?>">
@@ -47,6 +55,14 @@
                         <div class="card">
                             <form method="post" action="<?= e(url('/stappen/' . $step['id'] . '/update')) ?>">
                                 <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
+                                <label class="field"><span>Park</span>
+                                    <select name="park_id">
+                                        <option value="">Alle parken</option>
+                                        <?php foreach ($parks as $park): ?>
+                                            <option value="<?= (int) $park['id'] ?>" <?= (int) ($step['park_id'] ?? 0) === (int) $park['id'] ? 'selected' : '' ?>><?= e($park['name']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </label>
                                 <fieldset>
                                     <legend>Type</legend>
                                     <div class="choice-row">
@@ -76,6 +92,14 @@
     <div class="card">
         <form method="post" action="<?= e(url('/draaiboeken/' . $playbook['id'] . '/stappen')) ?>">
             <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
+            <label class="field"><span>Park</span>
+                <select name="park_id">
+                    <option value="" <?= $selectedParkId === null ? 'selected' : '' ?>>Alle parken</option>
+                    <?php foreach ($parks as $park): ?>
+                        <option value="<?= (int) $park['id'] ?>" <?= $selectedParkId === (int) $park['id'] ? 'selected' : '' ?>><?= e($park['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
             <fieldset>
                 <legend>Type</legend>
                 <div class="choice-row">

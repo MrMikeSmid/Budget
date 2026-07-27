@@ -6,23 +6,18 @@ namespace App\Models;
 
 final class Playbook
 {
-    public function all(?int $departmentId = null, ?int $parkId = null): array
+    public function all(?int $departmentId = null): array
     {
         $sql = <<<'SQL'
-            SELECT pb.*, d.name AS department_name, pa.name AS park_name
+            SELECT pb.*, d.name AS department_name
             FROM playbooks pb
             JOIN departments d ON d.id = pb.department_id
-            LEFT JOIN parks pa ON pa.id = pb.park_id
             WHERE 1=1
         SQL;
         $params = [];
         if ($departmentId !== null) {
             $sql .= ' AND pb.department_id = ?';
             $params[] = $departmentId;
-        }
-        if ($parkId !== null) {
-            $sql .= ' AND pb.park_id = ?';
-            $params[] = $parkId;
         }
         $sql .= ' ORDER BY pb.title ASC';
         $stmt = db()->prepare($sql);
@@ -33,10 +28,9 @@ final class Playbook
     public function find(int $id): ?array
     {
         $stmt = db()->prepare(<<<'SQL'
-            SELECT pb.*, d.name AS department_name, pa.name AS park_name
+            SELECT pb.*, d.name AS department_name
             FROM playbooks pb
             JOIN departments d ON d.id = pb.department_id
-            LEFT JOIN parks pa ON pa.id = pb.park_id
             WHERE pb.id = ?
         SQL);
         $stmt->execute([$id]);
@@ -47,10 +41,9 @@ final class Playbook
     public function findByToken(string $token): ?array
     {
         $stmt = db()->prepare(<<<'SQL'
-            SELECT pb.*, d.name AS department_name, pa.name AS park_name
+            SELECT pb.*, d.name AS department_name
             FROM playbooks pb
             JOIN departments d ON d.id = pb.department_id
-            LEFT JOIN parks pa ON pa.id = pb.park_id
             WHERE pb.share_token = ?
         SQL);
         $stmt->execute([$token]);
@@ -58,17 +51,17 @@ final class Playbook
         return $playbook ?: null;
     }
 
-    public function create(string $title, int $departmentId, ?int $parkId, ?int $leaderPersonId, string $leaderName, string $description): int
+    public function create(string $title, int $departmentId, ?int $leaderPersonId, string $leaderName, string $description): int
     {
-        $stmt = db()->prepare('INSERT INTO playbooks (title, department_id, park_id, leader_person_id, leader_name, description, share_token) VALUES (?, ?, ?, ?, ?, ?, ?)');
-        $stmt->execute([$title, $departmentId, $parkId, $leaderPersonId, $leaderName, $description, $this->generateToken()]);
+        $stmt = db()->prepare('INSERT INTO playbooks (title, department_id, leader_person_id, leader_name, description, share_token) VALUES (?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$title, $departmentId, $leaderPersonId, $leaderName, $description, $this->generateToken()]);
         return (int) db()->lastInsertId();
     }
 
-    public function update(int $id, string $title, int $departmentId, ?int $parkId, ?int $leaderPersonId, string $leaderName, string $description): void
+    public function update(int $id, string $title, int $departmentId, ?int $leaderPersonId, string $leaderName, string $description): void
     {
-        $stmt = db()->prepare('UPDATE playbooks SET title = ?, department_id = ?, park_id = ?, leader_person_id = ?, leader_name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
-        $stmt->execute([$title, $departmentId, $parkId, $leaderPersonId, $leaderName, $description, $id]);
+        $stmt = db()->prepare('UPDATE playbooks SET title = ?, department_id = ?, leader_person_id = ?, leader_name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+        $stmt->execute([$title, $departmentId, $leaderPersonId, $leaderName, $description, $id]);
     }
 
     public function regenerateToken(int $id): string

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Models\Park;
 use App\Models\Playbook;
 use App\Models\PlaybookStep;
 
@@ -22,12 +23,12 @@ final class PlaybookStepController extends Controller
             view('errors/404', ['title' => 'Draaiboek niet gevonden']);
             return;
         }
-        [$title, $body, $scheduleType, $date, $error] = $this->readInput();
+        [$parkId, $title, $body, $scheduleType, $date, $error] = $this->readInput();
         if ($error !== null) {
             flash('error', $error);
             redirect('/draaiboeken/' . $playbookId);
         }
-        (new PlaybookStep())->create((int) $playbookId, $title, $body, $scheduleType, $date);
+        (new PlaybookStep())->create((int) $playbookId, $parkId, $title, $body, $scheduleType, $date);
         redirect('/draaiboeken/' . $playbookId);
     }
 
@@ -41,12 +42,12 @@ final class PlaybookStepController extends Controller
             view('errors/404', ['title' => 'Stap niet gevonden']);
             return;
         }
-        [$title, $body, $scheduleType, $date, $error] = $this->readInput();
+        [$parkId, $title, $body, $scheduleType, $date, $error] = $this->readInput();
         if ($error !== null) {
             flash('error', $error);
             redirect('/draaiboeken/' . $step['playbook_id']);
         }
-        (new PlaybookStep())->update((int) $id, $title, $body, $scheduleType, $date);
+        (new PlaybookStep())->update((int) $id, $parkId, $title, $body, $scheduleType, $date);
         redirect('/draaiboeken/' . $step['playbook_id']);
     }
 
@@ -78,9 +79,10 @@ final class PlaybookStepController extends Controller
         redirect('/draaiboeken/' . $step['playbook_id']);
     }
 
-    /** @return array{0:string,1:string,2:string,3:string,4:?string} */
+    /** @return array{0:?int,1:string,2:string,3:string,4:string,5:?string} */
     private function readInput(): array
     {
+        $parkId = !empty($_POST['park_id']) ? (int) $_POST['park_id'] : null;
         $title = trim((string) ($_POST['title'] ?? ''));
         $body = trim((string) ($_POST['body'] ?? ''));
         $scheduleType = in_array($_POST['schedule_type'] ?? '', self::SCHEDULE_TYPES, true)
@@ -89,13 +91,16 @@ final class PlaybookStepController extends Controller
         $date = (string) ($_POST['date'] ?? '');
 
         if ($title === '' || mb_strlen($title) > 160) {
-            return [$title, $body, $scheduleType, $date, 'Geef de stap een korte titel.'];
+            return [$parkId, $title, $body, $scheduleType, $date, 'Geef de stap een korte titel.'];
+        }
+        if ($parkId !== null && !(new Park())->find($parkId)) {
+            return [$parkId, $title, $body, $scheduleType, $date, 'Kies een geldig park.'];
         }
         $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
         if (!$parsed || $parsed->format('Y-m-d') !== $date) {
-            return [$title, $body, $scheduleType, $date, 'Kies een geldige datum.'];
+            return [$parkId, $title, $body, $scheduleType, $date, 'Kies een geldige datum.'];
         }
 
-        return [$title, $body, $scheduleType, $date, null];
+        return [$parkId, $title, $body, $scheduleType, $date, null];
     }
 }

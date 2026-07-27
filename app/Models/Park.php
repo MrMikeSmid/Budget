@@ -36,6 +36,9 @@ final class Park
 
     public function delete(int $id): void
     {
+        // Explicit, since playbook_steps.park_id was added via ALTER TABLE on migrated
+        // databases and may not have a declared foreign key to rely on for cascading.
+        db()->prepare('UPDATE playbook_steps SET park_id = NULL WHERE park_id = ?')->execute([$id]);
         db()->prepare('DELETE FROM parks WHERE id = ?')->execute([$id]);
     }
 

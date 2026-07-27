@@ -140,7 +140,6 @@ final class Database
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 department_id INTEGER NOT NULL,
-                park_id INTEGER,
                 leader_person_id INTEGER,
                 leader_name TEXT NOT NULL DEFAULT '',
                 description TEXT NOT NULL DEFAULT '',
@@ -148,15 +147,14 @@ final class Database
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (department_id) REFERENCES departments(id) ON DELETE CASCADE,
-                FOREIGN KEY (park_id) REFERENCES parks(id) ON DELETE SET NULL,
                 FOREIGN KEY (leader_person_id) REFERENCES people(id) ON DELETE SET NULL
             );
             CREATE INDEX IF NOT EXISTS idx_playbooks_department ON playbooks(department_id);
-            CREATE INDEX IF NOT EXISTS idx_playbooks_park ON playbooks(park_id);
 
             CREATE TABLE IF NOT EXISTS playbook_steps (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 playbook_id INTEGER NOT NULL,
+                park_id INTEGER,
                 title TEXT NOT NULL,
                 body TEXT NOT NULL DEFAULT '',
                 schedule_type TEXT NOT NULL CHECK (schedule_type IN ('op_datum','vanaf_datum')),
@@ -164,7 +162,8 @@ final class Database
                 status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','afgerond')),
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (playbook_id) REFERENCES playbooks(id) ON DELETE CASCADE
+                FOREIGN KEY (playbook_id) REFERENCES playbooks(id) ON DELETE CASCADE,
+                FOREIGN KEY (park_id) REFERENCES parks(id) ON DELETE SET NULL
             );
             CREATE INDEX IF NOT EXISTS idx_playbook_steps_playbook ON playbook_steps(playbook_id);
             CREATE INDEX IF NOT EXISTS idx_playbook_steps_date ON playbook_steps(date);
@@ -210,6 +209,48 @@ final class Database
             $this->pdo->exec('DROP TABLE people');
             $this->pdo->exec('ALTER TABLE people_new RENAME TO people');
             $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_people_type ON people(type)');
+            $this->pdo->exec('PRAGMA foreign_keys = ON');
+        }
+
+        $stepColumns = $this->pdo->query('PRAGMA table_info(playbook_steps)')->fetchAll();
+        $stepColumnNames = array_column($stepColumns, 'name');
+        if (!in_array('park_id', $stepColumnNames, true)) {
+            $this->pdo->exec('ALTER TABLE playbook_steps ADD COLUMN park_id INTEGER');
+        }
+        $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_playbook_steps_park ON playbook_steps(park_id)');
+
+        $playbookColumns = $this->pdo->query('PRAGMA table_info(playbooks)')->fetchAll();
+        $playbookColumnNames = array_column($playbookColumns, 'name');
+        if (in_array('park_id', $playbookColumnNames, true)) {
+            // A playbook used to belong to a single optional park; that scope now lives
+            // per step instead, so push each playbook's park down onto its existing steps
+            // before rebuilding the table (same DROP-COLUMN-portability reasoning as above).
+            $this->pdo->exec(<<<'SQL'
+                UPDATE playbook_steps
+                SET park_id = (SELECT park_id FROM playbooks WHERE playbooks.id = playbook_steps.playbook_id)
+                WHERE park_id IS NULL
+            SQL);
+            $this->pdo->exec('PRAGMA foreign_keys = OFF');
+            $this->pdo->exec(<<<'SQL'
+                CREATE TABLE playbooks_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    department_id INTEGER NOT NULL,
+                    leader_person_id INTEGER,
+                    leader_name TEXT NOT NULL DEFAULT '',
+                    description TEXT NOT NULL DEFAULT '',
+                    share_token TEXT NOT NULL UNIQUE,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+            SQL);
+            $this->pdo->exec(<<<'SQL'
+                INSERT INTO playbooks_new (id, title, department_id, leader_person_id, leader_name, description, share_token, created_at, updated_at)
+                SELECT id, title, department_id, leader_person_id, leader_name, description, share_token, created_at, updated_at FROM playbooks
+            SQL);
+            $this->pdo->exec('DROP TABLE playbooks');
+            $this->pdo->exec('ALTER TABLE playbooks_new RENAME TO playbooks');
+            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_playbooks_department ON playbooks(department_id)');
             $this->pdo->exec('PRAGMA foreign_keys = ON');
         }
     }

@@ -11,15 +11,9 @@
 <?php endforeach; ?>
 
 <div class="chip-row">
-    <a class="chip <?= $selectedDepartmentId === null ? 'active' : '' ?>" href="<?= e(url('/draaiboeken' . ($selectedParkId ? '?park=' . $selectedParkId : ''))) ?>">Alle afdelingen</a>
+    <a class="chip <?= $selectedDepartmentId === null ? 'active' : '' ?>" href="<?= e(url('/draaiboeken')) ?>">Alle afdelingen</a>
     <?php foreach ($departments as $department): ?>
-        <a class="chip <?= $selectedDepartmentId === (int) $department['id'] ? 'active' : '' ?>" href="<?= e(url('/draaiboeken?department=' . $department['id'] . ($selectedParkId ? '&park=' . $selectedParkId : ''))) ?>"><?= e($department['name']) ?></a>
-    <?php endforeach; ?>
-</div>
-<div class="chip-row">
-    <a class="chip <?= $selectedParkId === null ? 'active' : '' ?>" href="<?= e(url('/draaiboeken' . ($selectedDepartmentId ? '?department=' . $selectedDepartmentId : ''))) ?>">Alle parken</a>
-    <?php foreach ($parks as $park): ?>
-        <a class="chip <?= $selectedParkId === (int) $park['id'] ? 'active' : '' ?>" href="<?= e(url('/draaiboeken?park=' . $park['id'] . ($selectedDepartmentId ? '&department=' . $selectedDepartmentId : ''))) ?>"><?= e($park['name']) ?></a>
+        <a class="chip <?= $selectedDepartmentId === (int) $department['id'] ? 'active' : '' ?>" href="<?= e(url('/draaiboeken?department=' . $department['id'])) ?>"><?= e($department['name']) ?></a>
     <?php endforeach; ?>
 </div>
 
@@ -30,7 +24,7 @@
         <?php foreach ($playbooks as $playbook): ?>
             <a class="card card-link" href="<?= e(url('/draaiboeken/' . $playbook['id'])) ?>">
                 <h3><?= e($playbook['title']) ?></h3>
-                <small><?= e($playbook['department_name']) ?><?= $playbook['park_name'] ? ' · ' . e($playbook['park_name']) : '' ?> · Leiding: <?= e($playbook['leader_name']) ?></small>
+                <small><?= e($playbook['department_name']) ?> · Leiding: <?= e($playbook['leader_name']) ?></small>
             </a>
         <?php endforeach; ?>
     </div>

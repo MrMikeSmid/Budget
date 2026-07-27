@@ -14,23 +14,13 @@
 <form method="post" action="<?= e(url($isEdit ? '/draaiboeken/' . $playbook['id'] . '/update' : '/draaiboeken')) ?>">
     <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
     <label class="field"><span>Titel</span><input name="title" maxlength="120" value="<?= e($playbook['title'] ?? '') ?>" required autofocus placeholder="Bijv. Openingsprocedure zomerseizoen"></label>
-    <div class="field-row">
-        <label class="field"><span>Afdeling</span>
-            <select name="department_id" required>
-                <?php foreach ($departments as $department): ?>
-                    <option value="<?= (int) $department['id'] ?>" <?= (int) ($playbook['department_id'] ?? 0) === (int) $department['id'] ? 'selected' : '' ?>><?= e($department['name']) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-        <label class="field"><span>Park (optioneel)</span>
-            <select name="park_id">
-                <option value="">Geen specifiek park</option>
-                <?php foreach ($parks as $park): ?>
-                    <option value="<?= (int) $park['id'] ?>" <?= (int) ($playbook['park_id'] ?? 0) === (int) $park['id'] ? 'selected' : '' ?>><?= e($park['name']) ?></option>
-                <?php endforeach; ?>
-            </select>
-        </label>
-    </div>
+    <label class="field"><span>Afdeling</span>
+        <select name="department_id" required>
+            <?php foreach ($departments as $department): ?>
+                <option value="<?= (int) $department['id'] ?>" <?= (int) ($playbook['department_id'] ?? 0) === (int) $department['id'] ? 'selected' : '' ?>><?= e($department['name']) ?></option>
+            <?php endforeach; ?>
+        </select>
+    </label>
     <fieldset>
         <legend>Leidinggevende</legend>
         <div class="field-row">

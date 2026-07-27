@@ -17,14 +17,11 @@ final class PlaybookController extends Controller
     {
         $this->auth();
         $departmentId = !empty($_GET['department']) ? (int) $_GET['department'] : null;
-        $parkId = !empty($_GET['park']) ? (int) $_GET['park'] : null;
         view('playbooks/index', [
             'title' => 'Draaiboeken',
             'departments' => (new Department())->all(),
-            'parks' => (new Park())->all(),
             'selectedDepartmentId' => $departmentId,
-            'selectedParkId' => $parkId,
-            'playbooks' => (new Playbook())->all($departmentId, $parkId),
+            'playbooks' => (new Playbook())->all($departmentId),
         ]);
     }
 
@@ -35,7 +32,6 @@ final class PlaybookController extends Controller
             'title' => 'Nieuw draaiboek',
             'playbook' => null,
             'departments' => (new Department())->all(),
-            'parks' => (new Park())->all(),
             'people' => (new Person())->all(null, 'staff'),
         ]);
     }
@@ -44,12 +40,12 @@ final class PlaybookController extends Controller
     {
         $this->auth();
         $this->verifyCsrf();
-        [$title, $departmentId, $parkId, $leaderPersonId, $leaderName, $description, $error] = $this->readInput();
+        [$title, $departmentId, $leaderPersonId, $leaderName, $description, $error] = $this->readInput();
         if ($error !== null) {
             flash('error', $error);
             redirect('/draaiboeken/nieuw');
         }
-        $id = (new Playbook())->create($title, $departmentId, $parkId, $leaderPersonId, $leaderName, $description);
+        $id = (new Playbook())->create($title, $departmentId, $leaderPersonId, $leaderName, $description);
         redirect('/draaiboeken/' . $id);
     }
 
@@ -62,10 +58,13 @@ final class PlaybookController extends Controller
             view('errors/404', ['title' => 'Draaiboek niet gevonden']);
             return;
         }
+        $parkId = !empty($_GET['park']) ? (int) $_GET['park'] : null;
         view('playbooks/show', [
             'title' => $playbook['title'],
             'playbook' => $playbook,
-            'steps' => (new PlaybookStep())->forPlaybook((int) $id),
+            'parks' => (new Park())->all(),
+            'selectedParkId' => $parkId,
+            'steps' => (new PlaybookStep())->forPlaybook((int) $id, $parkId),
             'shareUrl' => absolute_url('/gedeeld/' . $playbook['share_token']),
         ]);
     }
@@ -83,7 +82,6 @@ final class PlaybookController extends Controller
             'title' => 'Draaiboek bewerken',
             'playbook' => $playbook,
             'departments' => (new Department())->all(),
-            'parks' => (new Park())->all(),
             'people' => (new Person())->all(null, 'staff'),
         ]);
     }
@@ -98,12 +96,12 @@ final class PlaybookController extends Controller
             view('errors/404', ['title' => 'Draaiboek niet gevonden']);
             return;
         }
-        [$title, $departmentId, $parkId, $leaderPersonId, $leaderName, $description, $error] = $this->readInput();
+        [$title, $departmentId, $leaderPersonId, $leaderName, $description, $error] = $this->readInput();
         if ($error !== null) {
             flash('error', $error);
             redirect('/draaiboeken/' . $id . '/bewerken');
         }
-        (new Playbook())->update((int) $id, $title, $departmentId, $parkId, $leaderPersonId, $leaderName, $description);
+        (new Playbook())->update((int) $id, $title, $departmentId, $leaderPersonId, $leaderName, $description);
         redirect('/draaiboeken/' . $id);
     }
 
@@ -131,32 +129,31 @@ final class PlaybookController extends Controller
         redirect('/draaiboeken/' . $id);
     }
 
-    /** @return array{0:string,1:int,2:?int,3:?int,4:string,5:string,6:?string} */
+    /** @return array{0:string,1:int,2:?int,3:string,4:string,5:?string} */
     private function readInput(): array
     {
         $title = trim((string) ($_POST['title'] ?? ''));
         $departmentId = (int) ($_POST['department_id'] ?? 0);
-        $parkId = !empty($_POST['park_id']) ? (int) $_POST['park_id'] : null;
         $leaderPersonId = !empty($_POST['leader_person_id']) ? (int) $_POST['leader_person_id'] : null;
         $leaderName = trim((string) ($_POST['leader_name'] ?? ''));
         $description = trim((string) ($_POST['description'] ?? ''));
 
         if ($title === '' || mb_strlen($title) > 120) {
-            return [$title, $departmentId, $parkId, $leaderPersonId, $leaderName, $description, 'Geef het draaiboek een titel.'];
+            return [$title, $departmentId, $leaderPersonId, $leaderName, $description, 'Geef het draaiboek een titel.'];
         }
         if (!(new Department())->find($departmentId)) {
-            return [$title, $departmentId, $parkId, $leaderPersonId, $leaderName, $description, 'Kies een geldige afdeling.'];
+            return [$title, $departmentId, $leaderPersonId, $leaderName, $description, 'Kies een geldige afdeling.'];
         }
         if ($leaderPersonId !== null) {
             $person = (new Person())->find($leaderPersonId);
             if (!$person) {
-                return [$title, $departmentId, $parkId, $leaderPersonId, $leaderName, $description, 'Gekozen leidinggevende bestaat niet (meer).'];
+                return [$title, $departmentId, $leaderPersonId, $leaderName, $description, 'Gekozen leidinggevende bestaat niet (meer).'];
             }
             $leaderName = $person['name'];
         } elseif ($leaderName === '') {
-            return [$title, $departmentId, $parkId, $leaderPersonId, $leaderName, $description, 'Kies een leidinggevende of vul een naam in.'];
+            return [$title, $departmentId, $leaderPersonId, $leaderName, $description, 'Kies een leidinggevende of vul een naam in.'];
         }
 
-        return [$title, $departmentId, $parkId, $leaderPersonId, $leaderName, $description, null];
+        return [$title, $departmentId, $leaderPersonId, $leaderName, $description, null];
     }
 }
