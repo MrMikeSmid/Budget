@@ -1,1 +1,0 @@
-<section class="not-found"><span>☁</span><h1>Hier is niets te doen</h1><p>Deze pagina of dit lijstje bestaat niet (meer).</p><a class="button button--primary" href="<?= e(url('/')) ?>">Terug naar je lijstjes</a></section>

@@ -1,4 +1,0 @@
-/storage/*.sqlite
-/storage/*.sqlite-*
-/storage/logs/*
-!.gitkeep
