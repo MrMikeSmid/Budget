@@ -1,6 +1,6 @@
 <div class="print-header">
     <div>
-        <span class="eyebrow"><?= e($park['name']) ?> · <?= $person['type'] === 'staff' ? 'Medewerker' : 'Gast' ?></span>
+        <span class="eyebrow"><?= $parks ? e(implode(', ', array_column($parks, 'name'))) . ' · ' : '' ?><?= $person['type'] === 'staff' ? 'Medewerker' : 'Gast' ?></span>
         <h1><?= e($person['name']) ?></h1>
         <?php if ($person['role']): ?><div><?= e($person['role']) ?></div><?php endif; ?>
         <?php if ($person['email'] || $person['phone']): ?><small><?= e($person['email']) ?><?= $person['email'] && $person['phone'] ? ' · ' : '' ?><?= e($person['phone']) ?></small><?php endif; ?>

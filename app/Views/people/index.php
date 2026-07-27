@@ -1,5 +1,6 @@
 <header class="topbar">
     <div><span class="eyebrow">Overzicht</span><h1>Personen</h1></div>
+    <a class="button button--primary button--small" href="<?= e(url('/personen/nieuw')) ?>">+ Nieuw persoon</a>
 </header>
 
 <div class="chip-row">
@@ -15,7 +16,7 @@
 </div>
 
 <?php if (empty($people)): ?>
-    <div class="empty">Niemand gevonden. Voeg iemand toe via een park.</div>
+    <div class="empty">Niemand gevonden. <a href="<?= e(url('/personen/nieuw')) ?>">Voeg iemand toe</a>.</div>
 <?php else: ?>
     <div class="card-list">
         <?php foreach ($people as $person): ?>
@@ -24,7 +25,7 @@
                     <h3><?= e($person['name']) ?></h3>
                     <span class="badge <?= $person['type'] === 'staff' ? 'badge--muted' : 'badge--warn' ?>"><?= $person['type'] === 'staff' ? 'Medewerker' : 'Gast' ?></span>
                 </div>
-                <small><?= e($person['park_name']) ?><?= $person['role'] ? ' · ' . e($person['role']) : '' ?></small>
+                <small><?= $person['park_names'] ? e($person['park_names']) : 'Geen park gekoppeld' ?><?= $person['role'] ? ' · ' . e($person['role']) : '' ?></small>
             </a>
         <?php endforeach; ?>
     </div>

@@ -17,7 +17,7 @@
 </form>
 
 <?php if ($isEdit): ?>
-    <form method="post" action="<?= e(url('/parken/' . $park['id'] . '/delete')) ?>" class="inline-form" onsubmit="return confirm('Dit park en alle bijbehorende personen, notities en registraties worden verwijderd. Doorgaan?')">
+    <form method="post" action="<?= e(url('/parken/' . $park['id'] . '/delete')) ?>" class="inline-form" onsubmit="return confirm('Dit park en alle bijbehorende notities, afspraken en taken worden verwijderd. Gekoppelde medewerkers en gasten blijven bestaan, maar verliezen de koppeling met dit park. Doorgaan?')">
         <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
         <button class="button button--danger button--wide" type="submit">Park verwijderen</button>
     </form>

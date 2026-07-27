@@ -57,7 +57,6 @@ final class Database
 
             CREATE TABLE IF NOT EXISTS people (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                park_id INTEGER NOT NULL,
                 type TEXT NOT NULL CHECK (type IN ('staff','guest')),
                 name TEXT NOT NULL,
                 role TEXT NOT NULL DEFAULT '',
@@ -66,11 +65,18 @@ final class Database
                 is_active INTEGER NOT NULL DEFAULT 1,
                 notes TEXT NOT NULL DEFAULT '',
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_people_type ON people(type);
+
+            CREATE TABLE IF NOT EXISTS person_parks (
+                person_id INTEGER NOT NULL,
+                park_id INTEGER NOT NULL,
+                PRIMARY KEY (person_id, park_id),
+                FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE CASCADE,
                 FOREIGN KEY (park_id) REFERENCES parks(id) ON DELETE CASCADE
             );
-            CREATE INDEX IF NOT EXISTS idx_people_park ON people(park_id);
-            CREATE INDEX IF NOT EXISTS idx_people_type ON people(type);
+            CREATE INDEX IF NOT EXISTS idx_person_parks_park ON person_parks(park_id);
 
             CREATE TABLE IF NOT EXISTS items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,5 +127,15 @@ final class Database
             );
             CREATE INDEX IF NOT EXISTS idx_reviews_person ON performance_reviews(person_id);
         SQL);
+
+        $peopleColumns = $this->pdo->query('PRAGMA table_info(people)')->fetchAll();
+        $peopleColumnNames = array_column($peopleColumns, 'name');
+        if (in_array('park_id', $peopleColumnNames, true)) {
+            $this->pdo->exec(<<<'SQL'
+                INSERT OR IGNORE INTO person_parks (person_id, park_id)
+                SELECT id, park_id FROM people WHERE park_id IS NOT NULL
+            SQL);
+            $this->pdo->exec('ALTER TABLE people DROP COLUMN park_id');
+        }
     }
 }

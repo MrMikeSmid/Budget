@@ -1,5 +1,5 @@
 <header class="topbar">
-    <div><span class="eyebrow"><?= e($park['name']) ?> · <?= $person['type'] === 'staff' ? 'Medewerker' : 'Gast' ?></span><h1><?= e($person['name']) ?></h1></div>
+    <div><span class="eyebrow"><?= $person['type'] === 'staff' ? 'Medewerker' : 'Gast' ?></span><h1><?= e($person['name']) ?></h1></div>
     <div style="display:flex;gap:8px">
         <a class="icon-button" href="<?= e(url('/personen/' . $person['id'] . '/print')) ?>" title="Print">⎙</a>
         <a class="icon-button" href="<?= e(url('/personen/' . $person['id'] . '/bewerken')) ?>" title="Bewerken">✎</a>
@@ -14,13 +14,28 @@
     <?php if ($person['role']): ?><div><strong><?= e($person['role']) ?></strong></div><?php endif; ?>
     <?php if ($person['email'] || $person['phone']): ?><small><?= e($person['email']) ?><?= $person['email'] && $person['phone'] ? ' · ' : '' ?><?= e($person['phone']) ?></small><?php endif; ?>
     <?php if ($person['notes']): ?><p style="margin:10px 0 0;font-size:13px;white-space:pre-wrap"><?= e($person['notes']) ?></p><?php endif; ?>
-    <?php if (!$person['is_active']): ?><div style="margin-top:8px"><span class="badge badge--muted">Inactief</span></div><?php endif; ?>
+    <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px">
+        <?php if (empty($parks)): ?>
+            <span class="badge badge--muted">Geen park gekoppeld</span>
+        <?php else: ?>
+            <?php foreach ($parks as $park): ?><a class="badge" href="<?= e(url('/parken/' . $park['id'])) ?>"><?= e($park['name']) ?></a><?php endforeach; ?>
+        <?php endif; ?>
+        <?php if (!$person['is_active']): ?><span class="badge badge--muted">Inactief</span><?php endif; ?>
+    </div>
 </div>
 
 <div class="section-heading">
     <h2>Notities, afspraken &amp; taken</h2>
-    <a class="button button--soft button--small" href="<?= e(url('/parken/' . $park['id'] . '/items/nieuw?category=' . ($person['type'] === 'staff' ? 'personeel' : 'gasten') . '&person_id=' . $person['id'])) ?>">+ Toevoegen</a>
 </div>
+<?php if (empty($parks)): ?>
+    <p style="margin:-4px 0 12px;font-size:12px;color:var(--muted)">Koppel eerst een park aan deze persoon om een notitie, afspraak of taak toe te voegen.</p>
+<?php else: ?>
+    <div class="chip-row">
+        <?php foreach ($parks as $park): ?>
+            <a class="chip" href="<?= e(url('/parken/' . $park['id'] . '/items/nieuw?category=' . ($person['type'] === 'staff' ? 'personeel' : 'gasten') . '&person_id=' . $person['id'])) ?>">+ bij <?= e($park['name']) ?></a>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
 <?php if (empty($items)): ?>
     <div class="empty">Nog niets genoteerd bij deze persoon.</div>
 <?php else: ?>

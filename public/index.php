@@ -35,8 +35,8 @@ $router->post('/parken/{id}/update', [ParkController::class, 'update']);
 $router->post('/parken/{id}/delete', [ParkController::class, 'delete']);
 
 $router->get('/personen', [PersonController::class, 'index']);
-$router->get('/parken/{parkId}/personen/nieuw', [PersonController::class, 'create']);
-$router->post('/parken/{parkId}/personen', [PersonController::class, 'store']);
+$router->get('/personen/nieuw', [PersonController::class, 'create']);
+$router->post('/personen', [PersonController::class, 'store']);
 $router->get('/personen/{id}', [PersonController::class, 'show']);
 $router->get('/personen/{id}/bewerken', [PersonController::class, 'edit']);
 $router->post('/personen/{id}/update', [PersonController::class, 'update']);

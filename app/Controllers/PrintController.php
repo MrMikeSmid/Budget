@@ -22,11 +22,10 @@ final class PrintController extends Controller
             view('errors/404', ['title' => 'Persoon niet gevonden']);
             return;
         }
-        $park = (new Park())->find((int) $person['park_id']);
         view('print/person', [
             'title' => $person['name'],
             'person' => $person,
-            'park' => $park,
+            'parks' => (new Person())->parksForPerson((int) $id),
             'items' => (new Item())->forPerson((int) $id),
             'absences' => $person['type'] === 'staff' ? (new Absence())->forPerson((int) $id) : [],
             'reviews' => $person['type'] === 'staff' ? (new PerformanceReview())->forPerson((int) $id) : [],

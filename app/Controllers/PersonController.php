@@ -27,40 +27,36 @@ final class PersonController extends Controller
         ]);
     }
 
-    public function create(string $parkId): void
+    public function create(): void
     {
         $this->auth();
-        $park = (new Park())->find((int) $parkId);
-        if (!$park) {
-            http_response_code(404);
-            view('errors/404', ['title' => 'Park niet gevonden']);
-            return;
-        }
-        $type = $_GET['type'] ?? 'staff';
-        view('people/form', ['title' => 'Nieuw persoon', 'park' => $park, 'person' => null, 'type' => $type]);
+        $type = in_array($_GET['type'] ?? '', ['staff', 'guest'], true) ? (string) $_GET['type'] : 'staff';
+        $preselectedParkId = !empty($_GET['park']) ? (int) $_GET['park'] : null;
+        view('people/form', [
+            'title' => 'Nieuw persoon',
+            'parks' => (new Park())->all(),
+            'personParkIds' => $preselectedParkId !== null ? [$preselectedParkId] : [],
+            'person' => null,
+            'type' => $type,
+        ]);
     }
 
-    public function store(string $parkId): void
+    public function store(): void
     {
         $this->auth();
         $this->verifyCsrf();
-        $park = (new Park())->find((int) $parkId);
-        if (!$park) {
-            http_response_code(404);
-            view('errors/404', ['title' => 'Park niet gevonden']);
-            return;
-        }
         $type = in_array($_POST['type'] ?? '', ['staff', 'guest'], true) ? (string) $_POST['type'] : 'staff';
         $name = trim((string) ($_POST['name'] ?? ''));
         if ($name === '' || mb_strlen($name) > 100) {
             flash('error', 'Vul een naam in.');
-            redirect('/parken/' . $parkId . '/personen/nieuw?type=' . $type);
+            redirect('/personen/nieuw?type=' . $type);
         }
         $role = trim((string) ($_POST['role'] ?? ''));
         $email = trim((string) ($_POST['email'] ?? ''));
         $phone = trim((string) ($_POST['phone'] ?? ''));
         $notes = trim((string) ($_POST['notes'] ?? ''));
-        $id = (new Person())->create((int) $parkId, $type, $name, $role, $email, $phone, $notes);
+        $parkIds = array_map('intval', (array) ($_POST['park_ids'] ?? []));
+        $id = (new Person())->create($type, $name, $role, $email, $phone, $notes, $parkIds);
         redirect('/personen/' . $id);
     }
 
@@ -73,11 +69,10 @@ final class PersonController extends Controller
             view('errors/404', ['title' => 'Persoon niet gevonden']);
             return;
         }
-        $park = (new Park())->find((int) $person['park_id']);
         view('people/show', [
             'title' => $person['name'],
             'person' => $person,
-            'park' => $park,
+            'parks' => (new Person())->parksForPerson((int) $id),
             'items' => (new Item())->forPerson((int) $id),
             'absences' => $person['type'] === 'staff' ? (new Absence())->forPerson((int) $id) : [],
             'reviews' => $person['type'] === 'staff' ? (new PerformanceReview())->forPerson((int) $id) : [],
@@ -93,8 +88,14 @@ final class PersonController extends Controller
             view('errors/404', ['title' => 'Persoon niet gevonden']);
             return;
         }
-        $park = (new Park())->find((int) $person['park_id']);
-        view('people/form', ['title' => 'Persoon bewerken', 'park' => $park, 'person' => $person, 'type' => $person['type']]);
+        $personParks = (new Person())->parksForPerson((int) $id);
+        view('people/form', [
+            'title' => 'Persoon bewerken',
+            'parks' => (new Park())->all(),
+            'personParkIds' => array_map(fn(array $p): int => (int) $p['id'], $personParks),
+            'person' => $person,
+            'type' => $person['type'],
+        ]);
     }
 
     public function update(string $id): void
@@ -117,7 +118,10 @@ final class PersonController extends Controller
         $phone = trim((string) ($_POST['phone'] ?? ''));
         $notes = trim((string) ($_POST['notes'] ?? ''));
         $isActive = !empty($_POST['is_active']);
-        (new Person())->update((int) $id, $name, $role, $email, $phone, $notes, $isActive);
+        $parkIds = array_map('intval', (array) ($_POST['park_ids'] ?? []));
+        $people = new Person();
+        $people->update((int) $id, $name, $role, $email, $phone, $notes, $isActive);
+        $people->setParks((int) $id, $parkIds);
         redirect('/personen/' . $id);
     }
 
@@ -133,6 +137,6 @@ final class PersonController extends Controller
         }
         (new Person())->delete((int) $id);
         flash('success', 'De persoon is verwijderd.');
-        redirect('/parken/' . $person['park_id']);
+        redirect('/personen');
     }
 }

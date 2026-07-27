@@ -16,7 +16,7 @@
 
 <div class="section-heading">
     <h2>Medewerkers</h2>
-    <a class="button button--soft button--small" href="<?= e(url('/parken/' . $park['id'] . '/personen/nieuw?type=staff')) ?>">+ Toevoegen</a>
+    <a class="button button--soft button--small" href="<?= e(url('/personen/nieuw?type=staff&park=' . $park['id'])) ?>">+ Toevoegen</a>
 </div>
 <?php if (empty($staff)): ?>
     <div class="empty">Nog geen medewerkers toegevoegd.</div>
@@ -33,7 +33,7 @@
 
 <div class="section-heading">
     <h2>Gasten</h2>
-    <a class="button button--soft button--small" href="<?= e(url('/parken/' . $park['id'] . '/personen/nieuw?type=guest')) ?>">+ Toevoegen</a>
+    <a class="button button--soft button--small" href="<?= e(url('/personen/nieuw?type=guest&park=' . $park['id'])) ?>">+ Toevoegen</a>
 </div>
 <?php if (empty($guests)): ?>
     <div class="empty">Geen gastdossiers.</div>
