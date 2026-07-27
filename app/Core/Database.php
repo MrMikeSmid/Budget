@@ -181,11 +181,36 @@ final class Database
         $peopleColumns = $this->pdo->query('PRAGMA table_info(people)')->fetchAll();
         $peopleColumnNames = array_column($peopleColumns, 'name');
         if (in_array('park_id', $peopleColumnNames, true)) {
+            // Rebuilt via CREATE+COPY+DROP+RENAME instead of `ALTER TABLE ... DROP COLUMN`:
+            // that syntax needs SQLite 3.35+ (2021), which some shared-hosting PHP builds
+            // still don't bundle, and would otherwise crash every request past this point.
             $this->pdo->exec(<<<'SQL'
                 INSERT OR IGNORE INTO person_parks (person_id, park_id)
                 SELECT id, park_id FROM people WHERE park_id IS NOT NULL
             SQL);
-            $this->pdo->exec('ALTER TABLE people DROP COLUMN park_id');
+            $this->pdo->exec('PRAGMA foreign_keys = OFF');
+            $this->pdo->exec(<<<'SQL'
+                CREATE TABLE people_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    type TEXT NOT NULL CHECK (type IN ('staff','guest')),
+                    name TEXT NOT NULL,
+                    role TEXT NOT NULL DEFAULT '',
+                    email TEXT NOT NULL DEFAULT '',
+                    phone TEXT NOT NULL DEFAULT '',
+                    is_active INTEGER NOT NULL DEFAULT 1,
+                    notes TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+            SQL);
+            $this->pdo->exec(<<<'SQL'
+                INSERT INTO people_new (id, type, name, role, email, phone, is_active, notes, created_at, updated_at)
+                SELECT id, type, name, role, email, phone, is_active, notes, created_at, updated_at FROM people
+            SQL);
+            $this->pdo->exec('DROP TABLE people');
+            $this->pdo->exec('ALTER TABLE people_new RENAME TO people');
+            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_people_type ON people(type)');
+            $this->pdo->exec('PRAGMA foreign_keys = ON');
         }
     }
 }
