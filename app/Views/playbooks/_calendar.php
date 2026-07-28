@@ -79,12 +79,41 @@ $rowCount = max(count($visibleStepIndexes), 1);
 <?php if (empty($visibleStepIndexes)): ?>
     <div class="empty">Geen taken in <?= e($month['label']) ?>.</div>
 <?php endif; ?>
-<?php if ($todayIndex !== null): ?>
 <script>
 (() => {
     const wrap = document.getElementById('ganttWrap');
-    const todayLine = wrap ? wrap.querySelector('.gantt-today-line') : null;
-    if (wrap && todayLine) { wrap.scrollLeft = Math.max(0, todayLine.offsetLeft - wrap.clientWidth / 2); }
+    if (!wrap) return;
+
+    const todayLine = wrap.querySelector('.gantt-today-line');
+    if (todayLine) { wrap.scrollLeft = Math.max(0, todayLine.offsetLeft - wrap.clientWidth / 2); }
+
+    // Desktop mice send vertical wheel deltas; translate those into horizontal
+    // scroll so the calendar scrolls without needing Shift held down. Trackpads
+    // already send a real deltaX, so leave those untouched.
+    wrap.addEventListener('wheel', (e) => {
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+            wrap.scrollLeft += e.deltaY;
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    // Click-and-drag scrolling for desktop mouse users.
+    let dragging = false;
+    let dragStartX = 0;
+    let dragStartScroll = 0;
+    wrap.addEventListener('mousedown', (e) => {
+        dragging = true;
+        wrap.classList.add('is-dragging');
+        dragStartX = e.pageX;
+        dragStartScroll = wrap.scrollLeft;
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        wrap.scrollLeft = dragStartScroll - (e.pageX - dragStartX);
+    });
+    window.addEventListener('mouseup', () => {
+        dragging = false;
+        wrap.classList.remove('is-dragging');
+    });
 })();
 </script>
-<?php endif; ?>

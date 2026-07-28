@@ -87,7 +87,8 @@ legend{margin-bottom:6px;font-size:12px;font-weight:700;color:var(--muted)}
 .calendar-legend span{display:inline-flex;align-items:center;gap:5px}
 .calendar-dot{width:8px;height:8px;border-radius:3px;background:var(--accent);flex:0 0 auto}
 .calendar-dot--periodiek{background:var(--brand)}
-.gantt-wrap{overflow-x:auto;margin-bottom:16px;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:12px;background:var(--paper)}
+.gantt-wrap{overflow-x:auto;margin-bottom:16px;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:12px;background:var(--paper);cursor:grab}
+.gantt-wrap.is-dragging{cursor:grabbing;user-select:none}
 .gantt{display:grid;position:relative;min-width:100%;width:max-content}
 .gantt-day-header{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
 .gantt-day-header.today{background:var(--brand-soft)}
