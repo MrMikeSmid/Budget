@@ -1,0 +1,75 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+final class PlaybookStep
+{
+    public function forPlaybook(int $playbookId, ?int $parkId = null): array
+    {
+        $sql = <<<'SQL'
+            SELECT s.*, pa.name AS park_name
+            FROM playbook_steps s
+            LEFT JOIN parks pa ON pa.id = s.park_id
+            WHERE s.playbook_id = ?
+        SQL;
+        $params = [$playbookId];
+        if ($parkId !== null) {
+            // Steps without a park apply everywhere, so they stay visible in a park's filtered view too.
+            $sql .= ' AND (s.park_id = ? OR s.park_id IS NULL)';
+            $params[] = $parkId;
+        }
+        $sql .= ' ORDER BY s.start_date ASC, s.created_at ASC';
+        $stmt = db()->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    public function all(): array
+    {
+        return db()->query(<<<'SQL'
+            SELECT s.*, pa.name AS park_name, pb.title AS playbook_title
+            FROM playbook_steps s
+            JOIN playbooks pb ON pb.id = s.playbook_id
+            LEFT JOIN parks pa ON pa.id = s.park_id
+            ORDER BY s.start_date ASC, s.created_at ASC
+        SQL)->fetchAll();
+    }
+
+    public function find(int $id): ?array
+    {
+        $stmt = db()->prepare('SELECT * FROM playbook_steps WHERE id = ?');
+        $stmt->execute([$id]);
+        $step = $stmt->fetch();
+        return $step ?: null;
+    }
+
+    public function create(int $playbookId, ?int $parkId, string $type, string $title, string $body, string $startDate, string $endDate, ?string $recurrenceInterval): int
+    {
+        $stmt = db()->prepare('INSERT INTO playbook_steps (playbook_id, park_id, type, title, body, start_date, end_date, recurrence_interval) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$playbookId, $parkId, $type, $title, $body, $startDate, $endDate, $recurrenceInterval]);
+        return (int) db()->lastInsertId();
+    }
+
+    public function update(int $id, ?int $parkId, string $type, string $title, string $body, string $startDate, string $endDate, ?string $recurrenceInterval): void
+    {
+        $stmt = db()->prepare('UPDATE playbook_steps SET park_id = ?, type = ?, title = ?, body = ?, start_date = ?, end_date = ?, recurrence_interval = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+        $stmt->execute([$parkId, $type, $title, $body, $startDate, $endDate, $recurrenceInterval, $id]);
+    }
+
+    public function toggle(int $id): void
+    {
+        $step = $this->find($id);
+        if (!$step) {
+            return;
+        }
+        $newStatus = $step['status'] === 'afgerond' ? 'open' : 'afgerond';
+        db()->prepare('UPDATE playbook_steps SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$newStatus, $id]);
+    }
+
+    public function delete(int $id): void
+    {
+        db()->prepare('DELETE FROM playbook_steps WHERE id = ?')->execute([$id]);
+    }
+}
