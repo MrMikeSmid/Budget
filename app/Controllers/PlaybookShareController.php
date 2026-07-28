@@ -23,14 +23,30 @@ final class PlaybookShareController extends Controller
             view('errors/404', ['title' => 'Draaiboek niet gevonden']);
             return;
         }
-        $steps = (new PlaybookStep())->forPlaybook((int) $playbook['id']);
-        [$calendarStart, $calendarEnd] = playbook_calendar_range($steps);
         view('playbooks/share', [
             'title' => $playbook['title'],
             'playbook' => $playbook,
-            'steps' => $steps,
-            'calendarStart' => $calendarStart,
-            'calendarEnd' => $calendarEnd,
+            'steps' => (new PlaybookStep())->forPlaybook((int) $playbook['id']),
+            'token' => $token,
+        ], 'print');
+    }
+
+    public function calendar(string $token): void
+    {
+        $playbook = (new Playbook())->findByToken($token);
+        if (!$playbook) {
+            http_response_code(404);
+            view('errors/404', ['title' => 'Draaiboek niet gevonden']);
+            return;
+        }
+        $month = playbook_calendar_month(is_string($_GET['maand'] ?? null) ? $_GET['maand'] : null);
+        view('playbooks/calendar', [
+            'title' => $playbook['title'] . ' · Kalender',
+            'playbook' => $playbook,
+            'steps' => (new PlaybookStep())->forPlaybook((int) $playbook['id']),
+            'month' => $month,
+            'monthUrlBase' => url('/gedeeld/' . $token . '/kalender'),
+            'backUrl' => url('/gedeeld/' . $token),
         ], 'print');
     }
 }

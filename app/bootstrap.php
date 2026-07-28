@@ -141,23 +141,29 @@ function playbook_step_occurs_on(array $step, string $date): bool {
     };
 }
 /**
- * The [start, end] window to render on the calendar strip, spanning every step's
- * start/end date but capped to a sane number of days so the page stays usable.
- * @param array[] $steps
- * @return array{0: ?string, 1: ?string}
+ * Resolves a 'YYYY-MM' query param (or the current month) to a full calendar-month
+ * window, clamped so you can't browse more than ~12 months into the future.
+ * @return array{month:string, monthStart:string, monthEnd:string, daysInMonth:int, prevMonth:string, nextMonth:string, canGoNext:bool, label:string}
  */
-function playbook_calendar_range(array $steps, int $maxDays = 180): array {
-    if (empty($steps)) {
-        return [null, null];
+function playbook_calendar_month(?string $raw): array {
+    $dutchMonths = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
+    $current = date('Y-m');
+    $month = ($raw !== null && preg_match('/^\d{4}-\d{2}$/', $raw)) ? $raw : $current;
+    $maxMonth = (new DateTimeImmutable($current . '-01'))->modify('+12 months')->format('Y-m');
+    if ($month > $maxMonth) {
+        $month = $maxMonth;
     }
-    $starts = array_column($steps, 'start_date');
-    $ends = array_column($steps, 'end_date');
-    sort($starts);
-    sort($ends);
-    $start = new DateTimeImmutable($starts[0]);
-    $end = new DateTimeImmutable($ends[count($ends) - 1]);
-    if ($start->diff($end)->days > $maxDays) {
-        $end = $start->modify('+' . $maxDays . ' days');
-    }
-    return [$start->format('Y-m-d'), $end->format('Y-m-d')];
+    $monthDate = DateTimeImmutable::createFromFormat('!Y-m', $month);
+    $monthEndDate = $monthDate->modify('last day of this month');
+    $nextMonth = $monthDate->modify('+1 month')->format('Y-m');
+    return [
+        'month' => $month,
+        'monthStart' => $monthDate->format('Y-m-d'),
+        'monthEnd' => $monthEndDate->format('Y-m-d'),
+        'daysInMonth' => (int) $monthEndDate->format('j'),
+        'prevMonth' => $monthDate->modify('-1 month')->format('Y-m'),
+        'nextMonth' => $nextMonth,
+        'canGoNext' => $nextMonth <= $maxMonth,
+        'label' => $dutchMonths[(int) $monthDate->format('n') - 1] . ' ' . $monthDate->format('Y'),
+    ];
 }

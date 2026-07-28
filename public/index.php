@@ -76,6 +76,7 @@ $router->get('/draaiboeken', [PlaybookController::class, 'index']);
 $router->get('/draaiboeken/nieuw', [PlaybookController::class, 'create']);
 $router->post('/draaiboeken', [PlaybookController::class, 'store']);
 $router->get('/draaiboeken/{id}', [PlaybookController::class, 'show']);
+$router->get('/draaiboeken/{id}/kalender', [PlaybookController::class, 'calendar']);
 $router->get('/draaiboeken/{id}/bewerken', [PlaybookController::class, 'edit']);
 $router->post('/draaiboeken/{id}/update', [PlaybookController::class, 'update']);
 $router->post('/draaiboeken/{id}/delete', [PlaybookController::class, 'delete']);
@@ -87,6 +88,7 @@ $router->post('/stappen/{id}/toggle', [PlaybookStepController::class, 'toggle'])
 $router->post('/stappen/{id}/delete', [PlaybookStepController::class, 'delete']);
 
 $router->get('/gedeeld/{token}', [PlaybookShareController::class, 'show']);
+$router->get('/gedeeld/{token}/kalender', [PlaybookShareController::class, 'calendar']);
 
 $router->get('/manifest.webmanifest', [PwaController::class, 'manifest']);
 $router->get('/pwa-icon/{name}', [PwaController::class, 'icon']);

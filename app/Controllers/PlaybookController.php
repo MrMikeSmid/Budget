@@ -59,17 +59,33 @@ final class PlaybookController extends Controller
             return;
         }
         $parkId = !empty($_GET['park']) ? (int) $_GET['park'] : null;
-        $steps = (new PlaybookStep())->forPlaybook((int) $id, $parkId);
-        [$calendarStart, $calendarEnd] = playbook_calendar_range($steps);
         view('playbooks/show', [
             'title' => $playbook['title'],
             'playbook' => $playbook,
             'parks' => (new Park())->all(),
             'selectedParkId' => $parkId,
-            'steps' => $steps,
-            'calendarStart' => $calendarStart,
-            'calendarEnd' => $calendarEnd,
+            'steps' => (new PlaybookStep())->forPlaybook((int) $id, $parkId),
             'shareUrl' => absolute_url('/gedeeld/' . $playbook['share_token']),
+        ]);
+    }
+
+    public function calendar(string $id): void
+    {
+        $this->auth();
+        $playbook = (new Playbook())->find((int) $id);
+        if (!$playbook) {
+            http_response_code(404);
+            view('errors/404', ['title' => 'Draaiboek niet gevonden']);
+            return;
+        }
+        $month = playbook_calendar_month(is_string($_GET['maand'] ?? null) ? $_GET['maand'] : null);
+        view('playbooks/calendar', [
+            'title' => $playbook['title'] . ' · Kalender',
+            'playbook' => $playbook,
+            'steps' => (new PlaybookStep())->forPlaybook((int) $id),
+            'month' => $month,
+            'monthUrlBase' => url('/draaiboeken/' . $id . '/kalender'),
+            'backUrl' => url('/draaiboeken/' . $id),
         ]);
     }
 

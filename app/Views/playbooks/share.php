@@ -10,9 +10,8 @@
     <div class="print-section"><p style="white-space:pre-wrap"><?= e($playbook['description']) ?></p></div>
 <?php endif; ?>
 
-<div class="print-section">
-    <h2>Kalender</h2>
-    <?php include __DIR__ . '/_calendar.php'; ?>
+<div class="print-actions">
+    <a class="button button--soft" href="<?= e(url('/gedeeld/' . $token . '/kalender')) ?>">📅 Bekijk volledige kalender</a>
 </div>
 
 <div class="print-section">

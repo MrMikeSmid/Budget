@@ -81,15 +81,16 @@ legend{margin-bottom:6px;font-size:12px;font-weight:700;color:var(--muted)}
 .filter-select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
 
 /* Playbook calendar (Gantt-style: rows = steps, columns = days) */
+.calendar-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.calendar-month-label{font-size:15px;text-transform:capitalize}
 .calendar-legend{display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--muted)}
 .calendar-legend span{display:inline-flex;align-items:center;gap:5px}
 .calendar-dot{width:8px;height:8px;border-radius:3px;background:var(--accent);flex:0 0 auto}
 .calendar-dot--periodiek{background:var(--brand)}
-.gantt-wrap{overflow-x:auto;margin-bottom:20px;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:12px;background:var(--paper)}
+.gantt-wrap{overflow-x:auto;margin-bottom:16px;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:12px;background:var(--paper)}
 .gantt{display:grid;position:relative;min-width:100%;width:max-content}
 .gantt-day-header{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-bottom:1px solid var(--border);border-right:1px solid var(--border)}
 .gantt-day-header.today{background:var(--brand-soft)}
-.cal-month-label{display:block;height:11px;font-size:8px;font-weight:800;color:var(--brand);text-transform:uppercase;white-space:nowrap}
 .cal-weekday{font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:700}
 .cal-daynum{font-size:14px;font-weight:700;color:var(--ink)}
 .gantt-bar{display:flex;align-items:center;padding:0 8px;margin:4px 2px;border-radius:8px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:1}

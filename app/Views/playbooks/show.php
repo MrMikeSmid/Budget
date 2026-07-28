@@ -25,8 +25,7 @@
     </div>
 </div>
 
-<div class="section-heading"><h2>Kalender</h2></div>
-<?php include __DIR__ . '/_calendar.php'; ?>
+<a class="button button--soft button--wide" style="margin-bottom:20px" href="<?= e(url('/draaiboeken/' . $playbook['id'] . '/kalender')) ?>">📅 Bekijk volledige kalender</a>
 
 <div class="section-heading"><h2>Tijdlijn</h2></div>
 <div class="filter-row">
