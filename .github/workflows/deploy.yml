@@ -24,6 +24,14 @@ jobs:
       - name: Repository ophalen
         uses: actions/checkout@v4
 
+      - name: PHP en Composer installeren
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+
+      - name: Composer-dependencies installeren
+        run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+
       - name: FTP-client installeren
         run: sudo apt-get update && sudo apt-get install --yes lftp
 
@@ -105,6 +113,7 @@ jobs:
             --exclude='(^|/)\.github(/|$)' \
             --exclude='(^|/)\.gitkeep$' \
             --exclude='^storage(/|$)' \
+            --exclude='^config/config\.php$' \
             ./ "$ftp_server_dir"
           bye
           EOF_LFTP
