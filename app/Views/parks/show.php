@@ -1,6 +1,7 @@
 <header class="topbar">
     <div><span class="eyebrow"><?= $park['location'] ? e($park['location']) : 'Park' ?></span><h1><?= e($park['name']) ?></h1></div>
     <div style="display:flex;gap:8px">
+        <a class="icon-button" href="<?= e(url('/parken/' . $park['id'] . '/rapportage')) ?>" title="Rapportage voor Parkmanager">📋</a>
         <a class="icon-button" href="<?= e(url('/parken/' . $park['id'] . '/print')) ?>" title="Print">⎙</a>
         <a class="icon-button" href="<?= e(url('/parken/' . $park['id'] . '/bewerken')) ?>" title="Bewerken">✎</a>
     </div>

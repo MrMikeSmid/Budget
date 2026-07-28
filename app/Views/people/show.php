@@ -1,5 +1,5 @@
 <header class="topbar">
-    <div><span class="eyebrow"><?= $person['type'] === 'staff' ? 'Medewerker' : 'Gast' ?></span><h1><?= e($person['name']) ?></h1></div>
+    <div><span class="eyebrow"><?= e(person_type_label($person['type'])) ?></span><h1><?= e($person['name']) ?></h1></div>
     <div style="display:flex;gap:8px">
         <a class="icon-button" href="<?= e(url('/personen/' . $person['id'] . '/print')) ?>" title="Print">⎙</a>
         <a class="icon-button" href="<?= e(url('/personen/' . $person['id'] . '/bewerken')) ?>" title="Bewerken">✎</a>
@@ -21,6 +21,9 @@
             <?php foreach ($parks as $park): ?><a class="badge" href="<?= e(url('/parken/' . $park['id'])) ?>"><?= e($park['name']) ?></a><?php endforeach; ?>
         <?php endif; ?>
         <?php if (!$person['is_active']): ?><span class="badge badge--muted">Inactief</span><?php endif; ?>
+        <?php if ($person['type'] === 'candidate'): ?>
+            <span class="badge <?= $person['application_status'] === 'aangenomen' ? 'badge--ok' : ($person['application_status'] === 'afgewezen' ? 'badge--danger' : 'badge--warn') ?>"><?= e(application_status_label($person['application_status'])) ?></span>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -32,7 +35,8 @@
 <?php else: ?>
     <div class="chip-row">
         <?php foreach ($parks as $park): ?>
-            <a class="chip" href="<?= e(url('/parken/' . $park['id'] . '/items/nieuw?category=' . ($person['type'] === 'staff' ? 'personeel' : 'gasten') . '&person_id=' . $person['id'])) ?>">+ bij <?= e($park['name']) ?></a>
+            <?php $categoryForType = ['staff' => 'personeel', 'guest' => 'gasten', 'candidate' => 'taken'][$person['type']]; ?>
+            <a class="chip" href="<?= e(url('/parken/' . $park['id'] . '/items/nieuw?category=' . $categoryForType . '&person_id=' . $person['id'])) ?>">+ bij <?= e($park['name']) ?></a>
         <?php endforeach; ?>
     </div>
 <?php endif; ?>
@@ -44,7 +48,7 @@
             <div class="card">
                 <div class="card-row">
                     <h3><?= e($item['title']) ?></h3>
-                    <span class="badge <?= $item['status'] === 'afgerond' ? 'badge--ok' : ($overdue ? 'badge--danger' : 'badge--muted') ?>"><?= $overdue ? 'Vervallen' : e(status_label($item['status'])) ?></span>
+                    <span class="badge <?= in_array($item['status'], ['afgerond', 'omgezet_compliment'], true) ? 'badge--ok' : ($overdue ? 'badge--danger' : 'badge--muted') ?>"><?= $overdue ? 'Vervallen' : e(status_label($item['status'])) ?></span>
                 </div>
                 <small><?= e(item_type_label($item['type'])) ?><?= $item['due_date'] ? ' · ' . e(format_date($item['due_date'])) : '' ?></small>
                 <?php if ($item['body']): ?><p style="margin:8px 0 0;font-size:13px;white-space:pre-wrap"><?= e($item['body']) ?></p><?php endif; ?>

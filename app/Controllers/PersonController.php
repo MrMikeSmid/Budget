@@ -13,11 +13,14 @@ use App\Models\Person;
 
 final class PersonController extends Controller
 {
+    private const TYPES = ['staff', 'guest', 'candidate'];
+    private const APPLICATION_STATUSES = ['nieuw', 'gesprek_gepland', 'afgewezen', 'aangenomen'];
+
     public function index(): void
     {
         $this->auth();
         $parkId = !empty($_GET['park']) ? (int) $_GET['park'] : null;
-        $type = in_array($_GET['type'] ?? '', ['staff', 'guest'], true) ? (string) $_GET['type'] : null;
+        $type = in_array($_GET['type'] ?? '', self::TYPES, true) ? (string) $_GET['type'] : null;
         view('people/index', [
             'title' => 'Personen',
             'parks' => (new Park())->all(),
@@ -30,7 +33,7 @@ final class PersonController extends Controller
     public function create(): void
     {
         $this->auth();
-        $type = in_array($_GET['type'] ?? '', ['staff', 'guest'], true) ? (string) $_GET['type'] : 'staff';
+        $type = in_array($_GET['type'] ?? '', self::TYPES, true) ? (string) $_GET['type'] : 'staff';
         $preselectedParkId = !empty($_GET['park']) ? (int) $_GET['park'] : null;
         view('people/form', [
             'title' => 'Nieuw persoon',
@@ -45,7 +48,7 @@ final class PersonController extends Controller
     {
         $this->auth();
         $this->verifyCsrf();
-        $type = in_array($_POST['type'] ?? '', ['staff', 'guest'], true) ? (string) $_POST['type'] : 'staff';
+        $type = in_array($_POST['type'] ?? '', self::TYPES, true) ? (string) $_POST['type'] : 'staff';
         $name = trim((string) ($_POST['name'] ?? ''));
         if ($name === '' || mb_strlen($name) > 100) {
             flash('error', 'Vul een naam in.');
@@ -56,7 +59,10 @@ final class PersonController extends Controller
         $phone = trim((string) ($_POST['phone'] ?? ''));
         $notes = trim((string) ($_POST['notes'] ?? ''));
         $parkIds = array_map('intval', (array) ($_POST['park_ids'] ?? []));
-        $id = (new Person())->create($type, $name, $role, $email, $phone, $notes, $parkIds);
+        $applicationStatus = $type === 'candidate' && in_array($_POST['application_status'] ?? '', self::APPLICATION_STATUSES, true)
+            ? (string) $_POST['application_status']
+            : ($type === 'candidate' ? 'nieuw' : null);
+        $id = (new Person())->create($type, $name, $role, $email, $phone, $notes, $parkIds, $applicationStatus);
         redirect('/personen/' . $id);
     }
 
@@ -108,6 +114,7 @@ final class PersonController extends Controller
             view('errors/404', ['title' => 'Persoon niet gevonden']);
             return;
         }
+        $type = in_array($_POST['type'] ?? '', self::TYPES, true) ? (string) $_POST['type'] : $person['type'];
         $name = trim((string) ($_POST['name'] ?? ''));
         if ($name === '' || mb_strlen($name) > 100) {
             flash('error', 'Vul een naam in.');
@@ -119,8 +126,11 @@ final class PersonController extends Controller
         $notes = trim((string) ($_POST['notes'] ?? ''));
         $isActive = !empty($_POST['is_active']);
         $parkIds = array_map('intval', (array) ($_POST['park_ids'] ?? []));
+        $applicationStatus = $type === 'candidate' && in_array($_POST['application_status'] ?? '', self::APPLICATION_STATUSES, true)
+            ? (string) $_POST['application_status']
+            : ($type === 'candidate' ? $person['application_status'] : null);
         $people = new Person();
-        $people->update((int) $id, $name, $role, $email, $phone, $notes, $isActive);
+        $people->update((int) $id, $type, $name, $role, $email, $phone, $notes, $isActive, $applicationStatus);
         $people->setParks((int) $id, $parkIds);
         redirect('/personen/' . $id);
     }

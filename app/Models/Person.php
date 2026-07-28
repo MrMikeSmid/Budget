@@ -69,19 +69,19 @@ final class Person
     }
 
     /** @param int[] $parkIds */
-    public function create(string $type, string $name, string $role, string $email, string $phone, string $notes, array $parkIds = []): int
+    public function create(string $type, string $name, string $role, string $email, string $phone, string $notes, array $parkIds = [], ?string $applicationStatus = null): int
     {
-        $stmt = db()->prepare('INSERT INTO people (type, name, role, email, phone, notes) VALUES (?, ?, ?, ?, ?, ?)');
-        $stmt->execute([$type, $name, $role, $email, $phone, $notes]);
+        $stmt = db()->prepare('INSERT INTO people (type, name, role, email, phone, notes, application_status) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$type, $name, $role, $email, $phone, $notes, $applicationStatus]);
         $id = (int) db()->lastInsertId();
         $this->setParks($id, $parkIds);
         return $id;
     }
 
-    public function update(int $id, string $name, string $role, string $email, string $phone, string $notes, bool $isActive): void
+    public function update(int $id, string $type, string $name, string $role, string $email, string $phone, string $notes, bool $isActive, ?string $applicationStatus): void
     {
-        $stmt = db()->prepare('UPDATE people SET name = ?, role = ?, email = ?, phone = ?, notes = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
-        $stmt->execute([$name, $role, $email, $phone, $notes, $isActive ? 1 : 0, $id]);
+        $stmt = db()->prepare('UPDATE people SET type = ?, name = ?, role = ?, email = ?, phone = ?, notes = ?, is_active = ?, application_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
+        $stmt->execute([$type, $name, $role, $email, $phone, $notes, $isActive ? 1 : 0, $applicationStatus, $id]);
     }
 
     /** Replace the full set of parks this person is associated with. @param int[] $parkIds */

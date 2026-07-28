@@ -57,13 +57,14 @@ final class Database
 
             CREATE TABLE IF NOT EXISTS people (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                type TEXT NOT NULL CHECK (type IN ('staff','guest')),
+                type TEXT NOT NULL CHECK (type IN ('staff','guest','candidate')),
                 name TEXT NOT NULL,
                 role TEXT NOT NULL DEFAULT '',
                 email TEXT NOT NULL DEFAULT '',
                 phone TEXT NOT NULL DEFAULT '',
                 is_active INTEGER NOT NULL DEFAULT 1,
                 notes TEXT NOT NULL DEFAULT '',
+                application_status TEXT CHECK (application_status IN ('nieuw','gesprek_gepland','afgewezen','aangenomen') OR application_status IS NULL),
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
@@ -82,11 +83,12 @@ final class Database
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 park_id INTEGER NOT NULL,
                 category TEXT NOT NULL CHECK (category IN ('personeel','park','gasten','taken')),
-                type TEXT NOT NULL CHECK (type IN ('notitie','afspraak','taak')),
+                type TEXT NOT NULL CHECK (type IN ('notitie','afspraak','taak','klacht','controle')),
                 person_id INTEGER,
+                guest_name TEXT NOT NULL DEFAULT '',
                 title TEXT NOT NULL,
                 body TEXT NOT NULL DEFAULT '',
-                status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','in_uitvoering','afgerond','gearchiveerd')),
+                status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','in_uitvoering','afgerond','gearchiveerd','omgezet_compliment')),
                 due_date TEXT,
                 completed_at TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -178,6 +180,45 @@ final class Database
             }
         }
 
+        $itemColumns = $this->pdo->query('PRAGMA table_info(items)')->fetchAll();
+        $itemColumnNames = array_column($itemColumns, 'name');
+        if (!in_array('guest_name', $itemColumnNames, true)) {
+            // Adds the 'klacht'/'controle' item types, the 'omgezet_compliment' status,
+            // and a free-text guest_name column (for guests not yet in Personen) — the
+            // CHECK constraints can't be widened in place, so same rebuild pattern.
+            $this->pdo->exec('PRAGMA foreign_keys = OFF');
+            $this->pdo->exec(<<<'SQL'
+                CREATE TABLE items_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    park_id INTEGER NOT NULL,
+                    category TEXT NOT NULL CHECK (category IN ('personeel','park','gasten','taken')),
+                    type TEXT NOT NULL CHECK (type IN ('notitie','afspraak','taak','klacht','controle')),
+                    person_id INTEGER,
+                    guest_name TEXT NOT NULL DEFAULT '',
+                    title TEXT NOT NULL,
+                    body TEXT NOT NULL DEFAULT '',
+                    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','in_uitvoering','afgerond','gearchiveerd','omgezet_compliment')),
+                    due_date TEXT,
+                    completed_at TEXT,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (park_id) REFERENCES parks(id) ON DELETE CASCADE,
+                    FOREIGN KEY (person_id) REFERENCES people(id) ON DELETE SET NULL
+                )
+            SQL);
+            $this->pdo->exec(<<<'SQL'
+                INSERT INTO items_new (id, park_id, category, type, person_id, title, body, status, due_date, completed_at, created_at, updated_at)
+                SELECT id, park_id, category, type, person_id, title, body, status, due_date, completed_at, created_at, updated_at FROM items
+            SQL);
+            $this->pdo->exec('DROP TABLE items');
+            $this->pdo->exec('ALTER TABLE items_new RENAME TO items');
+            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_items_park ON items(park_id)');
+            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_items_person ON items(person_id)');
+            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_items_category_status ON items(category, status)');
+            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_items_due_date ON items(due_date)');
+            $this->pdo->exec('PRAGMA foreign_keys = ON');
+        }
+
         $peopleColumns = $this->pdo->query('PRAGMA table_info(people)')->fetchAll();
         $peopleColumnNames = array_column($peopleColumns, 'name');
         if (in_array('park_id', $peopleColumnNames, true)) {
@@ -199,6 +240,37 @@ final class Database
                     phone TEXT NOT NULL DEFAULT '',
                     is_active INTEGER NOT NULL DEFAULT 1,
                     notes TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )
+            SQL);
+            $this->pdo->exec(<<<'SQL'
+                INSERT INTO people_new (id, type, name, role, email, phone, is_active, notes, created_at, updated_at)
+                SELECT id, type, name, role, email, phone, is_active, notes, created_at, updated_at FROM people
+            SQL);
+            $this->pdo->exec('DROP TABLE people');
+            $this->pdo->exec('ALTER TABLE people_new RENAME TO people');
+            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_people_type ON people(type)');
+            $this->pdo->exec('PRAGMA foreign_keys = ON');
+        }
+
+        $peopleColumns = $this->pdo->query('PRAGMA table_info(people)')->fetchAll();
+        $peopleColumnNames = array_column($peopleColumns, 'name');
+        if (!in_array('application_status', $peopleColumnNames, true)) {
+            // Adds the 'candidate' people type (for werving/sollicitanten) plus its
+            // application_status column; CHECK constraints can't be widened in place.
+            $this->pdo->exec('PRAGMA foreign_keys = OFF');
+            $this->pdo->exec(<<<'SQL'
+                CREATE TABLE people_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    type TEXT NOT NULL CHECK (type IN ('staff','guest','candidate')),
+                    name TEXT NOT NULL,
+                    role TEXT NOT NULL DEFAULT '',
+                    email TEXT NOT NULL DEFAULT '',
+                    phone TEXT NOT NULL DEFAULT '',
+                    is_active INTEGER NOT NULL DEFAULT 1,
+                    notes TEXT NOT NULL DEFAULT '',
+                    application_status TEXT CHECK (application_status IN ('nieuw','gesprek_gepland','afgewezen','aangenomen') OR application_status IS NULL),
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )

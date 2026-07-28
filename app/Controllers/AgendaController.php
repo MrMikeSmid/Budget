@@ -34,7 +34,8 @@ final class AgendaController extends Controller
             if ($item['due_date'] === null || $item['status'] === 'gearchiveerd') {
                 continue;
             }
-            $subtitle = $item['park_name'] . ($item['person_name'] ? ' · ' . $item['person_name'] : '');
+            $who = $item['person_name'] ?: $item['guest_name'];
+            $subtitle = $item['park_name'] . ($who ? ' · ' . $who : '');
             $entries[] = calendar_entry(
                 $item['title'],
                 $subtitle,

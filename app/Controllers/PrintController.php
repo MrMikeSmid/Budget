@@ -49,4 +49,23 @@ final class PrintController extends Controller
             'items' => (new Item())->forPark((int) $id),
         ], 'print');
     }
+
+    /** Beknopte rapportage voor de Parkmanager: openstaande zaken, verzuim en aankomende gesprekken. */
+    public function report(string $id): void
+    {
+        $this->auth();
+        $park = (new Park())->find((int) $id);
+        if (!$park) {
+            http_response_code(404);
+            view('errors/404', ['title' => 'Park niet gevonden']);
+            return;
+        }
+        view('print/report', [
+            'title' => $park['name'] . ' · Rapportage',
+            'park' => $park,
+            'openItems' => (new Item())->openForPark((int) $id),
+            'activeAbsences' => (new Absence())->activeForPark((int) $id),
+            'upcomingReviews' => (new PerformanceReview())->upcomingForPark((int) $id),
+        ], 'print');
+    }
 }

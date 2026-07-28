@@ -1,6 +1,6 @@
 <?php $isEdit = $person !== null; ?>
 <header class="topbar">
-    <div><span class="eyebrow"><?= $type === 'staff' ? 'Medewerker' : 'Gast' ?></span><h1><?= $isEdit ? e($person['name']) : 'Nieuw persoon' ?></h1></div>
+    <div><span class="eyebrow"><?= e(person_type_label($type)) ?></span><h1><?= $isEdit ? e($person['name']) : 'Nieuw persoon' ?></h1></div>
     <a class="icon-button" href="<?= e(url($isEdit ? '/personen/' . $person['id'] : '/personen')) ?>">×</a>
 </header>
 
@@ -10,15 +10,21 @@
 
 <form method="post" action="<?= e(url($isEdit ? '/personen/' . $person['id'] . '/update' : '/personen')) ?>">
     <input type="hidden" name="_token" value="<?= e(csrf_token()) ?>">
-    <?php if (!$isEdit): ?>
-        <fieldset>
-            <legend>Type</legend>
-            <div class="choice-row">
-                <label><input type="radio" name="type" value="staff" <?= $type === 'staff' ? 'checked' : '' ?>> Medewerker</label>
-                <label><input type="radio" name="type" value="guest" <?= $type === 'guest' ? 'checked' : '' ?>> Gast</label>
-            </div>
-        </fieldset>
-    <?php endif; ?>
+    <fieldset>
+        <legend>Type</legend>
+        <div class="choice-row">
+            <?php foreach (['staff', 'guest', 'candidate'] as $t): ?>
+                <label><input type="radio" name="type" value="<?= $t ?>" <?= $type === $t ? 'checked' : '' ?>> <?= e(person_type_label($t)) ?></label>
+            <?php endforeach; ?>
+        </div>
+    </fieldset>
+    <label class="field candidate-field"><span>Sollicitatiestatus</span>
+        <select name="application_status">
+            <?php foreach (['nieuw', 'gesprek_gepland', 'afgewezen', 'aangenomen'] as $s): ?>
+                <option value="<?= $s ?>" <?= ($person['application_status'] ?? 'nieuw') === $s ? 'selected' : '' ?>><?= e(application_status_label($s)) ?></option>
+            <?php endforeach; ?>
+        </select>
+    </label>
     <label class="field"><span>Naam</span><input name="name" maxlength="100" value="<?= e($person['name'] ?? '') ?>" required autofocus></label>
     <label class="field"><span>Functie / rol</span><input name="role" maxlength="100" value="<?= e($person['role'] ?? '') ?>" placeholder="Bijv. Receptie, Housekeeping"></label>
     <div class="field-row">
@@ -50,3 +56,17 @@
         <button class="button button--danger button--wide" type="submit">Verwijderen</button>
     </form>
 <?php endif; ?>
+
+<script>
+(() => {
+    const syncCandidateField = (form) => {
+        const checked = form.querySelector('input[name="type"]:checked');
+        const field = form.querySelector('.candidate-field');
+        if (checked && field) { field.style.display = checked.value === 'candidate' ? '' : 'none'; }
+    };
+    document.querySelectorAll('form').forEach(syncCandidateField);
+    document.addEventListener('change', (event) => {
+        if (event.target.name === 'type') { syncCandidateField(event.target.closest('form')); }
+    });
+})();
+</script>

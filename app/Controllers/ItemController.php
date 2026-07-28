@@ -12,14 +12,16 @@ use App\Models\Person;
 final class ItemController extends Controller
 {
     private const CATEGORIES = ['personeel', 'park', 'gasten', 'taken'];
-    private const TYPES = ['notitie', 'afspraak', 'taak'];
+    private const TYPES = ['notitie', 'afspraak', 'taak', 'klacht', 'controle'];
+    private const STATUSES = ['open', 'in_uitvoering', 'afgerond', 'gearchiveerd', 'omgezet_compliment'];
 
     public function index(): void
     {
         $this->auth();
         $parkId = !empty($_GET['park']) ? (int) $_GET['park'] : null;
         $category = in_array($_GET['category'] ?? '', self::CATEGORIES, true) ? (string) $_GET['category'] : null;
-        $status = in_array($_GET['status'] ?? '', ['open', 'in_uitvoering', 'afgerond', 'gearchiveerd', 'alle'], true)
+        $type = in_array($_GET['type'] ?? '', self::TYPES, true) ? (string) $_GET['type'] : null;
+        $status = in_array($_GET['status'] ?? '', [...self::STATUSES, 'alle'], true)
             ? (string) $_GET['status']
             : 'open';
         view('items/index', [
@@ -27,8 +29,9 @@ final class ItemController extends Controller
             'parks' => (new Park())->all(),
             'selectedParkId' => $parkId,
             'selectedCategory' => $category,
+            'selectedType' => $type,
             'selectedStatus' => $status,
-            'items' => (new Item())->all($parkId, $category, $status === 'alle' ? null : $status),
+            'items' => (new Item())->all($parkId, $category, $status === 'alle' ? null : $status, $type),
         ]);
     }
 
@@ -64,13 +67,13 @@ final class ItemController extends Controller
             return;
         }
 
-        [$category, $type, $title, $body, $dueDate, $personId, $error] = $this->readInput();
+        [$category, $type, $title, $body, $dueDate, $personId, $guestName, $error] = $this->readInput();
         if ($error !== null) {
             flash('error', $error);
             redirect('/parken/' . $parkId . '/items/nieuw?category=' . $category);
         }
 
-        $id = (new Item())->create((int) $parkId, $category, $type, $personId, $title, $body, $dueDate);
+        $id = (new Item())->create((int) $parkId, $category, $type, $personId, $title, $body, $dueDate, $guestName);
         $this->redirectAfterSave($personId, (int) $parkId, $category);
     }
 
@@ -116,11 +119,12 @@ final class ItemController extends Controller
             flash('error', 'Kies een geldige datum.');
             redirect('/items/' . $id . '/bewerken');
         }
-        $status = in_array($_POST['status'] ?? '', ['open', 'in_uitvoering', 'afgerond', 'gearchiveerd'], true)
+        $status = in_array($_POST['status'] ?? '', self::STATUSES, true)
             ? (string) $_POST['status']
             : $item['status'];
+        $guestName = trim((string) ($_POST['guest_name'] ?? ''));
 
-        (new Item())->update((int) $id, $title, $body, $dueDate, $status);
+        (new Item())->update((int) $id, $title, $body, $dueDate, $status, $guestName);
         $this->redirectAfterSave(
             $item['person_id'] !== null ? (int) $item['person_id'] : null,
             (int) $item['park_id'],
@@ -164,7 +168,7 @@ final class ItemController extends Controller
         );
     }
 
-    /** @return array{0:string,1:string,2:string,3:string,4:?string,5:?int,6:?string} */
+    /** @return array{0:string,1:string,2:string,3:string,4:?string,5:?int,6:string,7:?string} */
     private function readInput(): array
     {
         $category = in_array($_POST['category'] ?? '', self::CATEGORIES, true) ? (string) $_POST['category'] : 'park';
@@ -172,16 +176,17 @@ final class ItemController extends Controller
         $title = trim((string) ($_POST['title'] ?? ''));
         $body = trim((string) ($_POST['body'] ?? ''));
         $personId = !empty($_POST['person_id']) ? (int) $_POST['person_id'] : null;
+        $guestName = trim((string) ($_POST['guest_name'] ?? ''));
         $dueDate = $this->validDate($_POST['due_date'] ?? null);
 
         if ($title === '' || mb_strlen($title) > 160) {
-            return [$category, $type, $title, $body, null, $personId, 'Geef het een korte titel.'];
+            return [$category, $type, $title, $body, null, $personId, $guestName, 'Geef het een korte titel.'];
         }
         if ($dueDate === false) {
-            return [$category, $type, $title, $body, null, $personId, 'Kies een geldige datum.'];
+            return [$category, $type, $title, $body, null, $personId, $guestName, 'Kies een geldige datum.'];
         }
 
-        return [$category, $type, $title, $body, $dueDate, $personId, null];
+        return [$category, $type, $title, $body, $dueDate, $personId, $guestName, null];
     }
 
     private function validDate(mixed $value): string|false|null

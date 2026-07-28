@@ -23,6 +23,21 @@ final class PerformanceReview
         SQL)->fetchAll();
     }
 
+    /** Upcoming follow-up conversations among staff linked to a park, used by the parkrapportage. */
+    public function upcomingForPark(int $parkId): array
+    {
+        $stmt = db()->prepare(<<<'SQL'
+            SELECT r.*, p.name AS person_name
+            FROM performance_reviews r
+            JOIN people p ON p.id = r.person_id
+            JOIN person_parks pp ON pp.person_id = p.id AND pp.park_id = ?
+            WHERE r.follow_up_date IS NOT NULL AND r.follow_up_date >= date('now')
+            ORDER BY r.follow_up_date ASC
+        SQL);
+        $stmt->execute([$parkId]);
+        return $stmt->fetchAll();
+    }
+
     public function find(int $id): ?array
     {
         $stmt = db()->prepare('SELECT * FROM performance_reviews WHERE id = ?');

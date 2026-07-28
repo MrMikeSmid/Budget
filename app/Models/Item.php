@@ -6,7 +6,7 @@ namespace App\Models;
 
 final class Item
 {
-    public function all(?int $parkId = null, ?string $category = null, ?string $status = null): array
+    public function all(?int $parkId = null, ?string $category = null, ?string $status = null, ?string $type = null): array
     {
         $sql = 'SELECT i.*, pa.name AS park_name, pe.name AS person_name FROM items i JOIN parks pa ON pa.id = i.park_id LEFT JOIN people pe ON pe.id = i.person_id WHERE 1=1';
         $params = [];
@@ -21,6 +21,10 @@ final class Item
         if ($status !== null) {
             $sql .= ' AND i.status = ?';
             $params[] = $status;
+        }
+        if ($type !== null) {
+            $sql .= ' AND i.type = ?';
+            $params[] = $type;
         }
         $sql .= ' ORDER BY (i.due_date IS NULL), i.due_date ASC, i.created_at DESC';
         $stmt = db()->prepare($sql);
@@ -85,6 +89,20 @@ final class Item
         return $counts;
     }
 
+    /** Open items (any type) for a park, used by the parkrapportage. */
+    public function openForPark(int $parkId): array
+    {
+        $stmt = db()->prepare(<<<'SQL'
+            SELECT i.*, pe.name AS person_name
+            FROM items i
+            LEFT JOIN people pe ON pe.id = i.person_id
+            WHERE i.park_id = ? AND i.status IN ('open', 'in_uitvoering')
+            ORDER BY (i.due_date IS NULL), i.due_date ASC, i.created_at DESC
+        SQL);
+        $stmt->execute([$parkId]);
+        return $stmt->fetchAll();
+    }
+
     public function find(int $id): ?array
     {
         $stmt = db()->prepare('SELECT * FROM items WHERE id = ?');
@@ -93,18 +111,18 @@ final class Item
         return $item ?: null;
     }
 
-    public function create(int $parkId, string $category, string $type, ?int $personId, string $title, string $body, ?string $dueDate): int
+    public function create(int $parkId, string $category, string $type, ?int $personId, string $title, string $body, ?string $dueDate, string $guestName = ''): int
     {
-        $stmt = db()->prepare('INSERT INTO items (park_id, category, type, person_id, title, body, due_date) VALUES (?, ?, ?, ?, ?, ?, ?)');
-        $stmt->execute([$parkId, $category, $type, $personId, $title, $body, $dueDate]);
+        $stmt = db()->prepare('INSERT INTO items (park_id, category, type, person_id, guest_name, title, body, due_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$parkId, $category, $type, $personId, $guestName, $title, $body, $dueDate]);
         return (int) db()->lastInsertId();
     }
 
-    public function update(int $id, string $title, string $body, ?string $dueDate, string $status): void
+    public function update(int $id, string $title, string $body, ?string $dueDate, string $status, string $guestName = ''): void
     {
         $completedAt = $status === 'afgerond' ? "CURRENT_TIMESTAMP" : "NULL";
-        $stmt = db()->prepare("UPDATE items SET title = ?, body = ?, due_date = ?, status = ?, completed_at = {$completedAt}, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
-        $stmt->execute([$title, $body, $dueDate, $status, $id]);
+        $stmt = db()->prepare("UPDATE items SET title = ?, body = ?, due_date = ?, status = ?, guest_name = ?, completed_at = {$completedAt}, updated_at = CURRENT_TIMESTAMP WHERE id = ?");
+        $stmt->execute([$title, $body, $dueDate, $status, $guestName, $id]);
     }
 
     public function toggle(int $id): void

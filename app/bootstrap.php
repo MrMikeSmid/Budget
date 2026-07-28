@@ -77,10 +77,27 @@ function category_label(string $category): string {
     return ['personeel' => 'Personeel', 'park' => 'Park', 'gasten' => 'Gasten', 'taken' => 'Taken'][$category] ?? $category;
 }
 function item_type_label(string $type): string {
-    return ['notitie' => 'Notitie', 'afspraak' => 'Afspraak', 'taak' => 'Taak'][$type] ?? $type;
+    return ['notitie' => 'Notitie', 'afspraak' => 'Afspraak', 'taak' => 'Taak', 'klacht' => 'Klacht', 'controle' => 'Controle'][$type] ?? $type;
 }
 function status_label(string $status): string {
-    return ['open' => 'Open', 'in_uitvoering' => 'In uitvoering', 'afgerond' => 'Afgerond', 'gearchiveerd' => 'Gearchiveerd'][$status] ?? $status;
+    return [
+        'open' => 'Open',
+        'in_uitvoering' => 'In uitvoering',
+        'afgerond' => 'Afgerond',
+        'gearchiveerd' => 'Gearchiveerd',
+        'omgezet_compliment' => 'Omgezet naar compliment',
+    ][$status] ?? $status;
+}
+function person_type_label(string $type): string {
+    return ['staff' => 'Medewerker', 'guest' => 'Gast', 'candidate' => 'Sollicitant'][$type] ?? $type;
+}
+function application_status_label(?string $status): string {
+    return [
+        'nieuw' => 'Nieuw',
+        'gesprek_gepland' => 'Gesprek gepland',
+        'afgewezen' => 'Afgewezen',
+        'aangenomen' => 'Aangenomen',
+    ][$status ?? ''] ?? '';
 }
 function absence_status_label(string $status): string {
     return ['lopend' => 'Lopend', 'hersteld' => 'Hersteld', 'langdurig' => 'Langdurig'][$status] ?? $status;
@@ -89,7 +106,7 @@ function review_type_label(string $type): string {
     return ['functioneringsgesprek' => 'Functioneringsgesprek', 'beoordelingsgesprek' => 'Beoordelingsgesprek', 'proefperiode' => 'Proefperiode', 'overig' => 'Overig'][$type] ?? $type;
 }
 function is_overdue(?string $dueDate, string $status): bool {
-    return $dueDate !== null && $status !== 'afgerond' && $dueDate < date('Y-m-d');
+    return $dueDate !== null && !in_array($status, ['afgerond', 'omgezet_compliment'], true) && $dueDate < date('Y-m-d');
 }
 function step_type_label(string $type): string {
     return $type === 'periodiek' ? 'Periodiek' : 'Eenmalig';
@@ -191,6 +208,8 @@ function calendar_category_meta(string $category): array {
         'afspraak' => ['label' => 'Afspraak', 'class' => 'gantt-bar--afspraak'],
         'taak' => ['label' => 'Taak', 'class' => 'gantt-bar--taak'],
         'notitie' => ['label' => 'Notitie', 'class' => 'gantt-bar--notitie'],
+        'klacht' => ['label' => 'Klacht', 'class' => 'gantt-bar--klacht'],
+        'controle' => ['label' => 'Controle', 'class' => 'gantt-bar--controle'],
         'verzuim' => ['label' => 'Verzuim', 'class' => 'gantt-bar--verzuim'],
         'gesprek' => ['label' => 'Gesprek', 'class' => 'gantt-bar--gesprek'],
         'draaiboek' => ['label' => 'Draaiboek', 'class' => 'gantt-bar--draaiboek'],

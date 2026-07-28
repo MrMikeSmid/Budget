@@ -65,6 +65,7 @@ $router->post('/gesprekken/{id}/delete', [ReviewController::class, 'delete']);
 
 $router->get('/personen/{id}/print', [PrintController::class, 'person']);
 $router->get('/parken/{id}/print', [PrintController::class, 'park']);
+$router->get('/parken/{id}/rapportage', [PrintController::class, 'report']);
 
 $router->get('/afdelingen', [DepartmentController::class, 'index']);
 $router->get('/afdelingen/nieuw', [DepartmentController::class, 'create']);

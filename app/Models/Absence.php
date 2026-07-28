@@ -23,6 +23,21 @@ final class Absence
         SQL)->fetchAll();
     }
 
+    /** Currently active absences among staff linked to a park, used by the parkrapportage. */
+    public function activeForPark(int $parkId): array
+    {
+        $stmt = db()->prepare(<<<'SQL'
+            SELECT a.*, p.name AS person_name
+            FROM absences a
+            JOIN people p ON p.id = a.person_id
+            JOIN person_parks pp ON pp.person_id = p.id AND pp.park_id = ?
+            WHERE a.status != 'hersteld'
+            ORDER BY a.start_date ASC
+        SQL);
+        $stmt->execute([$parkId]);
+        return $stmt->fetchAll();
+    }
+
     public function find(int $id): ?array
     {
         $stmt = db()->prepare('SELECT * FROM absences WHERE id = ?');

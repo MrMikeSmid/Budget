@@ -14,6 +14,7 @@
         <option value="<?= e(url('/personen' . ($selectedParkId ? '?park=' . $selectedParkId : ''))) ?>" <?= $selectedType === null ? 'selected' : '' ?>>Alle types</option>
         <option value="<?= e(url('/personen?type=staff' . ($selectedParkId ? '&park=' . $selectedParkId : ''))) ?>" <?= $selectedType === 'staff' ? 'selected' : '' ?>>Medewerkers</option>
         <option value="<?= e(url('/personen?type=guest' . ($selectedParkId ? '&park=' . $selectedParkId : ''))) ?>" <?= $selectedType === 'guest' ? 'selected' : '' ?>>Gasten</option>
+        <option value="<?= e(url('/personen?type=candidate' . ($selectedParkId ? '&park=' . $selectedParkId : ''))) ?>" <?= $selectedType === 'candidate' ? 'selected' : '' ?>>Sollicitanten</option>
     </select>
 </div>
 
@@ -25,7 +26,11 @@
             <a class="card card-link" href="<?= e(url('/personen/' . $person['id'])) ?>">
                 <div class="card-row">
                     <h3><?= e($person['name']) ?></h3>
-                    <span class="badge <?= $person['type'] === 'staff' ? 'badge--muted' : 'badge--warn' ?>"><?= $person['type'] === 'staff' ? 'Medewerker' : 'Gast' ?></span>
+                    <?php if ($person['type'] === 'candidate'): ?>
+                        <span class="badge <?= $person['application_status'] === 'aangenomen' ? 'badge--ok' : ($person['application_status'] === 'afgewezen' ? 'badge--danger' : 'badge--warn') ?>"><?= e(application_status_label($person['application_status'])) ?></span>
+                    <?php else: ?>
+                        <span class="badge <?= $person['type'] === 'staff' ? 'badge--muted' : 'badge--warn' ?>"><?= e(person_type_label($person['type'])) ?></span>
+                    <?php endif; ?>
                 </div>
                 <small><?= $person['park_names'] ? e($person['park_names']) : 'Geen park gekoppeld' ?><?= $person['role'] ? ' · ' . e($person['role']) : '' ?></small>
             </a>

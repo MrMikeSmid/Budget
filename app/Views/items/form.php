@@ -22,7 +22,7 @@
         <fieldset>
             <legend>Type</legend>
             <div class="choice-row">
-                <?php foreach (['notitie', 'afspraak', 'taak'] as $type): ?>
+                <?php foreach (['notitie', 'afspraak', 'taak', 'klacht', 'controle'] as $type): ?>
                     <label><input type="radio" name="type" value="<?= $type ?>" <?= $type === 'notitie' ? 'checked' : '' ?>> <?= e(item_type_label($type)) ?></label>
                 <?php endforeach; ?>
             </div>
@@ -40,10 +40,11 @@
     <?php endif; ?>
     <label class="field"><span>Titel</span><input name="title" maxlength="160" value="<?= e($item['title'] ?? '') ?>" required autofocus></label>
     <label class="field"><span>Toelichting</span><textarea name="body"><?= e($item['body'] ?? '') ?></textarea></label>
+    <label class="field"><span>Gastnaam (optioneel, als er geen gekoppelde persoon is)</span><input name="guest_name" maxlength="100" value="<?= e($item['guest_name'] ?? '') ?>"></label>
     <label class="field"><span>Vervaldatum (optioneel)</span><input type="date" name="due_date" value="<?= e($item['due_date'] ?? '') ?>"></label>
     <?php if ($isEdit): ?>
         <label class="field"><span>Status</span><select name="status">
-            <?php foreach (['open', 'in_uitvoering', 'afgerond', 'gearchiveerd'] as $s): ?>
+            <?php foreach (['open', 'in_uitvoering', 'afgerond', 'gearchiveerd', 'omgezet_compliment'] as $s): ?>
                 <option value="<?= $s ?>" <?= $item['status'] === $s ? 'selected' : '' ?>><?= e(status_label($s)) ?></option>
             <?php endforeach; ?>
         </select></label>
