@@ -80,7 +80,7 @@
                                 </div>
                                 <label class="field recurrence-field"><span>Herhaling</span>
                                     <select name="recurrence_interval">
-                                        <?php foreach (['dagelijks' => 'Dagelijks', 'wekelijks' => 'Wekelijks', 'maandelijks' => 'Maandelijks'] as $value => $label): ?>
+                                        <?php foreach (['dagelijks' => 'Dagelijks', 'wekelijks' => 'Wekelijks', 'maandelijks' => 'Maandelijks', 'jaarlijks' => 'Jaarlijks', 'tweejaarlijks' => 'Tweejaarlijks', 'driejaarlijks' => 'Driejaarlijks', 'vierjaarlijks' => 'Vierjaarlijks', 'vijfjaarlijks' => 'Vijfjaarlijks'] as $value => $label): ?>
                                             <option value="<?= $value ?>" <?= $step['recurrence_interval'] === $value ? 'selected' : '' ?>><?= e($label) ?></option>
                                         <?php endforeach; ?>
                                     </select>
@@ -130,6 +130,11 @@
                     <option value="dagelijks">Dagelijks</option>
                     <option value="wekelijks">Wekelijks</option>
                     <option value="maandelijks">Maandelijks</option>
+                    <option value="jaarlijks">Jaarlijks</option>
+                    <option value="tweejaarlijks">Tweejaarlijks</option>
+                    <option value="driejaarlijks">Driejaarlijks</option>
+                    <option value="vierjaarlijks">Vierjaarlijks</option>
+                    <option value="vijfjaarlijks">Vijfjaarlijks</option>
                 </select>
             </label>
             <label class="field"><span>Titel</span><input name="title" maxlength="160" required placeholder="Wat moet er gebeuren?"></label>

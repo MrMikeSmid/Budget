@@ -12,7 +12,7 @@ use App\Models\PlaybookStep;
 final class PlaybookStepController extends Controller
 {
     private const TYPES = ['eenmalig', 'periodiek'];
-    private const INTERVALS = ['dagelijks', 'wekelijks', 'maandelijks'];
+    private const INTERVALS = ['dagelijks', 'wekelijks', 'maandelijks', 'jaarlijks', 'tweejaarlijks', 'driejaarlijks', 'vierjaarlijks', 'vijfjaarlijks'];
 
     public function store(string $playbookId): void
     {

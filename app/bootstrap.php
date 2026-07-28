@@ -95,7 +95,16 @@ function step_type_label(string $type): string {
     return $type === 'periodiek' ? 'Periodiek' : 'Eenmalig';
 }
 function recurrence_interval_label(?string $interval): string {
-    return ['dagelijks' => 'Dagelijks', 'wekelijks' => 'Wekelijks', 'maandelijks' => 'Maandelijks'][$interval ?? ''] ?? '';
+    return [
+        'dagelijks' => 'Dagelijks',
+        'wekelijks' => 'Wekelijks',
+        'maandelijks' => 'Maandelijks',
+        'jaarlijks' => 'Jaarlijks',
+        'tweejaarlijks' => 'Tweejaarlijks',
+        'driejaarlijks' => 'Driejaarlijks',
+        'vierjaarlijks' => 'Vierjaarlijks',
+        'vijfjaarlijks' => 'Vijfjaarlijks',
+    ][$interval ?? ''] ?? '';
 }
 /** @return array{label: string, class: string} */
 function playbook_step_state(array $step): array {
@@ -133,7 +142,13 @@ function playbook_step_occurs_on(array $step, string $date): bool {
     $start = new DateTimeImmutable($step['start_date']);
     $current = new DateTimeImmutable($date);
     $diffDays = (int) $start->diff($current)->days;
-    return match ($step['recurrence_interval'] ?? '') {
+    $yearlyIntervals = ['jaarlijks' => 1, 'tweejaarlijks' => 2, 'driejaarlijks' => 3, 'vierjaarlijks' => 4, 'vijfjaarlijks' => 5];
+    $interval = $step['recurrence_interval'] ?? '';
+    if (isset($yearlyIntervals[$interval])) {
+        $yearDiff = (int) $current->format('Y') - (int) $start->format('Y');
+        return $start->format('m-d') === $current->format('m-d') && $yearDiff % $yearlyIntervals[$interval] === 0;
+    }
+    return match ($interval) {
         'dagelijks' => true,
         'wekelijks' => $diffDays % 7 === 0,
         'maandelijks' => (int) $start->format('j') === (int) $current->format('j'),

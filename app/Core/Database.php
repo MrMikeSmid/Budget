@@ -160,7 +160,7 @@ final class Database
                 body TEXT NOT NULL DEFAULT '',
                 start_date TEXT NOT NULL,
                 end_date TEXT NOT NULL,
-                recurrence_interval TEXT CHECK (recurrence_interval IN ('dagelijks','wekelijks','maandelijks') OR recurrence_interval IS NULL),
+                recurrence_interval TEXT CHECK (recurrence_interval IN ('dagelijks','wekelijks','maandelijks','jaarlijks','tweejaarlijks','driejaarlijks','vierjaarlijks','vijfjaarlijks') OR recurrence_interval IS NULL),
                 status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','afgerond')),
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -237,7 +237,7 @@ final class Database
                     body TEXT NOT NULL DEFAULT '',
                     start_date TEXT NOT NULL,
                     end_date TEXT NOT NULL,
-                    recurrence_interval TEXT CHECK (recurrence_interval IN ('dagelijks','wekelijks','maandelijks') OR recurrence_interval IS NULL),
+                    recurrence_interval TEXT CHECK (recurrence_interval IN ('dagelijks','wekelijks','maandelijks','jaarlijks','tweejaarlijks','driejaarlijks','vierjaarlijks','vijfjaarlijks') OR recurrence_interval IS NULL),
                     status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','afgerond')),
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -255,6 +255,46 @@ final class Database
             $this->pdo->exec('PRAGMA foreign_keys = ON');
         }
         $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_playbook_steps_start_date ON playbook_steps(start_date)');
+
+        $stepTableSql = (string) $this->pdo->query(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'playbook_steps'"
+        )->fetchColumn();
+        if ($stepTableSql !== '' && !str_contains($stepTableSql, 'vijfjaarlijks')) {
+            // recurrence_interval's CHECK constraint used to only allow the 3 original
+            // intervals; PRAGMA table_info() doesn't expose CHECK constraints, so the
+            // stored SQL text in sqlite_master is the only way to detect this. A CHECK
+            // constraint can't be altered in place, so same rebuild pattern as above.
+            $this->pdo->exec('PRAGMA foreign_keys = OFF');
+            $this->pdo->exec(<<<'SQL'
+                CREATE TABLE playbook_steps_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    playbook_id INTEGER NOT NULL,
+                    park_id INTEGER,
+                    type TEXT NOT NULL CHECK (type IN ('eenmalig','periodiek')),
+                    title TEXT NOT NULL,
+                    body TEXT NOT NULL DEFAULT '',
+                    start_date TEXT NOT NULL,
+                    end_date TEXT NOT NULL,
+                    recurrence_interval TEXT CHECK (recurrence_interval IN ('dagelijks','wekelijks','maandelijks','jaarlijks','tweejaarlijks','driejaarlijks','vierjaarlijks','vijfjaarlijks') OR recurrence_interval IS NULL),
+                    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','afgerond')),
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (playbook_id) REFERENCES playbooks(id) ON DELETE CASCADE,
+                    FOREIGN KEY (park_id) REFERENCES parks(id) ON DELETE SET NULL
+                )
+            SQL);
+            $this->pdo->exec(<<<'SQL'
+                INSERT INTO playbook_steps_new (id, playbook_id, park_id, type, title, body, start_date, end_date, recurrence_interval, status, created_at, updated_at)
+                SELECT id, playbook_id, park_id, type, title, body, start_date, end_date, recurrence_interval, status, created_at, updated_at
+                FROM playbook_steps
+            SQL);
+            $this->pdo->exec('DROP TABLE playbook_steps');
+            $this->pdo->exec('ALTER TABLE playbook_steps_new RENAME TO playbook_steps');
+            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_playbook_steps_playbook ON playbook_steps(playbook_id)');
+            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_playbook_steps_park ON playbook_steps(park_id)');
+            $this->pdo->exec('CREATE INDEX IF NOT EXISTS idx_playbook_steps_start_date ON playbook_steps(start_date)');
+            $this->pdo->exec('PRAGMA foreign_keys = ON');
+        }
 
         $playbookColumns = $this->pdo->query('PRAGMA table_info(playbooks)')->fetchAll();
         $playbookColumnNames = array_column($playbookColumns, 'name');
