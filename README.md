@@ -63,8 +63,15 @@ FTP/bestandsbeheer — er hoeft niets op de server zelf gebouwd te worden.
 
 ## Configuratie
 
-Kopieer `config/config.example.php` naar `config/config.php` en vul de
-waarden in:
+**Optie A — via het setup-formulier (aanbevolen):** open
+`https://jouw-domein.nl/setup.php` in de browser en vul het formulier in.
+Dit schrijft `config/config.php` voor je weg. Bij een bestaande configuratie
+vraagt de pagina eerst om het huidige bearer token voordat je iets kan
+wijzigen. **Verwijder of hernoem `setup.php` na gebruik** — hij blijft
+anders (weliswaar achter het bearer token) bereikbaar.
+
+**Optie B — handmatig:** kopieer `config/config.example.php` naar
+`config/config.php` en vul de waarden rechtstreeks in:
 
 ```bash
 cp config/config.example.php config/config.php
@@ -144,6 +151,7 @@ config/
 public/
   mcp.php              -> MCP JSON-RPC endpoint (Streamable HTTP, stateless)
   health.php           -> simpele health-check
+  setup.php            -> webformulier om config/config.php in te vullen
   .htaccess            -> heropent toegang binnen public/
 src/
   Config.php           -> laden van account-/tokenconfiguratie
