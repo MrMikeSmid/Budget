@@ -8,7 +8,7 @@ $currentPath = (new \App\Core\Request())->path();
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#4f7fae">
+    <meta name="theme-color" content="#007aff">
     <meta name="application-name" content="Regie">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Regie">
@@ -17,9 +17,6 @@ $currentPath = (new \App\Core\Request())->path();
     <link rel="manifest" href="<?= e(url('/manifest.webmanifest')) ?>">
     <link rel="icon" type="image/png" sizes="32x32" href="<?= e(url('/pwa-icon/favicon-32')) ?>">
     <link rel="apple-touch-icon" sizes="180x180" href="<?= e(url('/pwa-icon/apple-touch-180')) ?>">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= e(asset('css/app.css')) ?>">
 </head>
 <body class="<?= $viewer ? 'is-authenticated' : 'is-guest' ?>" data-service-worker="<?= e(url('/sw.js')) ?>" data-app-scope="<?= e(url('/')) ?>">
