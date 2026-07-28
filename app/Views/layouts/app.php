@@ -31,6 +31,10 @@ $currentPath = (new \App\Core\Request())->path();
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9a1 1 0 0 0 1 1H9.5a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-9"/></svg>
                 <span>Home</span>
             </a>
+            <a href="<?= e(url('/agenda')) ?>" class="<?= str_starts_with($currentPath, '/agenda') ? 'active' : '' ?>">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 9.5h16"/><path d="M8 3v3.2M16 3v3.2"/><path d="M8 13h2M14 13h2M8 16.3h2M14 16.3h2"/></svg>
+                <span>Agenda</span>
+            </a>
             <a href="<?= e(url('/parken')) ?>" class="<?= str_starts_with($currentPath, '/parken') ? 'active' : '' ?>">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.4"/></svg>
                 <span>Parken</span>

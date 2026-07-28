@@ -69,26 +69,6 @@ final class PlaybookController extends Controller
         ]);
     }
 
-    public function calendar(string $id): void
-    {
-        $this->auth();
-        $playbook = (new Playbook())->find((int) $id);
-        if (!$playbook) {
-            http_response_code(404);
-            view('errors/404', ['title' => 'Draaiboek niet gevonden']);
-            return;
-        }
-        $month = playbook_calendar_month(is_string($_GET['maand'] ?? null) ? $_GET['maand'] : null);
-        view('playbooks/calendar', [
-            'title' => $playbook['title'] . ' · Kalender',
-            'playbook' => $playbook,
-            'steps' => (new PlaybookStep())->forPlaybook((int) $id),
-            'month' => $month,
-            'monthUrlBase' => url('/draaiboeken/' . $id . '/kalender'),
-            'backUrl' => url('/draaiboeken/' . $id),
-        ]);
-    }
-
     public function edit(string $id): void
     {
         $this->auth();

@@ -156,6 +156,47 @@ function playbook_step_occurs_on(array $step, string $date): bool {
     };
 }
 /**
+ * Normalizes any date-bearing record (playbook step, item, absence, review) into the
+ * shared shape the calendar partial (views/playbooks/_calendar.php) renders bars from.
+ * @return array{title:string, subtitle:string, category:string, type:string, recurrence_interval:?string, start_date:string, end_date:string, url:string}
+ */
+function calendar_entry(string $title, string $subtitle, string $category, string $startDate, string $endDate, string $url, string $type = 'eenmalig', ?string $recurrenceInterval = null): array {
+    return [
+        'title' => $title,
+        'subtitle' => $subtitle,
+        'category' => $category,
+        'type' => $type,
+        'recurrence_interval' => $recurrenceInterval,
+        'start_date' => $startDate,
+        'end_date' => $endDate,
+        'url' => $url,
+    ];
+}
+function playbook_step_calendar_entry(array $step, string $url, ?string $playbookTitle = null): array {
+    $parkPart = !empty($step['park_name']) ? $step['park_name'] : 'Alle parken';
+    return calendar_entry(
+        $step['title'],
+        $playbookTitle !== null ? $playbookTitle . ' · ' . $parkPart : $parkPart,
+        'draaiboek',
+        $step['start_date'],
+        $step['end_date'],
+        $url,
+        $step['type'],
+        $step['recurrence_interval']
+    );
+}
+/** @return array{label:string, class:string} */
+function calendar_category_meta(string $category): array {
+    return [
+        'afspraak' => ['label' => 'Afspraak', 'class' => 'gantt-bar--afspraak'],
+        'taak' => ['label' => 'Taak', 'class' => 'gantt-bar--taak'],
+        'notitie' => ['label' => 'Notitie', 'class' => 'gantt-bar--notitie'],
+        'verzuim' => ['label' => 'Verzuim', 'class' => 'gantt-bar--verzuim'],
+        'gesprek' => ['label' => 'Gesprek', 'class' => 'gantt-bar--gesprek'],
+        'draaiboek' => ['label' => 'Draaiboek', 'class' => 'gantt-bar--draaiboek'],
+    ][$category] ?? ['label' => ucfirst($category), 'class' => ''];
+}
+/**
  * Resolves a 'YYYY-MM' query param (or the current month) to a full calendar-month
  * window, clamped so you can't browse more than ~12 months into the future.
  * @return array{month:string, monthStart:string, monthEnd:string, daysInMonth:int, prevMonth:string, nextMonth:string, canGoNext:bool, label:string}

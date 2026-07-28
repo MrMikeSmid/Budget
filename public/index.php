@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Controllers\AbsenceController;
+use App\Controllers\AgendaController;
 use App\Controllers\AuthController;
 use App\Controllers\DepartmentController;
 use App\Controllers\HomeController;
@@ -76,7 +77,6 @@ $router->get('/draaiboeken', [PlaybookController::class, 'index']);
 $router->get('/draaiboeken/nieuw', [PlaybookController::class, 'create']);
 $router->post('/draaiboeken', [PlaybookController::class, 'store']);
 $router->get('/draaiboeken/{id}', [PlaybookController::class, 'show']);
-$router->get('/draaiboeken/{id}/kalender', [PlaybookController::class, 'calendar']);
 $router->get('/draaiboeken/{id}/bewerken', [PlaybookController::class, 'edit']);
 $router->post('/draaiboeken/{id}/update', [PlaybookController::class, 'update']);
 $router->post('/draaiboeken/{id}/delete', [PlaybookController::class, 'delete']);
@@ -86,6 +86,8 @@ $router->post('/draaiboeken/{playbookId}/stappen', [PlaybookStepController::clas
 $router->post('/stappen/{id}/update', [PlaybookStepController::class, 'update']);
 $router->post('/stappen/{id}/toggle', [PlaybookStepController::class, 'toggle']);
 $router->post('/stappen/{id}/delete', [PlaybookStepController::class, 'delete']);
+
+$router->get('/agenda', [AgendaController::class, 'index']);
 
 $router->get('/gedeeld/{token}', [PlaybookShareController::class, 'show']);
 $router->get('/gedeeld/{token}/kalender', [PlaybookShareController::class, 'calendar']);

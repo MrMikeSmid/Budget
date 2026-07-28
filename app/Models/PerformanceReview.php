@@ -13,6 +13,16 @@ final class PerformanceReview
         return $stmt->fetchAll();
     }
 
+    public function all(): array
+    {
+        return db()->query(<<<'SQL'
+            SELECT r.*, p.name AS person_name
+            FROM performance_reviews r
+            JOIN people p ON p.id = r.person_id
+            ORDER BY r.review_date DESC
+        SQL)->fetchAll();
+    }
+
     public function find(int $id): ?array
     {
         $stmt = db()->prepare('SELECT * FROM performance_reviews WHERE id = ?');

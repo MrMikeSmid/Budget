@@ -86,7 +86,12 @@ legend{margin-bottom:6px;font-size:12px;font-weight:700;color:var(--muted)}
 .calendar-legend{display:flex;gap:16px;margin-bottom:10px;font-size:11px;color:var(--muted)}
 .calendar-legend span{display:inline-flex;align-items:center;gap:5px}
 .calendar-dot{width:8px;height:8px;border-radius:3px;background:var(--accent);flex:0 0 auto}
-.calendar-dot--periodiek{background:var(--brand)}
+.calendar-dot.gantt-bar--afspraak{background:var(--accent)}
+.calendar-dot.gantt-bar--taak{background:var(--warn)}
+.calendar-dot.gantt-bar--notitie{background:var(--muted)}
+.calendar-dot.gantt-bar--verzuim{background:var(--danger)}
+.calendar-dot.gantt-bar--gesprek{background:var(--ok)}
+.calendar-dot.gantt-bar--draaiboek{background:var(--brand)}
 .gantt-wrap{overflow-x:auto;margin-bottom:16px;-webkit-overflow-scrolling:touch;border:1px solid var(--border);border-radius:12px;background:var(--paper);cursor:grab}
 .gantt-wrap.is-dragging{cursor:grabbing;user-select:none}
 .gantt{display:grid;position:relative;min-width:100%;width:max-content}
@@ -95,7 +100,12 @@ legend{margin-bottom:6px;font-size:12px;font-weight:700;color:var(--muted)}
 .cal-weekday{font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:700}
 .cal-daynum{font-size:14px;font-weight:700;color:var(--ink)}
 .gantt-bar{display:flex;align-items:center;padding:0 8px;margin:4px 2px;border-radius:8px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:1}
-.gantt-bar--periodiek{background:var(--brand)}
+.gantt-bar--afspraak{background:var(--accent)}
+.gantt-bar--taak{background:var(--warn)}
+.gantt-bar--notitie{background:var(--muted)}
+.gantt-bar--verzuim{background:var(--danger)}
+.gantt-bar--gesprek{background:var(--ok)}
+.gantt-bar--draaiboek{background:var(--brand)}
 .gantt-today-line{background:rgba(79,127,174,.1);z-index:0}
 
 /* Bottom nav (mobile) / sidebar (desktop) */

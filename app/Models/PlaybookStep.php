@@ -26,6 +26,17 @@ final class PlaybookStep
         return $stmt->fetchAll();
     }
 
+    public function all(): array
+    {
+        return db()->query(<<<'SQL'
+            SELECT s.*, pa.name AS park_name, pb.title AS playbook_title
+            FROM playbook_steps s
+            JOIN playbooks pb ON pb.id = s.playbook_id
+            LEFT JOIN parks pa ON pa.id = s.park_id
+            ORDER BY s.start_date ASC, s.created_at ASC
+        SQL)->fetchAll();
+    }
+
     public function find(int $id): ?array
     {
         $stmt = db()->prepare('SELECT * FROM playbook_steps WHERE id = ?');

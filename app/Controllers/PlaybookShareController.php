@@ -40,13 +40,18 @@ final class PlaybookShareController extends Controller
             return;
         }
         $month = playbook_calendar_month(is_string($_GET['maand'] ?? null) ? $_GET['maand'] : null);
+        $shareUrl = url('/gedeeld/' . $token);
+        $steps = array_map(
+            fn(array $step) => playbook_step_calendar_entry($step, $shareUrl),
+            (new PlaybookStep())->forPlaybook((int) $playbook['id'])
+        );
         view('playbooks/calendar', [
             'title' => $playbook['title'] . ' · Kalender',
             'playbook' => $playbook,
-            'steps' => (new PlaybookStep())->forPlaybook((int) $playbook['id']),
+            'steps' => $steps,
             'month' => $month,
             'monthUrlBase' => url('/gedeeld/' . $token . '/kalender'),
-            'backUrl' => url('/gedeeld/' . $token),
+            'backUrl' => $shareUrl,
         ], 'print');
     }
 }

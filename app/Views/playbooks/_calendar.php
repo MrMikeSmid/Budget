@@ -42,6 +42,7 @@ foreach ($steps as $stepIndex => $step) {
 }
 $visibleStepIndexes = array_keys($stepRuns);
 $rowCount = max(count($visibleStepIndexes), 1);
+$presentCategories = array_unique(array_column($steps, 'category'));
 ?>
 <div class="calendar-nav">
     <a class="button button--soft button--small" href="<?= e($monthUrlBase . '?maand=' . $month['prevMonth']) ?>">‹ Vorige</a>
@@ -53,10 +54,13 @@ $rowCount = max(count($visibleStepIndexes), 1);
     <?php endif; ?>
 </div>
 
+<?php if (!empty($presentCategories)): ?>
 <div class="calendar-legend">
-    <span><i class="calendar-dot calendar-dot--eenmalig"></i> Eenmalig</span>
-    <span><i class="calendar-dot calendar-dot--periodiek"></i> Periodiek</span>
+    <?php foreach ($presentCategories as $category): $meta = calendar_category_meta($category); ?>
+        <span><i class="calendar-dot <?= e($meta['class']) ?>"></i> <?= e($meta['label']) ?></span>
+    <?php endforeach; ?>
 </div>
+<?php endif; ?>
 
 <div class="gantt-wrap" id="ganttWrap">
     <div class="gantt" style="grid-template-columns:repeat(<?= $month['daysInMonth'] ?>,46px);grid-template-rows:38px repeat(<?= $rowCount ?>,38px)">
@@ -69,9 +73,9 @@ $rowCount = max(count($visibleStepIndexes), 1);
                 <span class="cal-daynum"><?= (int) $day->format('j') ?></span>
             </div>
         <?php endforeach; ?>
-        <?php foreach (array_values($visibleStepIndexes) as $row => $stepIndex): $step = $steps[$stepIndex]; ?>
+        <?php foreach (array_values($visibleStepIndexes) as $row => $stepIndex): $step = $steps[$stepIndex]; $meta = calendar_category_meta($step['category']); ?>
             <?php foreach ($stepRuns[$stepIndex] as [$startCol, $length]): ?>
-                <div class="gantt-bar gantt-bar--<?= e($step['type']) ?>" style="grid-column:<?= $startCol + 1 ?> / span <?= $length ?>;grid-row:<?= $row + 2 ?>" title="<?= e($step['title']) ?> · <?= $step['park_name'] ? e($step['park_name']) : 'Alle parken' ?>"><?= e($step['title']) ?></div>
+                <a class="gantt-bar <?= e($meta['class']) ?>" href="<?= e($step['url']) ?>" style="grid-column:<?= $startCol + 1 ?> / span <?= $length ?>;grid-row:<?= $row + 2 ?>" title="<?= e($step['title']) ?> · <?= e($step['subtitle']) ?>"><?= e($step['title']) ?></a>
             <?php endforeach; ?>
         <?php endforeach; ?>
     </div>
@@ -97,23 +101,35 @@ $rowCount = max(count($visibleStepIndexes), 1);
         }
     }, { passive: false });
 
-    // Click-and-drag scrolling for desktop mouse users.
+    // Click-and-drag scrolling for desktop mouse users. Bars are now links (to
+    // jump to the underlying record), so a drag that moved the pointer must
+    // suppress the click that would otherwise follow on mouseup.
     let dragging = false;
+    let dragMoved = false;
     let dragStartX = 0;
     let dragStartScroll = 0;
     wrap.addEventListener('mousedown', (e) => {
         dragging = true;
+        dragMoved = false;
         wrap.classList.add('is-dragging');
         dragStartX = e.pageX;
         dragStartScroll = wrap.scrollLeft;
     });
     window.addEventListener('mousemove', (e) => {
         if (!dragging) return;
-        wrap.scrollLeft = dragStartScroll - (e.pageX - dragStartX);
+        const delta = e.pageX - dragStartX;
+        if (Math.abs(delta) > 4) { dragMoved = true; }
+        wrap.scrollLeft = dragStartScroll - delta;
     });
     window.addEventListener('mouseup', () => {
         dragging = false;
         wrap.classList.remove('is-dragging');
     });
+    wrap.addEventListener('click', (e) => {
+        if (dragMoved) {
+            e.preventDefault();
+            dragMoved = false;
+        }
+    }, true);
 })();
 </script>

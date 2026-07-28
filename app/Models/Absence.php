@@ -13,6 +13,16 @@ final class Absence
         return $stmt->fetchAll();
     }
 
+    public function all(): array
+    {
+        return db()->query(<<<'SQL'
+            SELECT a.*, p.name AS person_name
+            FROM absences a
+            JOIN people p ON p.id = a.person_id
+            ORDER BY a.start_date DESC
+        SQL)->fetchAll();
+    }
+
     public function find(int $id): ?array
     {
         $stmt = db()->prepare('SELECT * FROM absences WHERE id = ?');
