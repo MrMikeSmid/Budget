@@ -57,7 +57,9 @@ final class ImapClient
 
         $protocol = $account->mailProtocol;
         $flags = "/$protocol/" . ($account->imapSecure ? 'ssl' : 'notls');
-        if ($account->imapSecure && $account->mailNoValidateCert) {
+        // Match a mail client configured to accept every certificate. ext-imap
+        // only exposes this behaviour through the mailbox flag.
+        if ($account->imapSecure) {
             $flags .= '/novalidate-cert';
         }
         $connectHost = $account->imapHost;
@@ -72,7 +74,7 @@ final class ImapClient
                 $protocol,
                 $account->imapSecure,
                 $account->mailConnectIpv4,
-                $account->mailNoValidateCert,
+                true,
                 $timeout,
             );
             $timings = $socket['timings'] ?? [];
@@ -110,6 +112,7 @@ final class ImapClient
         }
 
         $mailbox = '{' . $connectHost . ':' . $account->imapPort . $flags . '}' . self::encodeFolder($folder);
+        self::logConnectionDetails($account->imapHost, $account->imapPort, $mailbox, $protocol);
         $imapStartedAt = hrtime(true);
         imap_errors();
         $warning = null;
@@ -160,6 +163,24 @@ final class ImapClient
     private static function logLifecycle(string $event, int $durationMs, string $phase): void
     {
         error_log(sprintf('[mail-connection] %s duration_ms=%d stop_phase=%s', $event, $durationMs, $phase));
+    }
+
+    private static function logConnectionDetails(string $host, int $port, string $mailbox, string $protocol): void
+    {
+        $directory = dirname(__DIR__, 2) . '/logs';
+        if (!is_dir($directory) && !@mkdir($directory, 0750, true) && !is_dir($directory)) {
+            return;
+        }
+        $line = sprintf(
+            "[%s] host=%s port=%d mailbox=%s protocol=%s novalidate_cert=%s\n",
+            date(DATE_ATOM),
+            str_replace(["\r", "\n"], '', $host),
+            $port,
+            str_replace(["\r", "\n"], '', $mailbox),
+            str_replace(["\r", "\n"], '', strtolower($protocol)),
+            str_contains($mailbox, '/novalidate-cert') ? 'yes' : 'no',
+        );
+        @file_put_contents($directory . '/mcp_debug.log', $line, FILE_APPEND | LOCK_EX);
     }
 
     /** @param array<string, mixed> $diagnostics */

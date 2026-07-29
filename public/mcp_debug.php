@@ -125,7 +125,12 @@ function testSocket(int $port): array
     $start = microtime(true);
     $number = 0;
     $message = '';
-    $socket = @stream_socket_client('tcp://' . DEBUG_HOST . ':' . $port, $number, $message, CONNECT_TIMEOUT);
+    $context = stream_context_create(['ssl' => [
+        'verify_peer' => false,
+        'verify_peer_name' => false,
+        'allow_self_signed' => true,
+    ]]);
+    $socket = @stream_socket_client('tcp://' . DEBUG_HOST . ':' . $port, $number, $message, CONNECT_TIMEOUT, STREAM_CLIENT_CONNECT, $context);
     $duration = (microtime(true) - $start) * 1000;
     if ($socket === false) {
         return ['ok' => false, 'time' => $duration, 'error' => socketErrorText($number, $message)];
@@ -135,12 +140,13 @@ function testSocket(int $port): array
 }
 
 /** @return array{ok: bool, stream?: resource, time: float, tls: string, cipher: string, error: string} */
-function tlsConnection(bool $verify = true, bool $captureCertificate = false): array
+function tlsConnection(bool $captureCertificate = false): array
 {
     drainOpenSslErrors();
     $options = ['ssl' => [
-        'verify_peer' => $verify,
-        'verify_peer_name' => $verify,
+        'verify_peer' => false,
+        'verify_peer_name' => false,
+        'allow_self_signed' => true,
         'peer_name' => DEBUG_HOST,
         'SNI_enabled' => true,
         'capture_peer_cert' => $captureCertificate,
@@ -250,7 +256,7 @@ foreach ([993 => 'SSL', 995 => 'SSL', 143 => 'STARTTLS', 110 => 'Onversleuteld']
 }
 
 $certificate = runTest('SSL certificaat', static function (): array {
-    $capture = tlsConnection(false, true);
+    $capture = tlsConnection(true);
     if (!$capture['ok']) {
         return $capture;
     }
@@ -262,23 +268,19 @@ $certificate = runTest('SSL certificaat', static function (): array {
         $errors = implode(' | ', drainOpenSslErrors());
         return ['ok' => false, 'error' => $errors !== '' ? $errors : 'Certificaat kon niet worden gelezen'];
     }
-    $validation = tlsConnection(true, false);
-    if ($validation['ok']) {
-        fclose($validation['stream']);
-    }
     $matches = certificateMatchesHost($parsed, DEBUG_HOST);
     return [
-        'ok' => $validation['ok'] && $matches,
+        'ok' => true,
         'subject' => certificateName($parsed['subject'] ?? []),
         'issuer' => certificateName($parsed['issuer'] ?? []),
         'from' => isset($parsed['validFrom_time_t']) ? date(DATE_ATOM, $parsed['validFrom_time_t']) : 'Onbekend',
         'until' => isset($parsed['validTo_time_t']) ? date(DATE_ATOM, $parsed['validTo_time_t']) : 'Onbekend',
-        'hostname' => $matches, 'chain' => $validation['ok'], 'error' => $validation['error'],
+        'hostname' => $matches, 'chain' => 'Niet gevalideerd', 'error' => '',
     ];
 });
 
 $handshake = runTest('TLS handshake', static function (): array {
-    $result = tlsConnection(true, false);
+    $result = tlsConnection(false);
     if ($result['ok']) {
         fclose($result['stream']);
     }
@@ -297,7 +299,12 @@ $imap = runTest('IMAP login', static function () use (&$imapHandle, $handshake):
     imap_alerts();
     drainOpenSslErrors();
     $account = Config::getAccount();
-    $imapHandle = @imap_open('{mail.mikesmid.nl:993/imap/ssl}', $account->imapUser, $account->imapPass, 0, 1);
+    $debugMailbox = '{mail.mikesmid.nl:993/imap/ssl/novalidate-cert}';
+    writeDebugLog('IMAP connection settings', 0.0, true, sprintf(
+        'host=%s port=%d mailbox=%s protocol=%s novalidate_cert=%s',
+        DEBUG_HOST, 993, $debugMailbox, 'imap', str_contains($debugMailbox, '/novalidate-cert') ? 'yes' : 'no'
+    ));
+    $imapHandle = @imap_open($debugMailbox, $account->imapUser, $account->imapPass, 0, 1);
     if ($imapHandle !== false) {
         return ['ok' => true, 'error' => ''];
     }
@@ -313,8 +320,8 @@ $mailbox = runTest('Mailbox informatie', static function () use (&$imapHandle, $
     if (!$imap['ok'] || $imapHandle === null || $imapHandle === false) {
         return ['ok' => false, 'skipped' => true, 'error' => 'Niet uitgevoerd: IMAP-login is niet gelukt.'];
     }
-    $mailboxes = @imap_list($imapHandle, '{' . DEBUG_HOST . ':993/imap/ssl}', '*') ?: [];
-    $status = @imap_status($imapHandle, '{' . DEBUG_HOST . ':993/imap/ssl}INBOX', SA_MESSAGES | SA_UNSEEN);
+    $mailboxes = @imap_list($imapHandle, '{' . DEBUG_HOST . ':993/imap/ssl/novalidate-cert}', '*') ?: [];
+    $status = @imap_status($imapHandle, '{' . DEBUG_HOST . ':993/imap/ssl/novalidate-cert}INBOX', SA_MESSAGES | SA_UNSEEN);
     $subjects = [];
     $count = $status !== false ? (int) $status->messages : 0;
     for ($number = $count; $number > max(0, $count - 5); $number--) {
@@ -337,9 +344,6 @@ if (!$dns['ok']) {
 } elseif (!$ports[993]['ok']) {
     $problem = 'TCP-verbinding naar poort 993 mislukt';
     $recommendation = 'Laat uitgaand verkeer naar mail.mikesmid.nl:993 door de hostingprovider of firewall toestaan.';
-} elseif (!$certificate['ok']) {
-    $problem = 'SSL certificaat ongeldig';
-    $recommendation = 'Installeer een geldige volledige certificaatketen voor mail.mikesmid.nl en controleer de hostname in SAN.';
 } elseif (!$handshake['ok']) {
     $problem = 'TLS handshake mislukt';
     $recommendation = 'Controleer de ondersteunde TLS-versies/ciphers en de volledige OpenSSL-fout hierboven.';
@@ -357,12 +361,13 @@ if (!$dns['ok']) {
 <style>
 :root{color-scheme:dark;--bg:#090d12;--panel:#111821;--line:#263241;--text:#e9f0f7;--muted:#91a1b2;--ok:#38d27a;--bad:#ff5c6c}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#162334,var(--bg) 42%);color:var(--text);font:15px/1.55 system-ui,sans-serif}.wrap{max-width:1050px;margin:auto;padding:38px 20px 70px}h1{font-size:clamp(28px,5vw,44px);margin:0}.lead{color:var(--muted);margin:5px 0 28px}.grid{display:grid;gap:18px}.card{background:rgba(17,24,33,.94);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:0 12px 35px #0005}.card h2{margin:0 0 16px;font-size:20px;display:flex;justify-content:space-between;gap:12px;align-items:center}.status{white-space:nowrap;border:1px solid;padding:5px 10px;border-radius:999px;font-size:13px}.status.ok{color:var(--ok);background:#113421;border-color:#247044}.status.failed{color:var(--bad);background:#3b1720;border-color:#7f2d3a}dl{display:grid;grid-template-columns:minmax(150px,240px) 1fr;margin:0;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:9px;overflow:hidden}dt,dd{margin:0;padding:10px 12px;background:#0d141c;overflow-wrap:anywhere}dt{color:var(--muted)}.error{color:#ff9ba5;background:#301820;border-left:3px solid var(--bad);padding:10px 12px;margin:14px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}.ports{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}.port{border:1px solid var(--line);border-radius:9px;padding:14px;background:#0d141c}.port strong{display:flex;justify-content:space-between}.subjects{margin-bottom:0}.summary{border-width:2px;border-color:<?= $mailbox['ok'] ? 'var(--ok)' : 'var(--bad)' ?>}.summary h2{font-size:25px}.summary p:last-child{color:var(--muted)}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid var(--line);padding:9px 7px}th{color:var(--muted)}.privacy{font-size:13px;color:var(--muted)}@media(max-width:600px){dl{grid-template-columns:1fr}dt{padding-bottom:2px}dd{padding-top:2px}.card h2{align-items:flex-start;flex-direction:column}}
 </style></head><body><main class="wrap">
+<strong>Certificate validation: DISABLED</strong>
 <h1>MCP Maildiagnose</h1><p class="lead">Zelfstandige, alleen-lezen diagnose voor <strong><?= h(DEBUG_HOST) ?></strong></p>
 <div class="grid">
 <section class="card"><h2>Stap 1 — PHP informatie <?= status($php['ok']) ?></h2><?= table($php['data']['values']) ?><?php if ($php['error']): ?><div class="error"><?= h($php['error']) ?></div><?php endif ?></section>
 <section class="card"><h2>Stap 2 — DNS test <?= status($dns['ok']) ?></h2><?= table(['Host' => DEBUG_HOST, 'IP-adres' => $dns['data']['ip'], 'Resolvetijd' => number_format($dns['data']['time'], 2) . ' ms']) ?><?php if ($dns['error']): ?><div class="error"><?= h($dns['error']) ?></div><?php endif ?></section>
 <section class="card"><h2>Stap 3 — TCP Socket test <?= status(count(array_filter($ports, fn ($r) => !$r['ok'])) === 0) ?></h2><div class="ports"><?php foreach ($ports as $port => $result): ?><div class="port"><strong><?= h($port . ' ' . [993=>'SSL',995=>'SSL',143=>'STARTTLS',110=>'Onversleuteld'][$port]) ?> <?= status($result['ok']) ?></strong><div><?= number_format($result['data']['time'], 2) ?> ms</div><?php if ($result['error']): ?><div class="error"><?= h($result['error']) ?></div><?php endif ?></div><?php endforeach ?></div></section>
-<section class="card"><h2>Stap 4 — SSL certificaat <?= status($certificate['ok']) ?></h2><?php if (is_array($certificate['data']) && isset($certificate['data']['subject'])): ?><?= table(['Subject'=>$certificate['data']['subject'],'Issuer'=>$certificate['data']['issuer'],'Geldig vanaf'=>$certificate['data']['from'],'Geldig tot'=>$certificate['data']['until'],'Hostname match'=>$certificate['data']['hostname']?'Ja':'Nee','Certificate chain geldig'=>$certificate['data']['chain']?'Ja':'Nee']) ?><?php endif ?><?php if ($certificate['error']): ?><div class="error"><?= h($certificate['error']) ?></div><?php endif ?></section>
+<section class="card"><h2>Stap 4 — SSL certificaat <?= status($certificate['ok']) ?></h2><?php if (is_array($certificate['data']) && isset($certificate['data']['subject'])): ?><?= table(['Subject'=>$certificate['data']['subject'],'Issuer'=>$certificate['data']['issuer'],'Geldig vanaf'=>$certificate['data']['from'],'Geldig tot'=>$certificate['data']['until'],'Hostname match (informatief)'=>$certificate['data']['hostname']?'Ja':'Nee','Certificate chain'=>$certificate['data']['chain']]) ?><?php endif ?><?php if ($certificate['error']): ?><div class="error"><?= h($certificate['error']) ?></div><?php endif ?></section>
 <section class="card"><h2>Stap 5 — TLS handshake <?= status($handshake['ok']) ?></h2><?= table(['TLS versie'=>$handshake['data']['tls'] ?? '—','Cipher'=>$handshake['data']['cipher'] ?? '—','Handshake-tijd'=>isset($handshake['data']['time'])?number_format($handshake['data']['time'],2).' ms':'—']) ?><?php if ($handshake['error']): ?><div class="error"><?= h($handshake['error']) ?></div><?php endif ?></section>
 <section class="card"><h2>Stap 6 — IMAP login <?= status($imap['ok']) ?></h2><p><?= $imap['ok'] ? 'Login gelukt.' : 'Login mislukt.' ?></p><?php if ($imap['error']): ?><div class="error"><?= h($imap['error']) ?></div><?php endif ?></section>
 <section class="card"><h2>Stap 7 — Mailbox informatie <?= status($mailbox['ok']) ?></h2><?php if ($mailbox['ok']): ?><?= table(['Aantal mappen'=>$mailbox['data']['folders'],'Aantal inbox berichten'=>$mailbox['data']['messages'],'Aantal ongelezen'=>$mailbox['data']['unseen']]) ?><h3>Laatste 5 onderwerpen</h3><ol class="subjects"><?php foreach ($mailbox['data']['subjects'] as $subject): ?><li><?= h($subject) ?></li><?php endforeach ?></ol><?php else: ?><div class="error"><?= h($mailbox['error']) ?></div><?php endif ?></section>

@@ -26,10 +26,10 @@ return [
     'IMAP_USER' => 'jij@jouwdomein.nl',
     'IMAP_PASSWORD' => '',
 
-    // Diagnose-opties. Laat beide veiligheidsverlagende testopties normaal op false.
+    // Diagnose-opties.
     'DEBUG_MAIL' => false,              // Alleen dan uitgebreide DNS/TLS/certificaatdiagnose en veilige details.
-    // ALLEEN TIJDELIJKE DIAGNOSE: true voegt /novalidate-cert toe en schakelt certificaatcontrole uit.
-    // Herstel daarna het certificaat/de officiële hostnaam en zet dit onmiddellijk terug op false.
+    // Verouderde compatibiliteitssleutel; certificaatcontrole is altijd uitgeschakeld.
+    // SSL-verbindingen accepteren alle certificaten, ongeacht deze waarde.
     'MAIL_NOVALIDATE_CERT' => false,
     'MAIL_CONNECT_IPV4' => false,       // Tijdelijk: verbind ext-imap rechtstreeks met het eerste IPv4-adres.
     'MAIL_SOCKET_TIMEOUT' => 5,         // Netwerk-timeout in seconden (1-5).

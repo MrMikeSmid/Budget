@@ -84,7 +84,7 @@ cp config/config.example.php config/config.php
 | `MAIL_PROTOCOL` | Protocol voor inkomende mail: `imap` (standaard) of `pop3`. |
 | `IMAP_HOST`, `IMAP_PORT`, `IMAP_SECURE`, `IMAP_USER`, `IMAP_PASSWORD` | Inkomende mailverbinding (de sleutelnamen blijven voor achterwaartse compatibiliteit gelijk). Gebruik doorgaans poort 993 voor IMAP of 995 voor POP3 met `IMAP_SECURE=true`. |
 | `DEBUG_MAIL` | Standaard `false`. Alleen bij tijdelijk inschakelen worden DNS-, TLS- en certificaatdiagnostiek uitgevoerd en veilige details teruggegeven. |
-| `MAIL_NOVALIDATE_CERT` | Standaard `false`. Tijdelijke testoptie voor `/novalidate-cert`; schakel na de test direct weer uit. |
+| `MAIL_NOVALIDATE_CERT` | Verouderde compatibiliteitssleutel. Certificaatvalidatie is altijd uitgeschakeld en SSL-mailboxstrings gebruiken altijd `/novalidate-cert`. |
 | `MAIL_CONNECT_IPV4` | Standaard `false`. Verbindt tijdelijk rechtstreeks met het eerste DNS IPv4-adres om IPv6/routingproblemen te isoleren. |
 | `MAIL_SOCKET_TIMEOUT` | Timeout in seconden voor mailnetwerkacties (standaard 5, bereik 1-5). |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` | SMTP-verbinding. Poort 587 (STARTTLS, `SMTP_SECURE=false`) of 465 (impliciete TLS, `SMTP_SECURE=true`). Leeg laten van `SMTP_USER`/`SMTP_PASSWORD` hergebruikt de IMAP-credentials. |
@@ -102,12 +102,14 @@ Een normale IMAP/POP3-aanroep opent precies één geconfigureerde mailboxstring 
 doet geen voorafgaande diagnose. Met `DEBUG_MAIL=true` wordt eerst één DNS-,
 TCP- en TLS-test uitgevoerd. Mislukt die sockettest, dan stopt de aanvraag
 direct: `imap_open()`, certificaatverwerking en alternatieve mailboxstrings
-worden niet meer geprobeerd. De ingestelde SSL- en certificaatkeuzes blijven
-dus leidend; er zijn geen automatische veiligheidsverlagende fallbacks.
+worden niet meer geprobeerd. SSL-certificaatvalidatie is voor inkomende mail en
+SMTP bewust uitgeschakeld, overeenkomstig een mailclient met "alle certificaten
+accepteren". Versleuteling blijft actief, maar identiteit en trust chain van de
+server worden niet gecontroleerd.
 
 De optionele diagnose rapporteert ook PHP-, OpenSSL-, cURL- en streaminformatie, alle
 A/AAAA-adressen, socketfouten, de onderhandelde TLS-versie en cipher, het
-certificaat (subject, issuer en SAN), geldigheids-/hostnaam-/CA-/chaincontroles,
+certificaat (subject, issuer en SAN) en informatieve geldigheids-/hostnaamgegevens,
 de volledige OpenSSL-errorqueue en alle door ext-imap gerapporteerde fouten.
 Bij een fout bevat de debug-JSON altijd `success`, `phase`, `error_type`,
 `message`, `duration_ms` en `diagnostics`. De debugdetails bevatten daarnaast
@@ -121,18 +123,13 @@ verkeerd of onverwacht POP3/IMAP-antwoord en `unknown_imap_error` op een niet
 herkende fout uit `imap_open()`. `missing_imap_extension` en
 `missing_openssl_extension` melden ontbrekende PHP-extensies expliciet.
 
-Veilige testvolgorde: controleer eerst met alle testopties uitgeschakeld de
-serverlog; zet daarna zo nodig tijdelijk `DEBUG_MAIL=true`. Gebruik
-`MAIL_CONNECT_IPV4=true` alleen om een verschil tussen IPv6 en IPv4 vast te
-stellen. Gebruik `MAIL_NOVALIDATE_CERT=true` uitsluitend om een
-certificaatprobleem te bevestigen: deze optie verlaagt TLS-beveiliging en hoort
-nooit permanent actief te blijven. De normale verbinding blijft de hostnaam
-gebruiken, zodat certificaatnaamvalidatie en SNI correct werken.
+Controleer eerst de serverlog en zet daarna zo nodig tijdelijk `DEBUG_MAIL=true`.
+Gebruik `MAIL_CONNECT_IPV4=true` alleen om een verschil tussen IPv6 en IPv4 vast
+te stellen. `MAIL_NOVALIDATE_CERT` wordt nog ingelezen voor compatibiliteit met
+bestaande configuraties, maar heeft geen effect: certificaatvalidatie blijft
+uitgeschakeld. SNI en TLS-versleuteling blijven wel actief.
 
-Als `list_emails` uitsluitend met deze tijdelijke optie werkt, is de definitieve
-oplossing een correct SSL-certificaat voor de geconfigureerde host (bijvoorbeeld
-`mail.mikesmid.nl`) installeren, of de officiële mailserver-hostnaam gebruiken
-die als naam op het certificaat staat. Werkt de verbinding ook dan niet, test
+Werkt de verbinding niet, test
 dan achtereenvolgens de onderhandelde TLS-versie, de officiële serverhostnaam
 van de hostingprovider, het IPv4-adres (`MAIL_CONNECT_IPV4=true`) en PHP's
 OpenSSL/CA-instellingen (`openssl.cafile` en `openssl.capath`).
