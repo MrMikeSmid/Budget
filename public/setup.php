@@ -48,7 +48,7 @@ function setup_css(): string
         p.lead { color: #666; margin-top: 0; }
         @media (prefers-color-scheme: dark) { p.lead { color: #aaa; } }
         label { display: block; font-size: .85rem; font-weight: 600; margin: .9rem 0 .3rem; }
-        input[type=text], input[type=password], input[type=number] {
+        input[type=text], input[type=password], input[type=number], select {
             width: 100%; box-sizing: border-box; padding: .55rem .65rem; border-radius: 6px;
             border: 1px solid #ccc; font-size: .95rem;
         }
@@ -133,19 +133,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['imapHost'])) {
     }
 
     $imapHost = trim((string) ($_POST['imapHost'] ?? ''));
+    $mailProtocol = strtolower(trim((string) ($_POST['mailProtocol'] ?? 'imap')));
     $imapUser = trim((string) ($_POST['imapUser'] ?? ''));
     $imapPassword = (string) ($_POST['imapPassword'] ?? '');
     $smtpHost = trim((string) ($_POST['smtpHost'] ?? ''));
     $bearerToken = trim((string) ($_POST['bearerToken'] ?? ''));
 
+    if (!in_array($mailProtocol, ['imap', 'pop3'], true)) {
+        $formErrors[] = 'Kies IMAP of POP3 als protocol voor inkomende mail.';
+    }
     if ($imapHost === '') {
-        $formErrors[] = 'IMAP-host is verplicht.';
+        $formErrors[] = 'Host voor inkomende mail is verplicht.';
     }
     if ($imapUser === '') {
-        $formErrors[] = 'IMAP-gebruikersnaam is verplicht.';
+        $formErrors[] = 'Gebruikersnaam voor inkomende mail is verplicht.';
     }
     if ($imapPassword === '' && !$hasConfig) {
-        $formErrors[] = 'IMAP-wachtwoord is verplicht.';
+        $formErrors[] = 'Wachtwoord voor inkomende mail is verplicht.';
     }
     if ($smtpHost === '') {
         $formErrors[] = 'SMTP-host is verplicht.';
@@ -157,6 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['imapHost'])) {
     if ($formErrors === []) {
         $newConfig = $existing;
         $newConfig['MCP_BEARER_TOKEN'] = $bearerToken !== '' ? $bearerToken : (string) ($existing['MCP_BEARER_TOKEN'] ?? '');
+        $newConfig['MAIL_PROTOCOL'] = $mailProtocol;
         $newConfig['IMAP_HOST'] = $imapHost;
         $newConfig['IMAP_PORT'] = (int) ($_POST['imapPort'] ?? 993);
         $newConfig['IMAP_SECURE'] = isset($_POST['imapSecure']);
@@ -219,11 +224,12 @@ $warnHtml = !$hasConfig
 
 $val = static fn (string $key, string $default = '') => h($existing[$key] ?? $default);
 $checked = static fn (string $key, bool $default) => (($existing[$key] ?? $default)) ? 'checked' : '';
+$selected = static fn (string $value) => (($existing['MAIL_PROTOCOL'] ?? 'imap') === $value) ? 'selected' : '';
 
 render_page('MCP Email Connector - instellingen', '
     <div class="card">
         <h1>MCP Email Connector - instellingen</h1>
-        <p class="lead">Vul hier je IMAP/SMTP-gegevens in. Wachtwoordvelden leeglaten behoudt de bestaande waarde.</p>
+        <p class="lead">Vul hier je IMAP- of POP3-gegevens en SMTP-gegevens in. Wachtwoordvelden leeglaten behoudt de bestaande waarde.</p>
     </div>
     ' . $warnHtml . $errorsHtml . $successHtml . '
     <div class="card">
@@ -236,7 +242,13 @@ render_page('MCP Email Connector - instellingen', '
                 placeholder="' . ($hasConfig ? 'laat leeg om te behouden' : '') . '">
             <p class="hint">Dit is het token dat je in Claude.ai bij "Aangepaste connector" invult als Bearer token.</p>
 
-            <h2>IMAP (inkomend)</h2>
+            <h2>Inkomende mail</h2>
+            <label for="mailProtocol">Protocol</label>
+            <select id="mailProtocol" name="mailProtocol">
+                <option value="imap" ' . $selected('imap') . '>IMAP</option>
+                <option value="pop3" ' . $selected('pop3') . '>POP3</option>
+            </select>
+            <p class="hint">Gebruik voor POP3 doorgaans poort 995 met SSL/TLS; voor IMAP poort 993.</p>
             <label for="imapHost">Host</label>
             <input type="text" id="imapHost" name="imapHost" value="' . $val('IMAP_HOST') . '" required>
             <div class="row">
@@ -246,7 +258,7 @@ render_page('MCP Email Connector - instellingen', '
                 </div>
                 <div class="checkbox" style="margin-top:1.8rem">
                     <input type="checkbox" id="imapSecure" name="imapSecure" ' . $checked('IMAP_SECURE', true) . '>
-                    <label for="imapSecure" style="margin:0">SSL/TLS (poort 993)</label>
+                    <label for="imapSecure" style="margin:0">SSL/TLS (IMAP 993 / POP3 995)</label>
                 </div>
             </div>
             <label for="imapUser">Gebruikersnaam</label>
@@ -268,12 +280,12 @@ render_page('MCP Email Connector - instellingen', '
                     <label for="smtpSecure" style="margin:0">SSL/TLS (poort 465, anders STARTTLS op 587)</label>
                 </div>
             </div>
-            <label for="smtpUser">Gebruikersnaam (leeg = zelfde als IMAP)</label>
+            <label for="smtpUser">Gebruikersnaam (leeg = zelfde als inkomende mail)</label>
             <input type="text" id="smtpUser" name="smtpUser" value="' . $val('SMTP_USER') . '">
-            <label for="smtpPassword">Wachtwoord (leeg = zelfde als IMAP)</label>
+            <label for="smtpPassword">Wachtwoord (leeg = zelfde als inkomende mail)</label>
             <input type="password" id="smtpPassword" name="smtpPassword"
                 placeholder="' . ($hasConfig ? 'laat leeg om te behouden' : '') . '">
-            <label for="fromAddress">Afzenderadres (leeg = IMAP-gebruikersnaam)</label>
+            <label for="fromAddress">Afzenderadres (leeg = gebruikersnaam inkomende mail)</label>
             <input type="text" id="fromAddress" name="fromAddress" value="' . $val('SMTP_FROM_ADDRESS') . '">
             <label for="fromName">Afzendernaam</label>
             <input type="text" id="fromName" name="fromName" value="' . $val('SMTP_FROM_NAME') . '">

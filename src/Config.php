@@ -45,6 +45,7 @@ final class Config
     /** @param array<string, mixed> $raw */
     private static function accountFromArray(array $raw, string $fallbackId): MailAccountConfig
     {
+        $mailProtocol = strtolower((string) ($raw['mailProtocol'] ?? 'imap'));
         $imapUser = (string) ($raw['imapUser'] ?? '');
         $imapPass = (string) ($raw['imapPass'] ?? '');
         $smtpUser = (string) ($raw['smtpUser'] ?? $imapUser);
@@ -52,8 +53,11 @@ final class Config
         $imapHost = (string) ($raw['imapHost'] ?? '');
         $smtpHost = (string) ($raw['smtpHost'] ?? '');
 
+        if (!in_array($mailProtocol, ['imap', 'pop3'], true)) {
+            throw new ConfigException("Account \"$fallbackId\" heeft een ongeldig inkomend mailprotocol (gebruik imap of pop3).");
+        }
         if ($imapHost === '' || $imapUser === '' || $imapPass === '') {
-            throw new ConfigException("Account \"$fallbackId\" mist verplichte IMAP-configuratie (host/user/pass).");
+            throw new ConfigException("Account \"$fallbackId\" mist verplichte inkomende mailconfiguratie (host/user/pass).");
         }
         if ($smtpHost === '') {
             throw new ConfigException("Account \"$fallbackId\" mist verplichte SMTP-configuratie (host).");
@@ -63,6 +67,7 @@ final class Config
 
         return new MailAccountConfig(
             id: (string) ($raw['id'] ?? $fallbackId),
+            mailProtocol: $mailProtocol,
             imapHost: $imapHost,
             imapPort: (int) ($raw['imapPort'] ?? 993),
             imapSecure: (bool) ($raw['imapSecure'] ?? true),
@@ -103,6 +108,7 @@ final class Config
                 $rawAccounts[] = self::accountFromArray($raw, (string) ($raw['id'] ?? ('account-' . ($index + 1))));
             }
         } else {
+            $mailProtocol = self::read('MAIL_PROTOCOL', $fileConfig) ?? 'imap';
             $imapHost = self::read('IMAP_HOST', $fileConfig);
             $imapUser = self::read('IMAP_USER', $fileConfig);
             $imapPass = self::read('IMAP_PASSWORD', $fileConfig);
@@ -116,6 +122,7 @@ final class Config
 
                 $rawAccounts[] = self::accountFromArray([
                     'id' => 'default',
+                    'mailProtocol' => $mailProtocol,
                     'imapHost' => $imapHost,
                     'imapPort' => $imapPortRaw !== null ? (int) $imapPortRaw : 993,
                     'imapSecure' => $imapSecureRaw === null ? true : $imapSecureRaw !== 'false',

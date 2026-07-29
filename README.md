@@ -1,7 +1,7 @@
-# MCP Email Connector (IMAP/SMTP) — PHP-editie
+# MCP Email Connector (IMAP/POP3/SMTP) — PHP-editie
 
 Self-hosted MCP-server in **PHP** die Claude toegang geeft tot een generieke
-IMAP/SMTP-mailbox (eigen domein via DirectAdmin/cPanel/Plesk-hosting, geen
+IMAP- of POP3-mailbox met SMTP (eigen domein via DirectAdmin/cPanel/Plesk-hosting, geen
 Gmail/Outlook API's). Gebouwd in PHP omdat veel gedeelde hostingpakketten
 (zoals DirectAdmin-pakketten zonder "Node.js Selector") geen persistent
 Node.js-proces toestaan, maar PHP via de gewone webserver altijd werkt —
@@ -80,7 +80,8 @@ cp config/config.example.php config/config.php
 | Sleutel | Omschrijving |
 |---|---|
 | `MCP_BEARER_TOKEN` | **Verplicht.** Bearer token voor authenticatie op de HTTP-endpoint. Genereer bv. met `php -r "echo bin2hex(random_bytes(32));"`. |
-| `IMAP_HOST`, `IMAP_PORT`, `IMAP_SECURE`, `IMAP_USER`, `IMAP_PASSWORD` | IMAP-verbinding. Poort 993 met `IMAP_SECURE=true` is de standaard (impliciete TLS). |
+| `MAIL_PROTOCOL` | Protocol voor inkomende mail: `imap` (standaard) of `pop3`. |
+| `IMAP_HOST`, `IMAP_PORT`, `IMAP_SECURE`, `IMAP_USER`, `IMAP_PASSWORD` | Inkomende mailverbinding (de sleutelnamen blijven voor achterwaartse compatibiliteit gelijk). Gebruik doorgaans poort 993 voor IMAP of 995 voor POP3 met `IMAP_SECURE=true`. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` | SMTP-verbinding. Poort 587 (STARTTLS, `SMTP_SECURE=false`) of 465 (impliciete TLS, `SMTP_SECURE=true`). Leeg laten van `SMTP_USER`/`SMTP_PASSWORD` hergebruikt de IMAP-credentials. |
 | `SMTP_FROM_ADDRESS`, `SMTP_FROM_NAME` | Afzenderadres/-naam voor `send_email`. |
 
