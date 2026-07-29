@@ -190,20 +190,11 @@ correct staan ingesteld in de repository-instellingen.
 4. Sla op — Claude kan nu de tools `list_emails`, `read_email`,
    `search_emails` en `send_email` gebruiken.
 
-### Alternatief: token in de URL
+### Authenticatieheader
 
-Als de client waarmee je verbindt geen apart veld voor een bearer token
-heeft, mag je het token ook als query-parameter meegeven:
-
-```
-https://jouw-domein.nl/mcp.php?token=JOUW_BEARER_TOKEN
-```
-
-De `Authorization: Bearer ...`-header blijft de aanbevolen methode: een
-token in de URL komt terecht in webserver-toegangslogs en eventueel in
-browsergeschiedenis, terwijl een header dat niet doet. Gebruik de
-query-parameter dus vooral voor snel testen of clients die niet anders
-kunnen, en de header-methode voor de definitieve koppeling.
+Stuur het token uitsluitend via `Authorization: Bearer JOUW_BEARER_TOKEN`.
+Tokens in queryparameters worden niet geaccepteerd, omdat URL's in webserver-
+toegangslogs en browsergeschiedenis terecht kunnen komen.
 
 ## Projectstructuur
 
