@@ -57,9 +57,9 @@ final class ImapClient
 
         $protocol = $account->mailProtocol;
         $flags = "/$protocol/" . ($account->imapSecure ? 'ssl' : 'notls');
-        // Match a mail client configured to accept every certificate. ext-imap
-        // only exposes this behaviour through the mailbox flag.
-        if ($account->imapSecure) {
+        // Certificate verification is enabled unless the legacy compatibility
+        // escape hatch is explicitly configured for a self-signed server.
+        if ($account->imapSecure && $account->mailNoValidateCert) {
             $flags .= '/novalidate-cert';
         }
         $connectHost = $account->imapHost;
@@ -334,7 +334,7 @@ final class ImapClient
         $textPlain = null;
         $textHtml = null;
         $attachments = [];
-        $this->walkStructure($uid, $structure, '1', $textPlain, $textHtml, $attachments);
+        $this->walkStructure($uid, $structure, '', $textPlain, $textHtml, $attachments);
 
         return [
             'uid' => $uid,
@@ -344,14 +344,14 @@ final class ImapClient
             'date' => isset($meta->date) ? self::toIso8601($meta->date) : null,
             'unread' => empty($meta->seen),
             'text' => $textPlain,
-            'html' => $textHtml,
+            'html' => $textHtml === null ? null : \McpEmail\Security\HtmlSanitizer::sanitize($textHtml),
             'attachments' => $attachments,
             'headers' => $this->headers($uid),
         ];
     }
 
     /** Returns unfolded raw message headers without changing message flags. */
-    private function headers(int $uid): string
+    public function headers(int $uid): string
     {
         $headers = self::guarded(
             fn () => imap_fetchheader($this->connection, $uid, FT_UID | FT_PEEK),
@@ -370,12 +370,14 @@ final class ImapClient
     ): void {
         if (($structure->type ?? 0) === 1 && !empty($structure->parts)) {
             foreach ($structure->parts as $index => $part) {
-                $this->walkStructure($uid, $part, $section . '.' . ($index + 1), $textPlain, $textHtml, $attachments);
+                $childSection = $section === '' ? (string) ($index + 1) : $section . '.' . ($index + 1);
+                $this->walkStructure($uid, $part, $childSection, $textPlain, $textHtml, $attachments);
             }
             return;
         }
 
         $typeNames = ['text', 'multipart', 'message', 'application', 'audio', 'image', 'video', 'other'];
+        $section = $section === '' ? '1' : $section;
         $type = $typeNames[$structure->type ?? 0] ?? 'application';
         $subtype = strtolower($structure->subtype ?? 'plain');
         $mimeType = $type . '/' . $subtype;
@@ -404,6 +406,9 @@ final class ImapClient
                 'filename' => $filename ?? '(zonder naam)',
                 'contentType' => $mimeType,
                 'size' => (int) ($structure->bytes ?? 0),
+                'contentId' => isset($structure->id) ? trim((string) $structure->id, '<>') : null,
+                'inline' => $disposition === 'inline',
+                'partNumber' => $section,
             ];
         }
     }

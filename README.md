@@ -108,7 +108,7 @@ cp config/config.example.php config/config.php
 | `MAIL_PROTOCOL` | Protocol voor inkomende mail: `imap` (standaard) of `pop3`. |
 | `IMAP_HOST`, `IMAP_PORT`, `IMAP_SECURE`, `IMAP_USER`, `IMAP_PASSWORD` | Inkomende mailverbinding (de sleutelnamen blijven voor achterwaartse compatibiliteit gelijk). Gebruik doorgaans poort 993 voor IMAP of 995 voor POP3 met `IMAP_SECURE=true`. |
 | `DEBUG_MAIL` | Standaard `false`. Alleen bij tijdelijk inschakelen worden DNS-, TLS- en certificaatdiagnostiek uitgevoerd en veilige details teruggegeven. |
-| `MAIL_NOVALIDATE_CERT` | Verouderde compatibiliteitssleutel. Certificaatvalidatie is altijd uitgeschakeld en SSL-mailboxstrings gebruiken altijd `/novalidate-cert`. |
+| `MAIL_NOVALIDATE_CERT` | Verouderde compatibiliteitssleutel. Certificaatvalidatie staat standaard aan. Zet dit alleen voor een aantoonbaar noodzakelijke legacy-server tijdelijk op `true`. |
 | `MAIL_CONNECT_IPV4` | Standaard `false`. Verbindt tijdelijk rechtstreeks met het eerste DNS IPv4-adres om IPv6/routingproblemen te isoleren. |
 | `MAIL_SOCKET_TIMEOUT` | Timeout in seconden voor mailnetwerkacties (standaard 5, bereik 1-5). |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` | SMTP-verbinding. Poort 587 (STARTTLS, `SMTP_SECURE=false`) of 465 (impliciete TLS, `SMTP_SECURE=true`). Leeg laten van `SMTP_USER`/`SMTP_PASSWORD` hergebruikt de IMAP-credentials. |
@@ -126,10 +126,7 @@ Een normale IMAP/POP3-aanroep opent precies één geconfigureerde mailboxstring 
 doet geen voorafgaande diagnose. Met `DEBUG_MAIL=true` wordt eerst één DNS-,
 TCP- en TLS-test uitgevoerd. Mislukt die sockettest, dan stopt de aanvraag
 direct: `imap_open()`, certificaatverwerking en alternatieve mailboxstrings
-worden niet meer geprobeerd. SSL-certificaatvalidatie is voor inkomende mail en
-SMTP bewust uitgeschakeld, overeenkomstig een mailclient met "alle certificaten
-accepteren". Versleuteling blijft actief, maar identiteit en trust chain van de
-server worden niet gecontroleerd.
+worden niet meer geprobeerd. SSL-certificaatvalidatie staat standaard aan. Alleen de expliciete legacy-optie `MAIL_NOVALIDATE_CERT=true` schakelt IMAP-validatie uit; dit wordt afgeraden.
 
 De optionele diagnose rapporteert ook PHP-, OpenSSL-, cURL- en streaminformatie, alle
 A/AAAA-adressen, socketfouten, de onderhandelde TLS-versie en cipher, het
@@ -150,8 +147,8 @@ herkende fout uit `imap_open()`. `missing_imap_extension` en
 Controleer eerst de serverlog en zet daarna zo nodig tijdelijk `DEBUG_MAIL=true`.
 Gebruik `MAIL_CONNECT_IPV4=true` alleen om een verschil tussen IPv6 en IPv4 vast
 te stellen. `MAIL_NOVALIDATE_CERT` wordt nog ingelezen voor compatibiliteit met
-bestaande configuraties, maar heeft geen effect: certificaatvalidatie blijft
-uitgeschakeld. SNI en TLS-versleuteling blijven wel actief.
+bestaande configuraties. Laat de waarde `false`: certificaatvalidatie blijft dan
+ingeschakeld. Alleen `true` voegt de onveilige `/novalidate-cert`-optie toe.
 
 Werkt de verbinding niet, test
 dan achtereenvolgens de onderhandelde TLS-versie, de officiële serverhostnaam
@@ -212,12 +209,10 @@ correct staan ingesteld in de repository-instellingen.
 
 ### Authenticatieheader
 
-Gebruik bij voorkeur `Authorization: Bearer JOUW_BEARER_TOKEN`. Als tijdelijke
-compatibiliteitslaag voor ChatGPT MCP wordt ook `?token=JOUW_BEARER_TOKEN`
-geaccepteerd wanneer de Authorization-header volledig ontbreekt. Queryparameters
-kunnen in webserverlogs en browsergeschiedenis terechtkomen en zijn daarom niet
-bedoeld voor productiegebruik. Met `DEBUG=true` wordt alleen de gebruikte methode
-en een prefix van vier tekens gelogd; nooit de volledige token.
+Alleen `Authorization: Bearer JOUW_BEARER_TOKEN` wordt geaccepteerd. Tokens in
+querystrings zijn niet toegestaan. Vergelijking gebeurt timing-safe met
+`hash_equals`; tokens en berichtinhoud worden niet gelogd. De endpoint hanteert
+60 requests per minuut per client-IP en weigert request bodies groter dan 1 MiB.
 
 ## Projectstructuur
 
@@ -280,3 +275,72 @@ src/
 - Of uitgaande poorten 993 en 465/587 daadwerkelijk open staan.
 - Of het document root van het domein op `public/` gezet kan worden, of dat
   de `.htaccess`-fallback nodig is.
+
+
+## Mailbox security tools
+
+De bestaande endpoints en tools blijven beschikbaar. De uitbreiding voegt toe:
+
+| Tool | Retourneert / bedoeld gebruik |
+|---|---|
+| `search_emails` | Gepagineerde metadata en snippets; zoek met query, headers, body, datum, flags en bijlagenfilter. |
+| `get_email` | Eén volledige mail, veilige HTML, relevante headers, bijlagemetadata en links; geen binaire bijlagen. |
+| `get_email_headers` | Ruwe plus gestructureerde route-, SPF-, DKIM-, DMARC- en ARC-headers. |
+| `list_attachments` | Bestandsmetadata en eerste classificatie; inhoud wordt niet uitgevoerd en SHA-256 is daarom standaard `null`. |
+| `extract_links` | Lokale URL-analyse zonder links, redirects, DNS of trackingpixels te benaderen. |
+| `analyze_email_security` | Uitlegbare, deterministische score 0–100; voert nooit mailboxacties uit. |
+| `scan_mailbox_security` | Begrensde scan (maximaal 100 per pagina) met tellingen en verdachte resultaten. |
+| `list_folders` | Foldernamen, speciale classificatie en waar beschikbaar aantallen. |
+| `get_security_summary` | Trends en top-risicomails over een begrensde selectie. |
+
+Scores: 0–24 laag, 25–49 aandacht, 50–74 verdacht en 75–100 hoog risico.
+Deze heuristiek is geen antivirusproduct en geen garantie. Een losse term zoals
+“laatste herinnering” levert slechts een beperkt gewicht op. Er worden standaard
+geen externe phishingdiensten gebruikt en geen mailboxgegevens met derden gedeeld.
+Regels en limieten staan in `config/security.php`.
+
+### Voorbeeldtoolcalls
+
+De voorbeelden tonen de `arguments` van een MCP `tools/call`:
+
+```json
+{"name":"search_emails","arguments":{"query":"verify account","date_from":"2026-01-01","unread_only":true,"limit":25,"offset":0,"sort":"newest"}}
+{"name":"analyze_email_security","arguments":{"uid":1234,"folder":"INBOX"}}
+{"name":"scan_mailbox_security","arguments":{"folder":"INBOX","date_from":"2026-05-01","date_to":"2026-07-29","limit":50,"risk_threshold":50}}
+{"name":"search_emails","arguments":{"has_attachments":true,"limit":50,"offset":0}}
+```
+
+Elke nieuwe toolresponse gebruikt `{"success":true,"data":...,"meta":...}` of
+`{"success":false,"error":{"code":"...","message":"..."}}`. Stabiele codes
+zijn onder meer `AUTH_REQUIRED`, `AUTH_INVALID`, `INVALID_ARGUMENT`,
+`IMAP_CONNECTION_FAILED`, `FOLDER_NOT_FOUND`, `EMAIL_NOT_FOUND`, `SEARCH_FAILED`,
+`MESSAGE_TOO_LARGE`, `RATE_LIMITED` en `INTERNAL_ERROR`.
+
+## Privacy, veilige HTML en deployment
+
+Bodies worden uitsluitend door `get_email` volledig teruggegeven. Zoekresultaten
+beperken snippets tot 240 tekens. HTML wordt zonder netwerktoegang geparseerd;
+scripts, iframes, forms, eventhandlers, actieve URL-schema’s en externe
+afbeeldingen worden verwijderd. Bijlagen worden niet uitgevoerd. Zet de webroot
+op `public/`, forceer HTTPS, houd `config/config.php` buiten versiebeheer en geef
+`data/` alleen schrijfrechten aan de PHP-worker. Productie verbergt interne
+exceptions; zet debug uitsluitend tijdelijk aan.
+
+Kopieer `.env.example` naar de configuratie van het hostingplatform (PHP leest
+werkelijke process-environmentvariabelen; het bestand wordt niet automatisch
+geladen). Gebruik PHP 8.1–8.3 met `imap`, `mbstring`, `iconv`, `openssl` en bij
+voorkeur `dom`; Composer installeert PHPMailer:
+
+```bash
+composer install --no-dev --optimize-autoloader
+find src public config tests -name '*.php' -print0 | xargs -0 -n1 php -l
+php tests/run.php
+```
+
+Troubleshooting: controleer bij `IMAP_CONNECTION_FAILED` host, poort, TLS,
+firewall en credentials; schakel `DEBUG_MAIL` alleen kort in. Een ongeldige UID
+geeft `EMAIL_NOT_FOUND`. Bij `RATE_LIMITED` wacht u tot het venster van één minuut
+is verlopen. Grote mailboxen moeten altijd met datumfilters, `limit` en `offset`
+worden benaderd. De samenvatting detecteert zonder persistente inhoudsindex geen
+exacte duplicaten en publieke-suffixbepaling gebruikt een conservatieve lokale
+benadering.
