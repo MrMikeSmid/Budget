@@ -27,6 +27,17 @@ final class ImapClient
 
     public static function connect(MailAccountConfig $account, string $folder): self
     {
+        // /novalidate-cert is deliberately only a temporary diagnostic switch.
+        // It must never become the production fix for an invalid server certificate.
+        self::logDiagnostics([
+            'event' => 'connection_attempt',
+            'host' => $account->imapHost,
+            'port' => $account->imapPort,
+            'protocol' => $account->mailProtocol,
+            'certificate_validation' => $account->mailNoValidateCert ? 'DISABLED' : 'ENABLED',
+            'temporary_novalidate_cert' => $account->mailNoValidateCert,
+        ]);
+
         if (!extension_loaded('imap')) {
             self::fail('missing_imap_extension', 'De vereiste PHP-extensie imap is niet geladen.', [
                 'host' => $account->imapHost, 'port' => $account->imapPort, 'protocol' => $account->mailProtocol,
@@ -84,14 +95,29 @@ final class ImapClient
             self::fail($type, self::messageFor($type), $diagnostics);
         }
 
+        self::logDiagnostics([
+            'event' => 'connection_success',
+            'host' => $account->imapHost,
+            'port' => $account->imapPort,
+            'protocol' => $protocol,
+            'certificate_validation' => $account->mailNoValidateCert ? 'DISABLED' : 'ENABLED',
+            'temporary_novalidate_cert' => $account->mailNoValidateCert,
+        ]);
+
         return new self($connection);
     }
 
     /** @param array<string, mixed> $diagnostics */
     private static function fail(string $type, string $message, array $diagnostics): never
     {
-        error_log('[mail-diagnostic] ' . (json_encode($diagnostics, JSON_UNESCAPED_SLASHES) ?: '{"log_error":true}'));
+        self::logDiagnostics(['event' => 'connection_failure', ...$diagnostics]);
         throw new ImapConnectionException($message, $type, $diagnostics);
+    }
+
+    /** @param array<string, mixed> $diagnostics Credentials must never be passed to this logger. */
+    private static function logDiagnostics(array $diagnostics): void
+    {
+        error_log('[mail-diagnostic] ' . (json_encode($diagnostics, JSON_UNESCAPED_SLASHES) ?: '{"log_error":true}'));
     }
 
     private static function classifyImapError(string $error, string $protocol): string

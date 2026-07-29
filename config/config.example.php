@@ -27,7 +27,9 @@ return [
 
     // Diagnose-opties. Laat beide veiligheidsverlagende testopties normaal op false.
     'DEBUG_MAIL' => false,              // Alleen dan veilige details in API-responses; serverlog bevat ze altijd.
-    'MAIL_NOVALIDATE_CERT' => false,    // Tijdelijk: voeg /novalidate-cert toe en negeer TLS-certificaatcontrole.
+    // ALLEEN TIJDELIJKE DIAGNOSE: true voegt /novalidate-cert toe en schakelt certificaatcontrole uit.
+    // Herstel daarna het certificaat/de officiële hostnaam en zet dit onmiddellijk terug op false.
+    'MAIL_NOVALIDATE_CERT' => false,
     'MAIL_CONNECT_IPV4' => false,       // Tijdelijk: verbind ext-imap rechtstreeks met het eerste IPv4-adres.
     'MAIL_SOCKET_TIMEOUT' => 10,        // Voorafgaande DNS/TCP/TLS-test, in seconden (1-30).
 
