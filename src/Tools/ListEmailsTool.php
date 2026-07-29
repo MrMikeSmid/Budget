@@ -6,6 +6,7 @@ namespace McpEmail\Tools;
 
 use McpEmail\Config;
 use McpEmail\Mail\ImapClient;
+use McpEmail\Mail\ImapConnectionException;
 use Throwable;
 
 final class ListEmailsTool implements ToolInterface
@@ -67,6 +68,8 @@ final class ListEmailsTool implements ToolInterface
             usort($summaries, static fn ($a, $b) => $b['id'] <=> $a['id']);
 
             return Support::jsonResult(['folder' => $folder, 'total' => $total, 'emails' => $summaries]);
+        } catch (ImapConnectionException $e) {
+            return Support::mailConnectionError($e);
         } catch (Throwable $e) {
             return Support::errorResult('Kon e-mails niet ophalen: ' . $e->getMessage());
         } finally {

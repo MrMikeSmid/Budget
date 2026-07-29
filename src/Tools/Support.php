@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace McpEmail\Tools;
 
+use McpEmail\Config;
+use McpEmail\Mail\ImapConnectionException;
+
 final class Support
 {
     /** @return array{content: array<int, array{type: string, text: string}>} */
@@ -28,6 +31,22 @@ final class Support
             ],
             'isError' => true,
         ];
+    }
+
+    /** Returns a structured, credential-free MCP error payload. */
+    public static function mailConnectionError(ImapConnectionException $exception): array
+    {
+        $payload = [
+            'success' => false,
+            'error_type' => $exception->errorType(),
+            'message' => Config::debugMail()
+                ? $exception->getMessage()
+                : 'De verbinding met de mailserver is mislukt. Raadpleeg de serverlog.',
+            'diagnostics' => Config::debugMail() ? $exception->diagnostics() : (object) [],
+        ];
+        $result = self::jsonResult($payload);
+        $result['isError'] = true;
+        return $result;
     }
 
     public static function overviewToSummary(object $overview): array

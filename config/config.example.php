@@ -25,6 +25,12 @@ return [
     'IMAP_USER' => 'jij@jouwdomein.nl',
     'IMAP_PASSWORD' => '',
 
+    // Diagnose-opties. Laat beide veiligheidsverlagende testopties normaal op false.
+    'DEBUG_MAIL' => false,              // Alleen dan veilige details in API-responses; serverlog bevat ze altijd.
+    'MAIL_NOVALIDATE_CERT' => false,    // Tijdelijk: voeg /novalidate-cert toe en negeer TLS-certificaatcontrole.
+    'MAIL_CONNECT_IPV4' => false,       // Tijdelijk: verbind ext-imap rechtstreeks met het eerste IPv4-adres.
+    'MAIL_SOCKET_TIMEOUT' => 10,        // Voorafgaande DNS/TCP/TLS-test, in seconden (1-30).
+
     'SMTP_HOST' => 'mail.jouwdomein.nl',
     'SMTP_PORT' => 587,
     // SMTP_SECURE=true hoort bij poort 465 (impliciete TLS). Bij 587 (STARTTLS) op false laten.

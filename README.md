@@ -82,6 +82,10 @@ cp config/config.example.php config/config.php
 | `MCP_BEARER_TOKEN` | **Verplicht.** Bearer token voor authenticatie op de HTTP-endpoint. Genereer bv. met `php -r "echo bin2hex(random_bytes(32));"`. |
 | `MAIL_PROTOCOL` | Protocol voor inkomende mail: `imap` (standaard) of `pop3`. |
 | `IMAP_HOST`, `IMAP_PORT`, `IMAP_SECURE`, `IMAP_USER`, `IMAP_PASSWORD` | Inkomende mailverbinding (de sleutelnamen blijven voor achterwaartse compatibiliteit gelijk). Gebruik doorgaans poort 993 voor IMAP of 995 voor POP3 met `IMAP_SECURE=true`. |
+| `DEBUG_MAIL` | Standaard `false`. Geeft alleen bij tijdelijk inschakelen veilige maildiagnostiek terug in MCP-foutresponses; diagnostiek wordt altijd server-side gelogd. |
+| `MAIL_NOVALIDATE_CERT` | Standaard `false`. Tijdelijke testoptie voor `/novalidate-cert`; schakel na de test direct weer uit. |
+| `MAIL_CONNECT_IPV4` | Standaard `false`. Verbindt tijdelijk rechtstreeks met het eerste DNS IPv4-adres om IPv6/routingproblemen te isoleren. |
+| `MAIL_SOCKET_TIMEOUT` | Timeout in seconden voor de voorafgaande TCP/TLS-test (standaard 10, bereik 1-30). |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` | SMTP-verbinding. Poort 587 (STARTTLS, `SMTP_SECURE=false`) of 465 (impliciete TLS, `SMTP_SECURE=true`). Leeg laten van `SMTP_USER`/`SMTP_PASSWORD` hergebruikt de IMAP-credentials. |
 | `SMTP_FROM_ADDRESS`, `SMTP_FROM_NAME` | Afzenderadres/-naam voor `send_email`. |
 
@@ -90,6 +94,30 @@ via de deploy-workflow ook nooit overschreven/verwijderd (zie hieronder).
 Op hosting waar environment variables wél goed doorgezet worden naar PHP
 (`getenv()`), mogen deze waarden ook via het hostingpaneel als environment
 variable gezet worden — die krijgen dan voorrang boven `config/config.php`.
+
+### Inkomende mailverbinding veilig diagnosticeren
+
+Elke IMAP/POP3-aanroep doet vóór het inloggen een DNS-, TCP- en (bij impliciete
+SSL) TLS-test. De serverlog krijgt uitsluitend veilige technische gegevens en
+nooit het wachtwoord of de volledige gebruikersnaam. Zet `DEBUG_MAIL=true`
+alleen kort tijdens een beheerderstest om dezelfde veilige details in de
+MCP-foutpayload te zien en zet hem daarna terug op `false`.
+
+De waarde van `error_type` lokaliseert de fout: `dns_error` betekent dat er
+geen A/AAAA-record bruikbaar is, `socket_unreachable` wijst op poort/firewall/
+routing, `ssl_handshake_error` op TLS of het certificaat,
+`authentication_error` op geweigerde credentials, `protocol_error` op een
+verkeerd of onverwacht POP3/IMAP-antwoord en `unknown_imap_error` op een niet
+herkende fout uit `imap_open()`. `missing_imap_extension` en
+`missing_openssl_extension` melden ontbrekende PHP-extensies expliciet.
+
+Veilige testvolgorde: controleer eerst met alle testopties uitgeschakeld de
+serverlog; zet daarna zo nodig tijdelijk `DEBUG_MAIL=true`. Gebruik
+`MAIL_CONNECT_IPV4=true` alleen om een verschil tussen IPv6 en IPv4 vast te
+stellen. Gebruik `MAIL_NOVALIDATE_CERT=true` uitsluitend om een
+certificaatprobleem te bevestigen: deze optie verlaagt TLS-beveiliging en hoort
+nooit permanent actief te blijven. De normale verbinding blijft de hostnaam
+gebruiken, zodat certificaatnaamvalidatie en SNI correct werken.
 
 ### Meerdere accounts (optioneel)
 
