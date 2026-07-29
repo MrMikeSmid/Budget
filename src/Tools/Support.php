@@ -38,6 +38,9 @@ final class Support
     {
         $payload = [
             'success' => false,
+            'phase' => Config::debugMail()
+                ? (string) ($exception->diagnostics()['phase'] ?? 'unknown')
+                : 'mail_connection',
             'error_type' => $exception->errorType(),
             'message' => Config::debugMail()
                 ? $exception->getMessage()
