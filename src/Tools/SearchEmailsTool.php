@@ -6,6 +6,7 @@ namespace McpEmail\Tools;
 
 use McpEmail\Config;
 use McpEmail\Mail\ImapClient;
+use McpEmail\Mail\ImapConnectionException;
 use Throwable;
 
 final class SearchEmailsTool implements ToolInterface
@@ -96,6 +97,8 @@ final class SearchEmailsTool implements ToolInterface
                 'criteria' => array_intersect_key($args, array_flip(['from', 'subject', 'text', 'since', 'before'])),
                 'emails' => $summaries,
             ]);
+        } catch (ImapConnectionException $e) {
+            return Support::mailConnectionError($e);
         } catch (Throwable $e) {
             return Support::errorResult('Zoeken naar e-mails is mislukt: ' . $e->getMessage());
         } finally {

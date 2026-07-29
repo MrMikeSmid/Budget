@@ -6,6 +6,7 @@ namespace McpEmail\Tools;
 
 use McpEmail\Config;
 use McpEmail\Mail\ImapClient;
+use McpEmail\Mail\ImapConnectionException;
 use Throwable;
 
 final class ReadEmailTool implements ToolInterface
@@ -61,6 +62,8 @@ final class ReadEmailTool implements ToolInterface
             $message['folder'] = $folder;
 
             return Support::jsonResult($message);
+        } catch (ImapConnectionException $e) {
+            return Support::mailConnectionError($e);
         } catch (Throwable $e) {
             return Support::errorResult('Kon e-mail niet lezen: ' . $e->getMessage());
         } finally {

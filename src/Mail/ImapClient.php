@@ -27,24 +27,120 @@ final class ImapClient
 
     public static function connect(MailAccountConfig $account, string $folder): self
     {
-        $protocol = $account->mailProtocol;
-        $flags = '/' . $protocol . ($account->imapSecure ? '/ssl' : '');
-        $mailboxSpec = '{' . $account->imapHost . ':' . $account->imapPort . $flags . '}' . self::encodeFolder($folder);
+        if (!extension_loaded('imap')) {
+            self::fail('missing_imap_extension', 'De vereiste PHP-extensie imap is niet geladen.', [
+                'host' => $account->imapHost, 'port' => $account->imapPort, 'protocol' => $account->mailProtocol,
+            ]);
+        }
+        if (!extension_loaded('openssl')) {
+            self::fail('missing_openssl_extension', 'De vereiste PHP-extensie openssl is niet geladen.', [
+                'host' => $account->imapHost, 'port' => $account->imapPort, 'protocol' => $account->mailProtocol,
+            ]);
+        }
 
-        $connection = self::guarded(
-            fn () => imap_open($mailboxSpec, $account->imapUser, $account->imapPass, 0, 1),
-            "Kan geen verbinding maken met " . strtoupper($protocol) . "-server {$account->imapHost}:{$account->imapPort}"
+        $protocol = $account->mailProtocol;
+        $diagnostics = MailConnectionDiagnostics::diagnoseMailConnection(
+            $account->imapHost,
+            $account->imapPort,
+            $protocol,
+            $account->imapSecure,
+            $account->mailConnectIpv4,
+            $account->mailNoValidateCert,
+            $account->mailSocketTimeout,
         );
+        if ($diagnostics['error_type'] !== null) {
+            self::fail((string) $diagnostics['error_type'], self::messageFor((string) $diagnostics['error_type']), $diagnostics);
+        }
+
+        $flags = '/' . $protocol . ($account->imapSecure ? '/ssl' : '')
+            . ($account->mailNoValidateCert ? '/novalidate-cert' : '');
+        $connectHost = $account->mailConnectIpv4
+            ? (string) ($diagnostics['ipv4_address'] ?? $account->imapHost)
+            : $account->imapHost;
+        $mailboxSpec = '{' . $connectHost . ':' . $account->imapPort . $flags . '}' . self::encodeFolder($folder);
+
+        // Clear stale process-level errors before collecting errors for this attempt.
+        imap_errors();
+        $warning = null;
+        set_error_handler(static function (int $severity, string $message) use (&$warning): bool {
+            $warning = $message;
+            return true;
+        });
+        try {
+            $connection = imap_open($mailboxSpec, $account->imapUser, $account->imapPass, 0, 1);
+        } finally {
+            restore_error_handler();
+        }
 
         if ($connection === false) {
-            $detail = imap_last_error();
-            throw new ImapConnectionException(
-                "Kan geen verbinding maken met " . strtoupper($protocol) . "-server {$account->imapHost}:{$account->imapPort}" .
-                    ($detail ? " ($detail)" : '')
-            );
+            $lastError = imap_last_error() ?: null;
+            $errors = imap_errors();
+            $errors = is_array($errors) ? array_values($errors) : [];
+            $diagnostics['imap_last_error'] = $lastError;
+            $diagnostics['imap_errors'] = $errors;
+            $diagnostics['imap_warning'] = $warning;
+            $type = self::classifyImapError(implode(' | ', array_filter([$warning, $lastError, ...$errors])), $protocol);
+            $diagnostics = self::redact($diagnostics, [$account->imapUser, $account->imapPass]);
+            self::fail($type, self::messageFor($type), $diagnostics);
         }
 
         return new self($connection);
+    }
+
+    /** @param array<string, mixed> $diagnostics */
+    private static function fail(string $type, string $message, array $diagnostics): never
+    {
+        error_log('[mail-diagnostic] ' . (json_encode($diagnostics, JSON_UNESCAPED_SLASHES) ?: '{"log_error":true}'));
+        throw new ImapConnectionException($message, $type, $diagnostics);
+    }
+
+    private static function classifyImapError(string $error, string $protocol): string
+    {
+        $value = strtolower($error);
+        if (preg_match('/auth|login|credential|password|user(name)?|access denied|invalid account/', $value)) {
+            return 'authentication_error';
+        }
+        if (preg_match('/certificate|tls|ssl|crypto|handshake/', $value)) {
+            return 'ssl_handshake_error';
+        }
+        if (preg_match('/protocol|unexpected|invalid response|not (imap|pop3)|bad command/', $value)) {
+            return 'protocol_error';
+        }
+        // ext-imap often prefixes server responses with the selected protocol.
+        if ($error !== '' && str_contains($value, $protocol)) {
+            return 'protocol_error';
+        }
+        return 'unknown_imap_error';
+    }
+
+    private static function messageFor(string $type): string
+    {
+        return match ($type) {
+            'dns_error' => 'De hostnaam van de mailserver kan niet via DNS worden gevonden.',
+            'socket_unreachable' => 'De mailserver of ingestelde poort is vanaf deze server niet bereikbaar.',
+            'ssl_handshake_error' => 'De SSL/TLS-handshake met de mailserver is mislukt.',
+            'authentication_error' => 'De mailserver heeft de gebruikersnaam of het wachtwoord geweigerd.',
+            'protocol_error' => 'De mailserver gaf een onverwachte POP3/IMAP-protocolreactie.',
+            default => 'De mailboxverbinding kon niet worden geopend.',
+        };
+    }
+
+    /** @param array<string, mixed> $values @param string[] $secrets @return array<string, mixed> */
+    private static function redact(array $values, array $secrets): array
+    {
+        foreach ($values as $key => $value) {
+            if (is_array($value)) {
+                $values[$key] = self::redact($value, $secrets);
+            } elseif (is_string($value)) {
+                foreach ($secrets as $secret) {
+                    if ($secret !== '') {
+                        $value = str_replace($secret, '[REDACTED]', $value);
+                    }
+                }
+                $values[$key] = $value;
+            }
+        }
+        return $values;
     }
 
     public function close(): void

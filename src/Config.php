@@ -11,6 +11,14 @@ final class Config
 
     private static ?string $bearerToken = null;
 
+    private static function boolValue(mixed $value, bool $default = false): bool
+    {
+        if ($value === null || $value === '') {
+            return $default;
+        }
+        return filter_var($value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? $default;
+    }
+
     /**
      * Reads a setting from a real environment variable first (works if the
      * host passes env vars through to PHP), falling back to the values
@@ -80,6 +88,9 @@ final class Config
             smtpPass: $smtpPass,
             fromAddress: (string) ($raw['fromAddress'] ?? $smtpUser),
             fromName: isset($raw['fromName']) ? (string) $raw['fromName'] : null,
+            mailNoValidateCert: self::boolValue($raw['mailNoValidateCert'] ?? false),
+            mailConnectIpv4: self::boolValue($raw['mailConnectIpv4'] ?? false),
+            mailSocketTimeout: max(1.0, min(30.0, (float) ($raw['mailSocketTimeout'] ?? 10.0))),
         );
     }
 
@@ -91,6 +102,11 @@ final class Config
         }
 
         $fileConfig = self::loadConfigFile();
+        $diagnosticDefaults = [
+            'mailNoValidateCert' => self::read('MAIL_NOVALIDATE_CERT', $fileConfig),
+            'mailConnectIpv4' => self::read('MAIL_CONNECT_IPV4', $fileConfig),
+            'mailSocketTimeout' => self::read('MAIL_SOCKET_TIMEOUT', $fileConfig),
+        ];
 
         $multiJson = self::read('MAIL_ACCOUNTS_JSON', $fileConfig);
         $rawAccounts = [];
@@ -101,10 +117,12 @@ final class Config
                 throw new ConfigException('MAIL_ACCOUNTS_JSON moet een niet-lege JSON-array van accounts zijn.');
             }
             foreach ($decoded as $index => $raw) {
+                $raw += $diagnosticDefaults;
                 $rawAccounts[] = self::accountFromArray($raw, (string) ($raw['id'] ?? ('account-' . ($index + 1))));
             }
         } elseif (isset($fileConfig['accounts']) && is_array($fileConfig['accounts']) && $fileConfig['accounts'] !== []) {
             foreach ($fileConfig['accounts'] as $index => $raw) {
+                $raw += $diagnosticDefaults;
                 $rawAccounts[] = self::accountFromArray($raw, (string) ($raw['id'] ?? ('account-' . ($index + 1))));
             }
         } else {
@@ -135,6 +153,9 @@ final class Config
                     'smtpPass' => self::read('SMTP_PASSWORD', $fileConfig),
                     'fromAddress' => self::read('SMTP_FROM_ADDRESS', $fileConfig),
                     'fromName' => self::read('SMTP_FROM_NAME', $fileConfig),
+                    'mailNoValidateCert' => self::read('MAIL_NOVALIDATE_CERT', $fileConfig),
+                    'mailConnectIpv4' => self::read('MAIL_CONNECT_IPV4', $fileConfig),
+                    'mailSocketTimeout' => self::read('MAIL_SOCKET_TIMEOUT', $fileConfig),
                 ], 'default');
             }
         }
@@ -191,5 +212,11 @@ final class Config
 
         self::$bearerToken = $token;
         return $token;
+    }
+
+    public static function debugMail(): bool
+    {
+        $fileConfig = self::loadConfigFile();
+        return self::boolValue(self::read('DEBUG_MAIL', $fileConfig));
     }
 }
