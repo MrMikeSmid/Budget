@@ -26,21 +26,12 @@ final class Auth
         return null;
     }
 
-    /**
-     * Reads the bearer token from the Authorization header (preferred), or
-     * falls back to a ?token= query parameter for clients that can't set
-     * custom headers. Query-string tokens end up in server access logs and
-     * browser history, so the header is the safer option when available.
-     */
+    /** Reads the bearer token exclusively from the Authorization header. */
     private static function extractProvidedToken(): ?string
     {
         $header = self::getAuthorizationHeader();
         if ($header !== null && str_starts_with($header, 'Bearer ')) {
             return trim(substr($header, strlen('Bearer ')));
-        }
-
-        if (isset($_GET['token']) && is_string($_GET['token']) && $_GET['token'] !== '') {
-            return $_GET['token'];
         }
 
         return null;
