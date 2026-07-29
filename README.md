@@ -1,6 +1,6 @@
 # MCP Email Connector (IMAP/POP3/SMTP) — PHP-editie
 
-Self-hosted MCP-server in **PHP** die Claude toegang geeft tot een generieke
+Self-hosted MCP-server in **PHP** die GPT/ChatGPT toegang geeft tot een generieke
 IMAP- of POP3-mailbox met SMTP (eigen domein via DirectAdmin/cPanel/Plesk-hosting, geen
 Gmail/Outlook API's). Gebouwd in PHP omdat veel gedeelde hostingpakketten
 (zoals DirectAdmin-pakketten zonder "Node.js Selector") geen persistent
@@ -196,15 +196,16 @@ nooit per ongeluk wordt overschreven of verwijderd. Zorg zelf dat de
 FTP-secrets (`FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `FTP_SERVER_DIR`)
 correct staan ingesteld in de repository-instellingen.
 
-## Verbinden vanuit Claude.ai
+## Verbinden vanuit GPT / ChatGPT
 
-1. Ga naar **Instellingen → Connectors → Aangepaste connector toevoegen**.
+1. Ga in GPT/ChatGPT naar de configuratie voor connectors of MCP-servers.
 2. Vul als URL de publieke HTTPS-endpoint in, bv.
    `https://jouw-domein.nl/mcp.php` (of `.../public/mcp.php`, afhankelijk
    van je document-root-configuratie).
-3. Kies authenticatietype **Bearer token** en vul de waarde van
-   `MCP_BEARER_TOKEN` in.
-4. Sla op — Claude kan nu de tools `list_emails`, `read_email`,
+3. Wanneer de client headers ondersteunt, kies je authenticatietype **Bearer
+   token** en vul je de waarde van `MCP_BEARER_TOKEN` in. Wanneer GPT alleen een
+   URL accepteert, gebruik je `https://jouw-domein.nl/mcp.php?token=JOUW_TOKEN`.
+4. Sla op — GPT kan nu de tools `list_emails`, `read_email`,
    `search_emails` en `send_email` gebruiken.
 
 ### Authenticatieheader

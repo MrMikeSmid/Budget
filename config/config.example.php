@@ -12,7 +12,7 @@
  * altijd voorrang boven dit bestand.
  */
 return [
-    // Verplicht: bearer token waarmee Claude zich bij deze server authenticeert.
+    // Verplicht: bearer token waarmee GPT zich bij deze server authenticeert.
     // Genereer bv. met: openssl rand -hex 32 (of `php -r "echo bin2hex(random_bytes(32));"`)
     'MCP_BEARER_TOKEN' => '',
     'DEBUG' => false,                   // Alleen dan veilige authenticatiediagnostiek loggen (nooit de volledige token).
