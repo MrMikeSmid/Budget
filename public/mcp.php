@@ -68,6 +68,11 @@ function emitJsonRpc(array $response, int $httpStatus = 200): never
     exit;
 }
 
+function emitAuthError(string $error): never
+{
+    emitJsonRpc(['success' => false, 'error' => $error], 401);
+}
+
 /** @param int|string|null $id */
 function emitError($id, int $code, string $message, int $httpStatus = 200, ?array $data = null): never
 {
@@ -138,7 +143,7 @@ try {
 }
 
 if ($authError !== null) {
-    emitError(null, -32001, $authError, 401);
+    emitAuthError($authError);
 }
 
 $raw = file_get_contents('php://input');

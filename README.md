@@ -80,6 +80,7 @@ cp config/config.example.php config/config.php
 | Sleutel | Omschrijving |
 |---|---|
 | `MCP_BEARER_TOKEN` | **Verplicht.** Bearer token voor authenticatie op de HTTP-endpoint. Genereer bv. met `php -r "echo bin2hex(random_bytes(32));"`. |
+| `DEBUG` | Standaard `false`. Logt alleen de authenticatiemethode en de eerste vier tekens van de token; nooit de volledige token. |
 | `MAIL_PROTOCOL` | Protocol voor inkomende mail: `imap` (standaard) of `pop3`. |
 | `IMAP_HOST`, `IMAP_PORT`, `IMAP_SECURE`, `IMAP_USER`, `IMAP_PASSWORD` | Inkomende mailverbinding (de sleutelnamen blijven voor achterwaartse compatibiliteit gelijk). Gebruik doorgaans poort 993 voor IMAP of 995 voor POP3 met `IMAP_SECURE=true`. |
 | `DEBUG_MAIL` | Standaard `false`. Alleen bij tijdelijk inschakelen worden DNS-, TLS- en certificaatdiagnostiek uitgevoerd en veilige details teruggegeven. |
@@ -190,9 +191,12 @@ correct staan ingesteld in de repository-instellingen.
 
 ### Authenticatieheader
 
-Stuur het token uitsluitend via `Authorization: Bearer JOUW_BEARER_TOKEN`.
-Tokens in queryparameters worden niet geaccepteerd, omdat URL's in webserver-
-toegangslogs en browsergeschiedenis terecht kunnen komen.
+Gebruik bij voorkeur `Authorization: Bearer JOUW_BEARER_TOKEN`. Als tijdelijke
+compatibiliteitslaag voor ChatGPT MCP wordt ook `?token=JOUW_BEARER_TOKEN`
+geaccepteerd wanneer de Authorization-header volledig ontbreekt. Queryparameters
+kunnen in webserverlogs en browsergeschiedenis terechtkomen en zijn daarom niet
+bedoeld voor productiegebruik. Met `DEBUG=true` wordt alleen de gebruikte methode
+en een prefix van vier tekens gelogd; nooit de volledige token.
 
 ## Projectstructuur
 

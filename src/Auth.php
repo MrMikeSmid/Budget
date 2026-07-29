@@ -6,35 +6,55 @@ namespace McpEmail;
 
 final class Auth
 {
-    /**
-     * Checks the Authorization header against the configured bearer token.
-     * Returns null when valid, or an error message to send back when invalid.
-     */
+    /** Returns null when valid, or a stable API error code when invalid. */
     public static function checkBearer(): ?string
     {
         $expected = Config::getBearerToken();
-        $provided = self::extractProvidedToken();
+        [$provided, $method] = self::getAuthToken();
 
         if ($provided === null) {
-            return 'Unauthorized: bearer token ontbreekt.';
+            return 'missing_token';
         }
 
+        self::debugLog($method, $provided);
+
         if (!hash_equals($expected, $provided)) {
-            return 'Unauthorized: ongeldig bearer token.';
+            return 'invalid_token';
         }
 
         return null;
     }
 
-    /** Reads the bearer token exclusively from the Authorization header. */
-    private static function extractProvidedToken(): ?string
+    /** @return array{?string, ?string} Token and authentication method. */
+    private static function getAuthToken(): array
     {
         $header = self::getAuthorizationHeader();
-        if ($header !== null && str_starts_with($header, 'Bearer ')) {
-            return trim(substr($header, strlen('Bearer ')));
+        if ($header !== null) {
+            $token = str_starts_with($header, 'Bearer ')
+                ? trim(substr($header, strlen('Bearer ')))
+                : '';
+
+            return [$token !== '' ? $token : null, 'authorization'];
         }
 
-        return null;
+        // Temporary compatibility for ChatGPT MCP.
+        // Preferred authentication is Authorization: Bearer.
+        $queryToken = $_GET['token'] ?? null;
+        if (is_string($queryToken) && $queryToken !== '') {
+            return [$queryToken, 'query'];
+        }
+
+        return [null, null];
+    }
+
+    private static function debugLog(?string $method, string $token): void
+    {
+        if (!Config::debug()) {
+            return;
+        }
+
+        error_log('Auth method: ' . ($method === 'authorization' ? 'Authorization header' : 'query'));
+        error_log('Token prefix: ' . substr($token, 0, 4) . '****');
     }
 
     private static function getAuthorizationHeader(): ?string

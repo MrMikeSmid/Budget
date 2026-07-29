@@ -219,4 +219,10 @@ final class Config
         $fileConfig = self::loadConfigFile();
         return self::boolValue(self::read('DEBUG_MAIL', $fileConfig));
     }
+
+    public static function debug(): bool
+    {
+        $fileConfig = self::loadConfigFile();
+        return self::boolValue(self::read('DEBUG', $fileConfig));
+    }
 }
