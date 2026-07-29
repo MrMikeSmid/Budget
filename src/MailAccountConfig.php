@@ -23,7 +23,7 @@ final class MailAccountConfig
         public readonly ?string $fromName,
         public readonly bool $mailNoValidateCert = false,
         public readonly bool $mailConnectIpv4 = false,
-        public readonly float $mailSocketTimeout = 10.0,
+        public readonly float $mailSocketTimeout = 5.0,
     ) {
     }
 }

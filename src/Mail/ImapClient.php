@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace McpEmail\Mail;
 
+use McpEmail\Config;
 use McpEmail\MailAccountConfig;
 
 /**
@@ -27,169 +28,147 @@ final class ImapClient
 
     public static function connect(MailAccountConfig $account, string $folder): self
     {
+        $startedAt = hrtime(true);
+        $debug = Config::debugMail();
+        $timeout = min(5.0, $account->mailSocketTimeout);
+        $timings = [];
+
+        self::logLifecycle('begin', 0, 'php_environment');
+        ini_set('default_socket_timeout', '5');
+        if (function_exists('imap_timeout')) {
+            imap_timeout(IMAP_OPENTIMEOUT, 5);
+            imap_timeout(IMAP_READTIMEOUT, 5);
+            imap_timeout(IMAP_WRITETIMEOUT, 5);
+            imap_timeout(IMAP_CLOSETIMEOUT, 5);
+        }
+
         if (!extension_loaded('imap')) {
             self::fail('missing_imap_extension', 'De vereiste PHP-extensie imap is niet geladen.', [
-                'phase' => 'php_environment', 'runtime' => MailConnectionDiagnostics::runtime(),
+                'phase' => 'php_environment', 'duration_ms' => self::elapsedMs($startedAt),
+                'runtime' => $debug ? MailConnectionDiagnostics::runtime() : [],
             ]);
         }
         if (!extension_loaded('openssl')) {
             self::fail('missing_openssl_extension', 'De vereiste PHP-extensie openssl is niet geladen.', [
-                'phase' => 'php_environment', 'runtime' => MailConnectionDiagnostics::runtime(),
+                'phase' => 'php_environment', 'duration_ms' => self::elapsedMs($startedAt),
+                'runtime' => $debug ? MailConnectionDiagnostics::runtime() : [],
             ]);
         }
 
-        // Always compare the three requested incoming-mail connection forms. They only open INBOX;
-        // no message is read, changed or deleted during these diagnostic attempts.
         $protocol = $account->mailProtocol;
-        $variants = [
-            ['flags' => "/$protocol/ssl", 'ssl' => true, 'novalidate' => false],
-            ['flags' => "/$protocol/ssl/novalidate-cert", 'ssl' => true, 'novalidate' => true],
-            ['flags' => "/$protocol/notls", 'ssl' => false, 'novalidate' => false],
-        ];
-        $attempts = [];
-        $selected = null;
-        $selectedFlags = null;
+        $flags = "/$protocol/" . ($account->imapSecure ? 'ssl' : 'notls');
+        if ($account->imapSecure && $account->mailNoValidateCert) {
+            $flags .= '/novalidate-cert';
+        }
+        $connectHost = $account->imapHost;
+        $socket = null;
 
-        foreach ($variants as $variant) {
+        // Expensive DNS, TLS and certificate inspection is opt-in. If its single socket
+        // attempt fails, return immediately: never follow it with imap_open or fallbacks.
+        if ($debug) {
             $socket = MailConnectionDiagnostics::diagnoseMailConnection(
-                $account->imapHost, $account->imapPort, $protocol, $variant['ssl'],
-                $account->mailConnectIpv4, $variant['novalidate'], $account->mailSocketTimeout,
+                $account->imapHost,
+                $account->imapPort,
+                $protocol,
+                $account->imapSecure,
+                $account->mailConnectIpv4,
+                $account->mailNoValidateCert,
+                $timeout,
             );
-            $connectHost = $account->mailConnectIpv4
-                ? (string) ($socket['ipv4_address'] ?? $account->imapHost) : $account->imapHost;
-            $mailbox = '{' . $connectHost . ':' . $account->imapPort . $variant['flags'] . '}INBOX';
-            $attempt = [
-                'mailbox_string' => $mailbox,
-                'host' => $account->imapHost,
-                'port' => $account->imapPort,
-                'protocol' => $protocol,
-                'ssl' => $variant['ssl'],
-                'novalidate_cert' => $variant['novalidate'],
-                'socket' => $socket,
-                'imap_successful' => false,
-            ];
-
-            if ($socket['error_type'] === null) {
-                // This is intentionally immediately before imap_open; credentials are absent.
-                self::logDiagnostics(['event' => 'before_imap_open', ...array_diff_key($attempt, ['socket' => true])]);
-                imap_errors();
-                $warning = null;
-                set_error_handler(static function (int $severity, string $message) use (&$warning): bool {
-                    $warning = $message;
-                    return true;
-                });
-                try {
-                    $connection = imap_open($mailbox, $account->imapUser, $account->imapPass, 0, 1);
-                } finally {
-                    restore_error_handler();
-                }
-                $lastError = imap_last_error() ?: null;
-                $errors = imap_errors();
-                $attempt['imap_last_error'] = $lastError;
-                $attempt['imap_errors'] = is_array($errors) ? array_values($errors) : [];
-                $attempt['imap_warning'] = $warning;
-                $attempt['openssl_errors'] = MailConnectionDiagnostics::openSslErrors();
-                if ($connection !== false) {
-                    $attempt['imap_successful'] = true;
-                    if ($selected === null) {
-                        $selected = $connection;
-                        $selectedFlags = $variant['flags'];
-                    } else {
-                        imap_close($connection);
-                    }
-                }
+            $timings = $socket['timings'] ?? [];
+            if ($account->mailConnectIpv4) {
+                $connectHost = (string) ($socket['ipv4_address'] ?? $account->imapHost);
             }
-            $attempts[] = self::redact($attempt, [$account->imapUser, $account->imapPass]);
-        }
-
-        $diagnostics = [
-            'phase' => $selected === null ? 'imap_open' : 'complete',
-            'runtime' => MailConnectionDiagnostics::runtime(),
-            'attempts' => $attempts,
-            'selected_mailbox_flags' => $selectedFlags,
-        ];
-        $diagnostics['most_likely_cause'] = self::mostLikelyCause($attempts);
-        self::logDiagnostics(['event' => 'diagnostic_summary', ...$diagnostics]);
-
-        if ($selected === null) {
-            $type = self::diagnosticErrorType($attempts);
-            self::fail($type, self::messageFor($type), $diagnostics);
-        }
-
-        if ($folder !== 'INBOX') {
-            imap_close($selected);
-            $host = $account->mailConnectIpv4
-                ? (string) ($attempts[0]['socket']['ipv4_address'] ?? $account->imapHost) : $account->imapHost;
-            $mailbox = '{' . $host . ':' . $account->imapPort . $selectedFlags . '}' . self::encodeFolder($folder);
-            self::logDiagnostics(['event' => 'before_imap_open', 'mailbox_string' => $mailbox, 'host' => $account->imapHost,
-                'port' => $account->imapPort, 'protocol' => $protocol, 'ssl' => str_contains((string) $selectedFlags, '/ssl'),
-                'novalidate_cert' => str_contains((string) $selectedFlags, '/novalidate-cert')]);
-            $selected = imap_open($mailbox, $account->imapUser, $account->imapPass, 0, 1);
-            if ($selected === false) {
-                self::fail('protocol_error', self::messageFor('protocol_error'), $diagnostics);
+            if (($socket['error_type'] ?? null) !== null) {
+                $phase = ($socket['error_type'] ?? null) === 'timeout'
+                    ? (($socket['phase'] ?? '') === 'tls' ? 'ssl' : 'socket')
+                    : (string) ($socket['phase'] ?? 'socket');
+                $diagnostics = [
+                    'phase' => $phase,
+                    'duration_ms' => self::elapsedMs($startedAt),
+                    'timings' => $timings,
+                    'socket' => $socket,
+                ];
+                $type = (string) $socket['error_type'];
+                self::fail($type, self::messageFor($type), $diagnostics);
             }
         }
 
-        return new self($selected);
+        $elapsed = self::elapsedMs($startedAt);
+        $remaining = $timeout - ($elapsed / 1000);
+        // ext-imap only accepts whole seconds. Do not start it when less than one
+        // second remains, because rounding up would exceed the shared 5s budget.
+        if ($remaining < 1.0) {
+            self::fail('timeout', self::messageFor('timeout'), [
+                'phase' => 'imap', 'duration_ms' => $elapsed, 'timings' => $timings, 'socket' => $socket,
+            ]);
+        }
+        $remainingSeconds = max(1, min(5, (int) floor($remaining)));
+        if (function_exists('imap_timeout')) {
+            imap_timeout(IMAP_OPENTIMEOUT, $remainingSeconds);
+            imap_timeout(IMAP_READTIMEOUT, $remainingSeconds);
+        }
+
+        $mailbox = '{' . $connectHost . ':' . $account->imapPort . $flags . '}' . self::encodeFolder($folder);
+        $imapStartedAt = hrtime(true);
+        imap_errors();
+        $warning = null;
+        set_error_handler(static function (int $severity, string $message) use (&$warning): bool {
+            $warning = $message;
+            return true;
+        });
+        try {
+            // Exactly one mailbox string and one imap_open attempt per request.
+            $connection = imap_open($mailbox, $account->imapUser, $account->imapPass, 0, 1);
+        } finally {
+            restore_error_handler();
+        }
+        $timings['imap_open_ms'] = self::elapsedMs($imapStartedAt);
+        $durationMs = self::elapsedMs($startedAt);
+
+        if ($connection === false) {
+            $lastError = imap_last_error() ?: '';
+            $errors = imap_errors();
+            $errorText = implode(' | ', array_filter([
+                $warning ?? '', $lastError, ...(is_array($errors) ? $errors : []),
+            ]));
+            $type = self::classifyImapError($errorText, $protocol);
+            if ($durationMs >= (int) ($timeout * 1000 * 0.9) || preg_match('/timed?\\s*out|timeout/i', $errorText)) {
+                $type = 'timeout';
+            }
+            $phase = $type === 'ssl_handshake_error' ? 'ssl' : 'imap';
+            $diagnostics = ['phase' => $phase, 'duration_ms' => $durationMs, 'timings' => $timings];
+            if ($debug) {
+                $diagnostics['imap_warning'] = $warning;
+                $diagnostics['imap_last_error'] = $lastError;
+                $diagnostics['imap_errors'] = is_array($errors) ? array_values($errors) : [];
+                $diagnostics['socket'] = $socket;
+                $diagnostics['runtime'] = MailConnectionDiagnostics::runtime();
+            }
+            self::fail($type, self::messageFor($type), self::redact($diagnostics, [$account->imapUser, $account->imapPass]));
+        }
+
+        self::logLifecycle('end', $durationMs, 'complete');
+        return new self($connection);
     }
 
-    /** @param array<int, array<string, mixed>> $attempts */
-    private static function diagnosticErrorType(array $attempts): string
+    private static function elapsedMs(int $startedAt): int
     {
-        foreach (['dns_error', 'socket_unreachable', 'ssl_handshake_error'] as $type) {
-            if (array_filter($attempts, static fn (array $a): bool => ($a['socket']['error_type'] ?? null) === $type)) {
-                return $type;
-            }
-        }
-        $errors = [];
-        foreach ($attempts as $attempt) {
-            $errors = [...$errors, (string) ($attempt['imap_warning'] ?? ''), (string) ($attempt['imap_last_error'] ?? ''), ...($attempt['imap_errors'] ?? [])];
-        }
-        return self::classifyImapError(implode(' | ', $errors), (string) ($attempts[0]['protocol'] ?? 'imap'));
+        return (int) round((hrtime(true) - $startedAt) / 1_000_000);
     }
 
-    /** @param array<int, array<string, mixed>> $attempts */
-    private static function mostLikelyCause(array $attempts): string
+    private static function logLifecycle(string $event, int $durationMs, string $phase): void
     {
-        if ($attempts === []) {
-            return 'PHP/OpenSSL probleem';
-        }
-        if (($attempts[0]['socket']['error_type'] ?? null) === 'dns_error') {
-            return 'DNS-probleem';
-        }
-        if (($attempts[0]['socket']['error_type'] ?? null) === 'socket_unreachable') {
-            return 'firewall';
-        }
-        if (!empty($attempts[1]['imap_successful']) && empty($attempts[0]['imap_successful'])) {
-            $cert = $attempts[1]['socket'];
-            if (($cert['certificate_expired'] ?? false) === true) {
-                return 'certificaat ongeldig';
-            }
-            if (($cert['certificate_hostname_matches'] ?? true) === false) {
-                return 'certificaat host mismatch';
-            }
-            return 'certificaat ongeldig';
-        }
-        $allErrors = strtolower(json_encode($attempts, JSON_UNESCAPED_SLASHES) ?: '');
-        if (preg_match('/auth|login|password|credential|access denied/', $allErrors)) {
-            return 'authenticatiefout';
-        }
-        if (preg_match('/wrong version|unsupported protocol|no shared cipher|handshake/', $allErrors)) {
-            return 'TLS mismatch';
-        }
-        if (!empty($attempts[2]['socket']['socket_successful']) && preg_match('/protocol|unexpected|invalid response/', $allErrors)) {
-            return strtoupper((string) ($attempts[0]['protocol'] ?? 'mail')) . '-service niet actief';
-        }
-        if (preg_match('/openssl|crypto/', $allErrors)) {
-            return 'PHP/OpenSSL probleem';
-        }
-        return 'onbekend probleem';
+        error_log(sprintf('[mail-connection] %s duration_ms=%d stop_phase=%s', $event, $durationMs, $phase));
     }
 
     /** @param array<string, mixed> $diagnostics */
     private static function fail(string $type, string $message, array $diagnostics): never
     {
-        self::logDiagnostics(['event' => 'connection_failure', ...$diagnostics]);
+        self::logLifecycle('end', (int) ($diagnostics['duration_ms'] ?? 0), (string) ($diagnostics['phase'] ?? 'unknown'));
+        if (Config::debugMail()) {
+            self::logDiagnostics(['event' => 'connection_failure', ...$diagnostics]);
+        }
         throw new ImapConnectionException($message, $type, $diagnostics);
     }
 
@@ -226,6 +205,7 @@ final class ImapClient
             'ssl_handshake_error' => 'De SSL/TLS-handshake met de mailserver is mislukt.',
             'authentication_error' => 'De mailserver heeft de gebruikersnaam of het wachtwoord geweigerd.',
             'protocol_error' => 'De mailserver gaf een onverwachte POP3/IMAP-protocolreactie.',
+            'timeout' => 'Connection timed out',
             default => 'De mailboxverbinding kon niet worden geopend.',
         };
     }

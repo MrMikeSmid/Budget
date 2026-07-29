@@ -9,6 +9,12 @@ ob_start();
 ini_set('display_errors', '0');
 ini_set('display_startup_errors', '0');
 error_reporting(E_ALL);
+ini_set('default_socket_timeout', '5');
+set_time_limit(10);
+
+$requestStartedAt = hrtime(true);
+$requestStopPhase = 'bootstrap';
+error_log('[mcp-request] begin');
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -91,7 +97,9 @@ set_exception_handler(static function (Throwable $exception) use (&$requestId): 
     emitError($requestId, -32603, 'Interne serverfout.', 500);
 });
 
-register_shutdown_function(static function () use (&$requestId, &$responseSent): void {
+register_shutdown_function(static function () use (&$requestId, &$responseSent, &$requestStartedAt, &$requestStopPhase): void {
+    $durationMs = (int) round((hrtime(true) - $requestStartedAt) / 1_000_000);
+    error_log(sprintf('[mcp-request] end duration_ms=%d stop_phase=%s', $durationMs, $requestStopPhase));
     if ($responseSent) {
         return;
     }
@@ -115,6 +123,7 @@ use McpEmail\ConfigException;
 use McpEmail\McpServer;
 
 $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+$requestStopPhase = 'request_validation';
 
 // This server is stateless: GET and DELETE cannot resume or close a session.
 if ($httpMethod !== 'POST') {
@@ -152,7 +161,9 @@ if (($request['jsonrpc'] ?? null) !== '2.0') {
     emitError($requestId, -32600, 'Invalid Request: "jsonrpc" moet "2.0" zijn.', 400);
 }
 
+$requestStopPhase = 'dispatch';
 $response = (new McpServer())->handle($request);
+$requestStopPhase = 'complete';
 if ($response === null) {
     // JSON-RPC notifications intentionally have no response body.
     discardUnexpectedOutput();

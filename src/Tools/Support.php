@@ -36,16 +36,20 @@ final class Support
     /** Returns a structured, credential-free MCP error payload. */
     public static function mailConnectionError(ImapConnectionException $exception): array
     {
+        $debug = Config::debugMail();
+        $diagnostics = $exception->diagnostics();
+        $isTimeout = $exception->errorType() === 'timeout';
         $payload = [
             'success' => false,
-            'phase' => Config::debugMail()
-                ? (string) ($exception->diagnostics()['phase'] ?? 'unknown')
+            'phase' => ($debug || $isTimeout)
+                ? (string) ($diagnostics['phase'] ?? 'unknown')
                 : 'mail_connection',
             'error_type' => $exception->errorType(),
-            'message' => Config::debugMail()
+            'duration_ms' => (int) ($diagnostics['duration_ms'] ?? 0),
+            'message' => ($debug || $isTimeout)
                 ? $exception->getMessage()
                 : 'De verbinding met de mailserver is mislukt. Raadpleeg de serverlog.',
-            'diagnostics' => Config::debugMail() ? $exception->diagnostics() : (object) [],
+            'diagnostics' => $debug ? $diagnostics : (object) [],
         ];
         $result = self::jsonResult($payload);
         $result['isError'] = true;
