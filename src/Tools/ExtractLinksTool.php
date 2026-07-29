@@ -1,3 +1,0 @@
-<?php
-declare(strict_types=1); namespace McpEmail\Tools; use McpEmail\Intelligence\LinkAnalyzer;
-final class ExtractLinksTool implements ToolInterface {public function name():string{return 'extract_links';}public function definition():array{return ['title'=>'Links veilig extraheren','description'=>'Extraheert en inspecteert links lokaal zonder ze te openen, volgen of DNS op te vragen.','inputSchema'=>['type'=>'object','properties'=>SecurityToolSupport::schema(),'required'=>['uid'],'additionalProperties'=>false]];}public function call(array $a):array{return SecurityToolSupport::withMessage($a,fn(array $m)=>['uid'=>$m['uid'],'links'=>(new LinkAnalyzer())->analyze($m['html'],$m['text'])]);}}

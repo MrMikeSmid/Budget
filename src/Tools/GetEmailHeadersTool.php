@@ -1,3 +1,0 @@
-<?php
-declare(strict_types=1); namespace McpEmail\Tools; use McpEmail\Security\HeaderAnalyzer;
-final class GetEmailHeadersTool implements ToolInterface {public function name():string{return 'get_email_headers';}public function definition():array{return ['title'=>'Technische e-mailheaders','description'=>'Geeft ruwe en gestructureerde authenticatie-, route- en afzenderheaders voor één UID.','inputSchema'=>['type'=>'object','properties'=>SecurityToolSupport::schema(),'required'=>['uid'],'additionalProperties'=>false]];}public function call(array $a):array{return SecurityToolSupport::withMessage($a,fn(array $m)=>['uid'=>$m['uid'],'folder'=>$m['folder'],'raw_headers'=>$m['headers'],'structured'=>(new HeaderAnalyzer())->analyze($m['headers'])]);}}
