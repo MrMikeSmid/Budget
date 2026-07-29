@@ -98,4 +98,29 @@ final class Support
         }
         return $tokens === [] ? 'ALL' : implode(' ', $tokens);
     }
+
+    /** @return string[] */
+    public static function addresses(string $value): array
+    {
+        $parsed = @imap_rfc822_parse_adrlist($value, '');
+        if (!is_array($parsed)) { return []; }
+        $result = [];
+        foreach ($parsed as $address) {
+            if (!empty($address->mailbox) && !empty($address->host) && $address->host !== '.SYNTAX-ERROR.') {
+                $result[] = $address->mailbox . '@' . $address->host;
+            }
+        }
+        return $result;
+    }
+
+    public static function headerValue(string $headers, string $name): string
+    {
+        return preg_match('/^'.preg_quote($name, '/').':\s*(.+)$/mi', $headers, $match) ? trim($match[1]) : '';
+    }
+
+    /** @return string[] */
+    public static function headerAddresses(string $headers, string $name): array
+    {
+        return self::addresses(self::headerValue($headers, $name));
+    }
 }

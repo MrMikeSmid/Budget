@@ -467,10 +467,104 @@ final class ImapClient
         return $timestamp === false ? null : gmdate('c', $timestamp);
     }
 
-    private static function encodeFolder(string $folder): string
+    public static function encodeFolder(string $folder): string
     {
         $converted = @mb_convert_encoding($folder, 'UTF7-IMAP', 'UTF-8');
         return $converted === false ? $folder : $converted;
+    }
+
+    /** @return string[] UTF-8 mailbox names */
+    public function folders(): array
+    {
+        $selected = (string) imap_mailboxmsginfo($this->connection)->Mailbox;
+        $reference = preg_match('/^(\{[^}]+\})/', $selected, $match) ? $match[1] : '';
+        $mailboxes = self::guarded(
+            fn () => imap_getmailboxes($this->connection, $reference, '*'),
+            'Kon mappen niet ophalen'
+        );
+        if ($mailboxes === false) {
+            return [];
+        }
+        return array_values(array_map(static function (object $mailbox): string {
+            $name = preg_replace('/^\{[^}]+\}/', '', (string) $mailbox->name) ?? (string) $mailbox->name;
+            $decoded = @mb_convert_encoding($name, 'UTF-8', 'UTF7-IMAP');
+            return $decoded === false ? $name : $decoded;
+        }, $mailboxes));
+    }
+
+    public function folderExists(string $folder): bool
+    {
+        foreach ($this->folders() as $candidate) {
+            if (strcasecmp($candidate, $folder) === 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Detects RFC 6154 special-use folders, with provider-compatible fallbacks. */
+    public function archiveFolder(): ?string
+    {
+        return self::selectArchiveFolder($this->folders());
+    }
+
+    /** @param string[] $folders */
+    public static function selectArchiveFolder(array $folders): ?string
+    {
+        foreach (['Archive', 'All Mail', '[Gmail]/All Mail', 'Archives'] as $wanted) {
+            foreach ($folders as $folder) {
+                if (strcasecmp($folder, $wanted) === 0) {
+                    return $folder;
+                }
+            }
+        }
+        return null;
+    }
+
+    public function setFlag(int $uid, string $flag, bool $enabled): void
+    {
+        $operation = $enabled ? 'imap_setflag_full' : 'imap_clearflag_full';
+        $ok = self::guarded(
+            fn () => $operation($this->connection, (string) $uid, $flag, ST_UID),
+            'Kon berichtvlag niet wijzigen'
+        );
+        if (!$ok) {
+            throw new ImapConnectionException("Kon vlag $flag voor UID $uid niet wijzigen.");
+        }
+    }
+
+    public function expunge(): void
+    {
+        if (!self::guarded(fn () => imap_expunge($this->connection), 'Kon verwijderde berichten niet opschonen')) {
+            throw new ImapConnectionException('EXPUNGE is mislukt.');
+        }
+    }
+
+    public function move(int $uid, string $destinationFolder): void
+    {
+        if (!$this->folderExists($destinationFolder)) {
+            throw new \InvalidArgumentException("Doelmap \"$destinationFolder\" bestaat niet.");
+        }
+        $encoded = self::encodeFolder($destinationFolder);
+        // ext-imap negotiates native MOVE when supported. Some older servers reject it;
+        // COPY + STORE + EXPUNGE is the interoperable RFC 3501 fallback.
+        $moved = self::guarded(
+            fn () => @imap_mail_move($this->connection, (string) $uid, $encoded, CP_UID),
+            'Kon e-mail niet verplaatsen'
+        );
+        if ($moved) {
+            $this->expunge();
+            return;
+        }
+        $copied = self::guarded(
+            fn () => imap_mail_copy($this->connection, (string) $uid, $encoded, CP_UID),
+            'Kon e-mail niet naar doelmap kopiëren'
+        );
+        if (!$copied) {
+            throw new ImapConnectionException("Verplaatsen van UID $uid is mislukt.");
+        }
+        $this->setFlag($uid, '\\Deleted', true);
+        $this->expunge();
     }
 
     /**
