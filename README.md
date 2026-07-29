@@ -82,10 +82,10 @@ cp config/config.example.php config/config.php
 | `MCP_BEARER_TOKEN` | **Verplicht.** Bearer token voor authenticatie op de HTTP-endpoint. Genereer bv. met `php -r "echo bin2hex(random_bytes(32));"`. |
 | `MAIL_PROTOCOL` | Protocol voor inkomende mail: `imap` (standaard) of `pop3`. |
 | `IMAP_HOST`, `IMAP_PORT`, `IMAP_SECURE`, `IMAP_USER`, `IMAP_PASSWORD` | Inkomende mailverbinding (de sleutelnamen blijven voor achterwaartse compatibiliteit gelijk). Gebruik doorgaans poort 993 voor IMAP of 995 voor POP3 met `IMAP_SECURE=true`. |
-| `DEBUG_MAIL` | Standaard `false`. Geeft alleen bij tijdelijk inschakelen veilige maildiagnostiek terug in MCP-foutresponses; diagnostiek wordt altijd server-side gelogd. |
+| `DEBUG_MAIL` | Standaard `false`. Alleen bij tijdelijk inschakelen worden DNS-, TLS- en certificaatdiagnostiek uitgevoerd en veilige details teruggegeven. |
 | `MAIL_NOVALIDATE_CERT` | Standaard `false`. Tijdelijke testoptie voor `/novalidate-cert`; schakel na de test direct weer uit. |
 | `MAIL_CONNECT_IPV4` | Standaard `false`. Verbindt tijdelijk rechtstreeks met het eerste DNS IPv4-adres om IPv6/routingproblemen te isoleren. |
-| `MAIL_SOCKET_TIMEOUT` | Timeout in seconden voor de voorafgaande TCP/TLS-test (standaard 10, bereik 1-30). |
+| `MAIL_SOCKET_TIMEOUT` | Timeout in seconden voor mailnetwerkacties (standaard 5, bereik 1-5). |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` | SMTP-verbinding. Poort 587 (STARTTLS, `SMTP_SECURE=false`) of 465 (impliciete TLS, `SMTP_SECURE=true`). Leeg laten van `SMTP_USER`/`SMTP_PASSWORD` hergebruikt de IMAP-credentials. |
 | `SMTP_FROM_ADDRESS`, `SMTP_FROM_NAME` | Afzenderadres/-naam voor `send_email`. |
 
@@ -97,22 +97,20 @@ variable gezet worden — die krijgen dan voorrang boven `config/config.php`.
 
 ### Inkomende mailverbinding veilig diagnosticeren
 
-Elke IMAP/POP3-aanroep doet vóór het inloggen een DNS-, TCP- en TLS-test en
-probeert vervolgens, uitsluitend als verbindingsdiagnose, achtereenvolgens
-`/{protocol}/ssl`, `/{protocol}/ssl/novalidate-cert` en `/{protocol}/notls` op
-`INBOX`. Alle drie de uitslagen worden vergeleken; de eerste geslaagde
-verbinding wordt voor de bestaande toolaanroep gebruikt. De serverlog bevat de
-exacte mailboxstring en technische gegevens, maar nooit gebruikersnaam of
-wachtwoord. Zet `DEBUG_MAIL=true` alleen kort tijdens een beheerderstest om
-dezelfde veilige details in de MCP-foutpayload te zien en zet hem daarna terug
-op `false`.
+Een normale IMAP/POP3-aanroep opent precies één geconfigureerde mailboxstring en
+doet geen voorafgaande diagnose. Met `DEBUG_MAIL=true` wordt eerst één DNS-,
+TCP- en TLS-test uitgevoerd. Mislukt die sockettest, dan stopt de aanvraag
+direct: `imap_open()`, certificaatverwerking en alternatieve mailboxstrings
+worden niet meer geprobeerd. De ingestelde SSL- en certificaatkeuzes blijven
+dus leidend; er zijn geen automatische veiligheidsverlagende fallbacks.
 
-De diagnose rapporteert ook PHP-, OpenSSL-, cURL- en streaminformatie, alle
+De optionele diagnose rapporteert ook PHP-, OpenSSL-, cURL- en streaminformatie, alle
 A/AAAA-adressen, socketfouten, de onderhandelde TLS-versie en cipher, het
 certificaat (subject, issuer en SAN), geldigheids-/hostnaam-/CA-/chaincontroles,
 de volledige OpenSSL-errorqueue en alle door ext-imap gerapporteerde fouten.
 Bij een fout bevat de debug-JSON altijd `success`, `phase`, `error_type`,
-`message` en `diagnostics`, inclusief `most_likely_cause`.
+`message`, `duration_ms` en `diagnostics`. De debugdetails bevatten daarnaast
+staptijden voor DNS, socket, SSL-handshake en `imap_open()`.
 
 De waarde van `error_type` lokaliseert de fout: `dns_error` betekent dat er
 geen A/AAAA-record bruikbaar is, `socket_unreachable` wijst op poort/firewall/

@@ -90,7 +90,7 @@ final class Config
             fromName: isset($raw['fromName']) ? (string) $raw['fromName'] : null,
             mailNoValidateCert: self::boolValue($raw['mailNoValidateCert'] ?? false),
             mailConnectIpv4: self::boolValue($raw['mailConnectIpv4'] ?? false),
-            mailSocketTimeout: max(1.0, min(30.0, (float) ($raw['mailSocketTimeout'] ?? 10.0))),
+            mailSocketTimeout: max(1.0, min(5.0, (float) ($raw['mailSocketTimeout'] ?? 5.0))),
         );
     }
 

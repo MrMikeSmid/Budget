@@ -39,11 +39,15 @@ final class MailConnectionDiagnostics
         bool $ssl,
         bool $connectIpv4 = false,
         bool $noValidateCert = false,
-        float $timeout = 10.0,
+        float $timeout = 5.0,
     ): array {
+        $startedAt = hrtime(true);
+        $timings = [];
+        $dnsStartedAt = hrtime(true);
         self::drainOpenSslErrors();
         $ipv4 = self::records($host, DNS_A, 'ip');
         $ipv6 = self::records($host, DNS_AAAA, 'ipv6');
+        $timings['dns_lookup_ms'] = self::elapsedMs($dnsStartedAt);
         $target = $connectIpv4 ? ($ipv4[0] ?? null) : $host;
         $result = [
             'phase' => 'dns',
@@ -74,6 +78,7 @@ final class MailConnectionDiagnostics
             'certificate_chain_length' => 0,
             'openssl_errors' => [],
             'error_type' => null,
+            'timings' => &$timings,
         ];
 
         if ($target === null || ($ipv4 === [] && $ipv6 === [])) {
@@ -81,6 +86,7 @@ final class MailConnectionDiagnostics
             $result['errstr'] = $connectIpv4
                 ? 'Geen IPv4-adres gevonden voor de geforceerde IPv4-verbinding.'
                 : 'Geen A- of AAAA-record gevonden.';
+            $result['duration_ms'] = self::elapsedMs($startedAt);
             return $result;
         }
 
@@ -97,19 +103,24 @@ final class MailConnectionDiagnostics
         ]]);
         $errno = 0;
         $errstr = '';
-        $socket = @stream_socket_client($uri, $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT, $context);
+        $socketStartedAt = hrtime(true);
+        $socket = @stream_socket_client($uri, $errno, $errstr, min(5.0, $timeout), STREAM_CLIENT_CONNECT, $context);
+        $timings['socket_connect_ms'] = self::elapsedMs($socketStartedAt);
         $result['phase'] = 'socket';
         $result['errno'] = $errno;
         $result['errstr'] = $errstr;
         if ($socket === false) {
-            $result['error_type'] = 'socket_unreachable';
+            $result['error_type'] = self::isTimeout($errstr, $timings['socket_connect_ms'], $timeout)
+                ? 'timeout' : 'socket_unreachable';
             $result['openssl_errors'] = self::drainOpenSslErrors();
+            $result['duration_ms'] = self::elapsedMs($startedAt);
             return $result;
         }
 
         $result['socket_successful'] = true;
-        stream_set_timeout($socket, (int) ceil($timeout));
+        stream_set_timeout($socket, 5);
         if ($ssl) {
+            $tlsStartedAt = hrtime(true);
             $warning = '';
             set_error_handler(static function (int $severity, string $message) use (&$warning): bool {
                 $warning .= ($warning === '' ? '' : ' | ') . $message;
@@ -121,11 +132,15 @@ final class MailConnectionDiagnostics
                 restore_error_handler();
             }
             $result['phase'] = 'tls';
+            $timings['ssl_handshake_ms'] = self::elapsedMs($tlsStartedAt);
             $result['openssl_errors'] = self::drainOpenSslErrors();
             if ($crypto !== true) {
-                $result['error_type'] = 'ssl_handshake_error';
+                $meta = stream_get_meta_data($socket);
+                $result['error_type'] = !empty($meta['timed_out'])
+                    ? 'timeout' : 'ssl_handshake_error';
                 $result['errstr'] = $warning !== '' ? $warning : 'TLS-handshake is mislukt zonder PHP-waarschuwing.';
                 fclose($socket);
+                $result['duration_ms'] = self::elapsedMs($startedAt);
                 return $result;
             }
 
@@ -154,7 +169,19 @@ final class MailConnectionDiagnostics
         }
         fclose($socket);
         $result['phase'] = 'socket_complete';
+        $result['duration_ms'] = self::elapsedMs($startedAt);
         return $result;
+    }
+
+    private static function elapsedMs(int $startedAt): int
+    {
+        return (int) round((hrtime(true) - $startedAt) / 1_000_000);
+    }
+
+    private static function isTimeout(string $error, int $durationMs, float $timeout): bool
+    {
+        return preg_match('/timed?\s*out|timeout/i', $error) === 1
+            || $durationMs >= (int) floor($timeout * 1000 * 0.9);
     }
 
     /** @return string[] */
