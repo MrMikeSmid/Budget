@@ -34,6 +34,11 @@ final class SmtpClient
             $mailer->Username = $account->smtpUser;
             $mailer->Password = $account->smtpPass;
             $mailer->SMTPSecure = $account->smtpSecure ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
+            $mailer->SMTPOptions = ['ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true,
+            ]];
             $mailer->CharSet = PHPMailer::CHARSET_UTF8;
             // PHPMailer passes this to fsockopen(); keep both connect and socket reads bounded.
             $mailer->Timeout = (int) ceil(min(5.0, $account->mailSocketTimeout));

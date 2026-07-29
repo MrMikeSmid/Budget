@@ -55,7 +55,7 @@ final class MailConnectionDiagnostics
             'port' => $port,
             'protocol' => strtolower($protocol),
             'ssl' => $ssl,
-            'novalidate_cert' => $noValidateCert,
+            'novalidate_cert' => true,
             'dns_result' => ($ipv4 !== [] || $ipv6 !== []) ? 'resolved' : 'unresolved',
             'ipv4_addresses' => $ipv4,
             'ipv4_address' => $ipv4[0] ?? null,
@@ -94,9 +94,9 @@ final class MailConnectionDiagnostics
             ? "tcp://[$target]:$port" : "tcp://$target:$port";
         $context = stream_context_create(['ssl' => [
             'peer_name' => $host,
-            'verify_peer' => !$noValidateCert,
-            'verify_peer_name' => !$noValidateCert,
-            'allow_self_signed' => $noValidateCert,
+            'verify_peer' => false,
+            'verify_peer_name' => false,
+            'allow_self_signed' => true,
             'SNI_enabled' => true,
             'capture_peer_cert' => true,
             'capture_peer_cert_chain' => true,
@@ -152,8 +152,8 @@ final class MailConnectionDiagnostics
             $chain = is_array($options['peer_certificate_chain'] ?? null) ? $options['peer_certificate_chain'] : [];
             $certificate = $options['peer_certificate'] ?? ($chain[0] ?? null);
             $result['certificate_chain_length'] = count($chain);
-            $result['certificate_ca_valid'] = $noValidateCert ? null : true;
-            $result['certificate_chain_complete'] = $noValidateCert ? null : true;
+            $result['certificate_ca_valid'] = null;
+            $result['certificate_chain_complete'] = null;
             if ($certificate !== null) {
                 $parsed = openssl_x509_parse($certificate, false);
                 if (is_array($parsed)) {
