@@ -14,7 +14,6 @@ use McpEmail\Security\EmailSecurityAnalyzer;
 use McpEmail\Security\HeaderAnalyzer;
 use McpEmail\Security\HtmlSanitizer;
 use McpEmail\RateLimiter;
-use McpEmail\Auth;
 
 function check(bool $condition, string $message): void {
     if (!$condition) { fwrite(STDERR, "FAIL: $message\n"); exit(1); }
@@ -91,12 +90,4 @@ check(!RateLimiter::allow('fixture-'.getmypid(), 0, 60), 'rate limiter rejects o
 $schema=array_column($tools['result']->tools,null,'name');
 check($schema['search_emails']->inputSchema['properties']['offset']['minimum']===0, 'pagination schema');
 check(isset($schema['search_emails']->inputSchema['properties']['date_from'],$schema['search_emails']->inputSchema['properties']['from']), 'date and sender search schema');
-$authMethod=new ReflectionMethod(Auth::class, 'getAuthToken');
-$oldGet=$_GET; $oldServer=$_SERVER;
-unset($_SERVER['HTTP_AUTHORIZATION'], $_SERVER['REDIRECT_HTTP_AUTHORIZATION']);
-$_GET=['token'=>'gpt-url-token'];
-check($authMethod->invoke(null)===['gpt-url-token','query'], 'GPT URL bearer token is accepted');
-$_SERVER['HTTP_AUTHORIZATION']='Bearer header-token';
-check($authMethod->invoke(null)===['header-token','authorization'], 'Authorization header takes precedence over URL token');
-$_GET=$oldGet; $_SERVER=$oldServer;
 echo "All tests passed\n";

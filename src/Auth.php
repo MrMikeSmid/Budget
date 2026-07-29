@@ -35,13 +35,6 @@ final class Auth
             return [$token !== '' ? $token : null, 'authorization'];
         }
 
-        // Compatibility for GPT connectors that can only put credentials in
-        // the endpoint URL. The header always takes precedence when present.
-        $queryToken = $_GET['token'] ?? null;
-        if (is_string($queryToken) && $queryToken !== '') {
-            return [$queryToken, 'query'];
-        }
-
         return [null, null];
     }
 
@@ -51,7 +44,7 @@ final class Auth
             return;
         }
 
-        error_log('Auth method: ' . ($method === 'query' ? 'URL query parameter' : 'Authorization header') . '; token was not logged');
+        error_log('Auth method: Authorization header; token was not logged');
     }
 
     private static function getAuthorizationHeader(): ?string

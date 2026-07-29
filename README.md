@@ -210,15 +210,10 @@ correct staan ingesteld in de repository-instellingen.
 
 ### Authenticatieheader
 
-Bij voorkeur wordt `Authorization: Bearer JOUW_BEARER_TOKEN` gebruikt. Voor
-GPT-clients die geen headers kunnen instellen, wordt ook `?token=JOUW_BEARER_TOKEN`
-geaccepteerd. De header heeft voorrang als beide aanwezig zijn. Vergelijking
-gebeurt timing-safe met `hash_equals`; tokens en berichtinhoud worden niet door
-de applicatie gelogd. Let op: URL-tokens kunnen wel in webserver-/proxylogs en
-browsergeschiedenis verschijnen. Gebruik daarom uitsluitend HTTPS, een apart
-lang willekeurig token en roteer dit bij vermoeden van logging of uitlekken. De
-endpoint hanteert 60 requests per minuut per client-IP en weigert request bodies
-groter dan 1 MiB.
+Alleen `Authorization: Bearer JOUW_BEARER_TOKEN` wordt geaccepteerd. Tokens in
+querystrings zijn niet toegestaan. Vergelijking gebeurt timing-safe met
+`hash_equals`; tokens en berichtinhoud worden niet gelogd. De endpoint hanteert
+60 requests per minuut per client-IP en weigert request bodies groter dan 1 MiB.
 
 ## Projectstructuur
 
