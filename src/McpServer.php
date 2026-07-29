@@ -21,6 +21,14 @@ use McpEmail\Tools\ArchiveEmailTool;
 use McpEmail\Tools\RestoreEmailTool;
 use McpEmail\Tools\ReplyEmailTool;
 use McpEmail\Tools\FlagEmailTool;
+use McpEmail\Tools\GetEmailTool;
+use McpEmail\Tools\GetEmailHeadersTool;
+use McpEmail\Tools\ListAttachmentsTool;
+use McpEmail\Tools\ExtractLinksTool;
+use McpEmail\Tools\AnalyzeEmailSecurityTool;
+use McpEmail\Tools\ScanMailboxSecurityTool;
+use McpEmail\Tools\ListFoldersTool;
+use McpEmail\Tools\GetSecuritySummaryTool;
 use Throwable;
 
 /**
@@ -48,7 +56,9 @@ final class McpServer
             new FlagEmailTool('mark_email', 'seen', '\\Seen'),
             new ReplyEmailTool(), new ArchiveEmailTool(), new RestoreEmailTool(),
             new FlagEmailTool('mark_flagged', 'flagged', '\\Flagged'),
-            new FlagEmailTool('mark_answered', 'answered', '\\Answered')] as $tool) {
+            new FlagEmailTool('mark_answered', 'answered', '\\Answered'),
+            new GetEmailTool(), new GetEmailHeadersTool(), new ListAttachmentsTool(), new ExtractLinksTool(),
+            new AnalyzeEmailSecurityTool(), new ScanMailboxSecurityTool(), new ListFoldersTool(), new GetSecuritySummaryTool()] as $tool) {
             $this->tools[$tool->name()] = $tool;
         }
     }
@@ -85,7 +95,7 @@ final class McpServer
         } catch (McpInvalidParamsException $e) {
             return $isNotification ? null : $this->error($id, -32602, $e->getMessage());
         } catch (Throwable $e) {
-            return $isNotification ? null : $this->error($id, -32603, 'Interne serverfout: ' . $e->getMessage());
+            return $isNotification ? null : $this->error($id, -32603, 'INTERNAL_ERROR: interne serverfout.');
         }
 
         if ($isNotification) {

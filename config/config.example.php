@@ -12,7 +12,7 @@
  * altijd voorrang boven dit bestand.
  */
 return [
-    // Verplicht: bearer token waarmee Claude zich bij deze server authenticeert.
+    // Verplicht: bearer token waarmee GPT zich bij deze server authenticeert.
     // Genereer bv. met: openssl rand -hex 32 (of `php -r "echo bin2hex(random_bytes(32));"`)
     'MCP_BEARER_TOKEN' => '',
     'DEBUG' => false,                   // Alleen dan veilige authenticatiediagnostiek loggen (nooit de volledige token).
@@ -28,8 +28,7 @@ return [
 
     // Diagnose-opties.
     'DEBUG_MAIL' => false,              // Alleen dan uitgebreide DNS/TLS/certificaatdiagnose en veilige details.
-    // Verouderde compatibiliteitssleutel; certificaatcontrole is altijd uitgeschakeld.
-    // SSL-verbindingen accepteren alle certificaten, ongeacht deze waarde.
+    // Onveilige legacy escape hatch. Laat false zodat TLS-certificaten worden gevalideerd.
     'MAIL_NOVALIDATE_CERT' => false,
     'MAIL_CONNECT_IPV4' => false,       // Tijdelijk: verbind ext-imap rechtstreeks met het eerste IPv4-adres.
     'MAIL_SOCKET_TIMEOUT' => 5,         // Netwerk-timeout in seconden (1-5).

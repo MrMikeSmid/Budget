@@ -209,9 +209,9 @@ $successHtml = '';
 if ($saved) {
     $successHtml = '<div class="success">' .
         '<strong>Opgeslagen.</strong> De configuratie is bijgewerkt.' .
-        ($bearerSuggestion !== '' || isset($_POST['bearerToken']) ? '<p>Bearer token voor Claude.ai (nu instellen, wordt hierna niet meer volledig getoond):<br>' .
+        ($bearerSuggestion !== '' || isset($_POST['bearerToken']) ? '<p>Bearer token voor GPT/ChatGPT (nu instellen, wordt hierna niet meer volledig getoond):<br>' .
             '<span class="token">' . h($existing['MCP_BEARER_TOKEN']) . '</span></p>' : '') .
-        '<p>Test nu: <a href="health.php" target="_blank">health.php</a> en koppel <code>mcp.php</code> als connector-URL in Claude.ai.</p>' .
+        '<p>Test nu: <a href="health.php" target="_blank">health.php</a> en koppel <code>mcp.php</code> als connector-URL in GPT/ChatGPT.</p>' .
         '<p><strong>Belangrijk:</strong> verwijder of hernoem <code>setup.php</code> zodra je klaar bent — ' .
         'deze pagina blijft anders bereikbaar (al wel achter je bearer token beschermd).</p>' .
         '</div>';
@@ -236,11 +236,11 @@ render_page('MCP Email Connector - instellingen', '
         <form method="post">
             <input type="hidden" name="csrf" value="' . h(csrf_token()) . '">
 
-            <h2>Bearer token (voor Claude.ai)</h2>
+            <h2>Bearer token (voor GPT/ChatGPT)</h2>
             <label for="bearerToken">Token</label>
             <input type="text" id="bearerToken" name="bearerToken" value="' . h($bearerSuggestion) . '"
                 placeholder="' . ($hasConfig ? 'laat leeg om te behouden' : '') . '">
-            <p class="hint">Dit is het token dat je in Claude.ai bij "Aangepaste connector" invult als Bearer token.</p>
+            <p class="hint">Dit is het token voor GPT/ChatGPT. Gebruik bij URL-only configuratie <code>?token=DIT_TOKEN</code>.</p>
 
             <h2>Inkomende mail</h2>
             <label for="mailProtocol">Protocol</label>
