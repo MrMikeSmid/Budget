@@ -97,11 +97,22 @@ variable gezet worden — die krijgen dan voorrang boven `config/config.php`.
 
 ### Inkomende mailverbinding veilig diagnosticeren
 
-Elke IMAP/POP3-aanroep doet vóór het inloggen een DNS-, TCP- en (bij impliciete
-SSL) TLS-test. De serverlog krijgt uitsluitend veilige technische gegevens en
-nooit het wachtwoord of de volledige gebruikersnaam. Zet `DEBUG_MAIL=true`
-alleen kort tijdens een beheerderstest om dezelfde veilige details in de
-MCP-foutpayload te zien en zet hem daarna terug op `false`.
+Elke IMAP/POP3-aanroep doet vóór het inloggen een DNS-, TCP- en TLS-test en
+probeert vervolgens, uitsluitend als verbindingsdiagnose, achtereenvolgens
+`/{protocol}/ssl`, `/{protocol}/ssl/novalidate-cert` en `/{protocol}/notls` op
+`INBOX`. Alle drie de uitslagen worden vergeleken; de eerste geslaagde
+verbinding wordt voor de bestaande toolaanroep gebruikt. De serverlog bevat de
+exacte mailboxstring en technische gegevens, maar nooit gebruikersnaam of
+wachtwoord. Zet `DEBUG_MAIL=true` alleen kort tijdens een beheerderstest om
+dezelfde veilige details in de MCP-foutpayload te zien en zet hem daarna terug
+op `false`.
+
+De diagnose rapporteert ook PHP-, OpenSSL-, cURL- en streaminformatie, alle
+A/AAAA-adressen, socketfouten, de onderhandelde TLS-versie en cipher, het
+certificaat (subject, issuer en SAN), geldigheids-/hostnaam-/CA-/chaincontroles,
+de volledige OpenSSL-errorqueue en alle door ext-imap gerapporteerde fouten.
+Bij een fout bevat de debug-JSON altijd `success`, `phase`, `error_type`,
+`message` en `diagnostics`, inclusief `most_likely_cause`.
 
 De waarde van `error_type` lokaliseert de fout: `dns_error` betekent dat er
 geen A/AAAA-record bruikbaar is, `socket_unreachable` wijst op poort/firewall/

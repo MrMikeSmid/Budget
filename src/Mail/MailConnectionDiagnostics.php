@@ -4,10 +4,34 @@ declare(strict_types=1);
 
 namespace McpEmail\Mail;
 
-/** Performs DNS, TCP and optional implicit-TLS checks without authenticating. */
+/** DNS, TCP, TLS and certificate diagnostics which never receive credentials. */
 final class MailConnectionDiagnostics
 {
-    /** @return array<string, mixed> Safe diagnostics; credentials are never accepted. */
+    /** @return array<string, mixed> */
+    public static function runtime(): array
+    {
+        $curl = extension_loaded('curl') ? curl_version() : null;
+
+        return [
+            'php_version' => PHP_VERSION,
+            'openssl_version' => defined('OPENSSL_VERSION_TEXT') ? OPENSSL_VERSION_TEXT : null,
+            'imap_extension_loaded' => extension_loaded('imap'),
+            'openssl_extension_loaded' => extension_loaded('openssl'),
+            'curl_version' => is_array($curl) ? ($curl['version'] ?? null) : null,
+            'curl_ssl_version' => is_array($curl) ? ($curl['ssl_version'] ?? null) : null,
+            'stream_wrappers' => stream_get_wrappers(),
+            'openssl_cafile' => ini_get('openssl.cafile') ?: null,
+            'openssl_capath' => ini_get('openssl.capath') ?: null,
+        ];
+    }
+
+    /** @return string[] Drains the process OpenSSL error queue after an SSL operation. */
+    public static function openSslErrors(): array
+    {
+        return self::drainOpenSslErrors();
+    }
+
+    /** @return array<string, mixed> */
     public static function diagnoseMailConnection(
         string $host,
         int $port,
@@ -17,28 +41,49 @@ final class MailConnectionDiagnostics
         bool $noValidateCert = false,
         float $timeout = 10.0,
     ): array {
+        self::drainOpenSslErrors();
         $ipv4 = self::records($host, DNS_A, 'ip');
         $ipv6 = self::records($host, DNS_AAAA, 'ipv6');
+        $target = $connectIpv4 ? ($ipv4[0] ?? null) : $host;
         $result = [
-            'host' => $host, 'port' => $port, 'protocol' => strtolower($protocol), 'ssl' => $ssl,
-            'dns_resolved' => $ipv4 !== [] || $ipv6 !== [],
-            'ipv4_addresses' => $ipv4, 'ipv4_address' => $ipv4[0] ?? null,
+            'phase' => 'dns',
+            'host' => $host,
+            'port' => $port,
+            'protocol' => strtolower($protocol),
+            'ssl' => $ssl,
+            'novalidate_cert' => $noValidateCert,
+            'dns_result' => ($ipv4 !== [] || $ipv6 !== []) ? 'resolved' : 'unresolved',
+            'ipv4_addresses' => $ipv4,
+            'ipv4_address' => $ipv4[0] ?? null,
             'ipv6_addresses' => $ipv6,
-            'connection_target' => $connectIpv4 ? ($ipv4[0] ?? null) : $host,
-            'socket_connected' => false, 'ssl_handshake' => $ssl ? false : null,
-            'socket_error_number' => 0, 'socket_error_message' => '',
-            'certificate_validation' => $noValidateCert ? 'DISABLED' : 'ENABLED',
-            'certificate_validation_disabled' => $noValidateCert,
+            'ipv6_address' => $ipv6[0] ?? null,
+            'connection_target' => $target,
+            'socket_successful' => false,
+            'errno' => 0,
+            'errstr' => '',
+            'tls_handshake' => $ssl ? false : null,
+            'tls_version' => null,
+            'cipher' => null,
+            'certificate_subject' => null,
+            'certificate_issuer' => null,
+            'certificate_san' => [],
+            'certificate_expired' => null,
+            'certificate_hostname_matches' => null,
+            'certificate_ca_valid' => null,
+            'certificate_chain_complete' => null,
+            'certificate_chain_length' => 0,
+            'openssl_errors' => [],
+            'error_type' => null,
         ];
-        if (!$result['dns_resolved'] || ($connectIpv4 && $ipv4 === [])) {
+
+        if ($target === null || ($ipv4 === [] && $ipv6 === [])) {
             $result['error_type'] = 'dns_error';
-            $result['socket_error_message'] = $connectIpv4
-                ? 'Geen IPv4-adres gevonden voor rechtstreekse IPv4-verbinding.'
-                : 'De hostnaam kon niet naar IPv4 of IPv6 worden vertaald.';
+            $result['errstr'] = $connectIpv4
+                ? 'Geen IPv4-adres gevonden voor de geforceerde IPv4-verbinding.'
+                : 'Geen A- of AAAA-record gevonden.';
             return $result;
         }
 
-        $target = (string) $result['connection_target'];
         $uri = filter_var($target, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)
             ? "tcp://[$target]:$port" : "tcp://$target:$port";
         $context = stream_context_create(['ssl' => [
@@ -47,22 +92,27 @@ final class MailConnectionDiagnostics
             'verify_peer_name' => !$noValidateCert,
             'allow_self_signed' => $noValidateCert,
             'SNI_enabled' => true,
+            'capture_peer_cert' => true,
+            'capture_peer_cert_chain' => true,
         ]]);
         $errno = 0;
-        $error = '';
-        $socket = @stream_socket_client($uri, $errno, $error, $timeout, STREAM_CLIENT_CONNECT, $context);
-        $result['socket_error_number'] = $errno;
-        $result['socket_error_message'] = $error;
+        $errstr = '';
+        $socket = @stream_socket_client($uri, $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT, $context);
+        $result['phase'] = 'socket';
+        $result['errno'] = $errno;
+        $result['errstr'] = $errstr;
         if ($socket === false) {
             $result['error_type'] = 'socket_unreachable';
+            $result['openssl_errors'] = self::drainOpenSslErrors();
             return $result;
         }
-        $result['socket_connected'] = true;
+
+        $result['socket_successful'] = true;
         stream_set_timeout($socket, (int) ceil($timeout));
         if ($ssl) {
             $warning = '';
             set_error_handler(static function (int $severity, string $message) use (&$warning): bool {
-                $warning = $message;
+                $warning .= ($warning === '' ? '' : ' | ') . $message;
                 return true;
             });
             try {
@@ -70,19 +120,76 @@ final class MailConnectionDiagnostics
             } finally {
                 restore_error_handler();
             }
+            $result['phase'] = 'tls';
+            $result['openssl_errors'] = self::drainOpenSslErrors();
             if ($crypto !== true) {
                 $result['error_type'] = 'ssl_handshake_error';
-                $result['socket_error_message'] = $warning !== '' ? $warning : 'TLS-handshake is mislukt.';
+                $result['errstr'] = $warning !== '' ? $warning : 'TLS-handshake is mislukt zonder PHP-waarschuwing.';
                 fclose($socket);
                 return $result;
             }
-            $result['ssl_handshake'] = true;
-            $params = stream_get_meta_data($socket);
-            $result['tls_version'] = $params['crypto']['protocol'] ?? null;
+
+            $result['tls_handshake'] = true;
+            $meta = stream_get_meta_data($socket);
+            $result['tls_version'] = $meta['crypto']['protocol'] ?? null;
+            $result['cipher'] = $meta['crypto']['cipher_name'] ?? null;
+            $options = stream_context_get_options($socket)['ssl'] ?? [];
+            $chain = is_array($options['peer_certificate_chain'] ?? null) ? $options['peer_certificate_chain'] : [];
+            $certificate = $options['peer_certificate'] ?? ($chain[0] ?? null);
+            $result['certificate_chain_length'] = count($chain);
+            $result['certificate_ca_valid'] = $noValidateCert ? null : true;
+            $result['certificate_chain_complete'] = $noValidateCert ? null : true;
+            if ($certificate !== null) {
+                $parsed = openssl_x509_parse($certificate, false);
+                if (is_array($parsed)) {
+                    $result['certificate_subject'] = $parsed['subject'] ?? null;
+                    $result['certificate_issuer'] = $parsed['issuer'] ?? null;
+                    $san = (string) ($parsed['extensions']['subjectAltName'] ?? '');
+                    $result['certificate_san'] = $san === '' ? [] : array_map('trim', explode(',', $san));
+                    $result['certificate_expired'] = isset($parsed['validTo_time_t'])
+                        ? (int) $parsed['validTo_time_t'] < time() : null;
+                    $result['certificate_hostname_matches'] = self::certificateMatchesHost($parsed, $host);
+                }
+            }
         }
         fclose($socket);
-        $result['error_type'] = null;
+        $result['phase'] = 'socket_complete';
         return $result;
+    }
+
+    /** @return string[] */
+    private static function drainOpenSslErrors(): array
+    {
+        $errors = [];
+        if (!function_exists('openssl_error_string')) {
+            return $errors;
+        }
+        while (($message = openssl_error_string()) !== false) {
+            $errors[] = $message;
+        }
+        return $errors;
+    }
+
+    /** @param array<string, mixed> $certificate */
+    private static function certificateMatchesHost(array $certificate, string $host): bool
+    {
+        $names = [];
+        foreach (explode(',', (string) ($certificate['extensions']['subjectAltName'] ?? '')) as $san) {
+            $san = trim($san);
+            if (str_starts_with(strtoupper($san), 'DNS:')) {
+                $names[] = substr($san, 4);
+            }
+        }
+        if ($names === [] && isset($certificate['subject']['CN'])) {
+            $names[] = (string) $certificate['subject']['CN'];
+        }
+        foreach ($names as $name) {
+            $pattern = '/^' . str_replace('\\*', '[^.]+', preg_quote(strtolower($name), '/')) . '$/D';
+            if (preg_match($pattern, strtolower($host)) === 1) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** @return string[] */
