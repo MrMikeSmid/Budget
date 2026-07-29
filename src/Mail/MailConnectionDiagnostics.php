@@ -27,6 +27,7 @@ final class MailConnectionDiagnostics
             'connection_target' => $connectIpv4 ? ($ipv4[0] ?? null) : $host,
             'socket_connected' => false, 'ssl_handshake' => $ssl ? false : null,
             'socket_error_number' => 0, 'socket_error_message' => '',
+            'certificate_validation' => $noValidateCert ? 'DISABLED' : 'ENABLED',
             'certificate_validation_disabled' => $noValidateCert,
         ];
         if (!$result['dns_resolved'] || ($connectIpv4 && $ipv4 === [])) {

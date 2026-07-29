@@ -119,6 +119,14 @@ certificaatprobleem te bevestigen: deze optie verlaagt TLS-beveiliging en hoort
 nooit permanent actief te blijven. De normale verbinding blijft de hostnaam
 gebruiken, zodat certificaatnaamvalidatie en SNI correct werken.
 
+Als `list_emails` uitsluitend met deze tijdelijke optie werkt, is de definitieve
+oplossing een correct SSL-certificaat voor de geconfigureerde host (bijvoorbeeld
+`mail.mikesmid.nl`) installeren, of de officiële mailserver-hostnaam gebruiken
+die als naam op het certificaat staat. Werkt de verbinding ook dan niet, test
+dan achtereenvolgens de onderhandelde TLS-versie, de officiële serverhostnaam
+van de hostingprovider, het IPv4-adres (`MAIL_CONNECT_IPV4=true`) en PHP's
+OpenSSL/CA-instellingen (`openssl.cafile` en `openssl.capath`).
+
 ### Meerdere accounts (optioneel)
 
 Vul in `config/config.php` de sleutel `'accounts' => [...]` met een array van
