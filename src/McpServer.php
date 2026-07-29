@@ -15,6 +15,12 @@ use McpEmail\Tools\AnalyzeSenderTool;
 use McpEmail\Tools\AnalyzeLinksTool;
 use McpEmail\Tools\AnalyzeAttachmentsTool;
 use McpEmail\Tools\GetSenderReputationTool;
+use McpEmail\Tools\DeleteEmailTool;
+use McpEmail\Tools\MoveEmailTool;
+use McpEmail\Tools\ArchiveEmailTool;
+use McpEmail\Tools\RestoreEmailTool;
+use McpEmail\Tools\ReplyEmailTool;
+use McpEmail\Tools\FlagEmailTool;
 use Throwable;
 
 /**
@@ -37,7 +43,12 @@ final class McpServer
     {
         foreach ([new ListEmailsTool(), new ReadEmailTool(), new SearchEmailsTool(), new SendEmailTool(),
             new AnalyzeEmailTool(), new AnalyzeEmailsTool(), new AnalyzeSenderTool(), new AnalyzeLinksTool(),
-            new AnalyzeAttachmentsTool(), new GetSenderReputationTool()] as $tool) {
+            new AnalyzeAttachmentsTool(), new GetSenderReputationTool(),
+            new DeleteEmailTool(), new MoveEmailTool(),
+            new FlagEmailTool('mark_email', 'seen', '\\Seen'),
+            new ReplyEmailTool(), new ArchiveEmailTool(), new RestoreEmailTool(),
+            new FlagEmailTool('mark_flagged', 'flagged', '\\Flagged'),
+            new FlagEmailTool('mark_answered', 'answered', '\\Answered')] as $tool) {
             $this->tools[$tool->name()] = $tool;
         }
     }

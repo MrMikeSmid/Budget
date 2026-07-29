@@ -22,7 +22,8 @@ final class SmtpClient
         ?string $text,
         ?string $html,
         string|array|null $cc = null,
-        string|array|null $bcc = null
+        string|array|null $bcc = null,
+        array $headers = []
     ): string {
         $mailer = new PHPMailer(true);
 
@@ -58,6 +59,12 @@ final class SmtpClient
             }
 
             $mailer->Subject = $subject;
+            foreach ($headers as $name => $value) {
+                if (!in_array($name, ['In-Reply-To', 'References'], true)) {
+                    throw new SmtpException('Niet-toegestane extra e-mailheader.');
+                }
+                $mailer->addCustomHeader($name, (string) $value);
+            }
 
             if ($html !== null) {
                 $mailer->isHTML(true);
