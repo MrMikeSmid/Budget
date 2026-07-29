@@ -19,8 +19,7 @@ nodig.
 
 ## Functionaliteit
 
-MCP-tools die deze server aanbiedt (ongewijzigd t.o.v. de oorspronkelijke
-opzet):
+MCP-tools die deze server aanbiedt:
 
 - `list_emails` — recente e-mails uit een map (standaard `INBOX`), met
   paginering (`limit`) en basismetadata (afzender, onderwerp, datum,
@@ -30,9 +29,34 @@ opzet):
 - `search_emails` — zoeken op afzender, onderwerp, inhoud en/of datumrange.
 - `send_email` — nieuwe e-mail versturen (`to`, `subject`, `body`/`html`,
   optioneel `cc`/`bcc`).
+- `analyze_email(id)` — volledige classificatie met spam-/trustscore,
+  categorie, prioriteit, labels, korte samenvatting, advies en uitlegbare signalen.
+- `analyze_emails(limit)` — dezelfde analyse voor maximaal 50 recente berichten,
+  efficiënt binnen één IMAP-verbinding.
+- `analyze_sender(domain)` en `get_sender_reputation(domain)` — lokale,
+  cumulatieve reputatie en risico-inschatting van een afzenderdomein.
+- `analyze_links(id)` — URL-, HTTPS-, verkorter-, tracking- en risicoanalyse
+  zonder links te openen.
+- `analyze_attachments(id)` — risicoanalyse op basis van bestandsnaam,
+  extensie, MIME-type en grootte, zonder bijlagen uit te voeren.
 
-E-mailinhoud wordt bij elk verzoek live via IMAP opgehaald; er wordt niets
-persistent op de server opgeslagen, en credentials worden nooit gelogd.
+E-mailinhoud wordt bij elk verzoek live via IMAP opgehaald en de analyse wijzigt
+geen flags of mailboxinhoud. Alleen reputatietellers en afzendermetadata worden
+in `data/reputation.json` opgeslagen; berichttekst, HTML en credentials nooit.
+
+### Mail Intelligence Engine
+
+De engine is een modulaire, deterministische heuristiek: elke score is terug te
+voeren op signalen zoals SPF/DKIM/DMARC, Return-Path/Reply-To, risicovolle TLD's,
+Unicode, HTML-only mail, linkvolume, trackingpixels, phishingtaal en gevaarlijke
+bijlage-extensies. Scores zijn indicatief en vormen geen antivirus- of externe
+domain-intelligence-scan. Links worden bewust niet bezocht en bijlage-inhoud
+wordt niet gedownload. Daardoor lekt analyse geen informatie naar afzenders.
+
+`data/reputation.json` wordt automatisch en met een exclusieve file lock
+aangemaakt. Maak `data/` schrijfbaar voor de PHP-worker (bijvoorbeeld mode 750
+met de webserver als eigenaar). Batchanalyse telt iedere geanalyseerde e-mail als
+een waarneming. Verwijder het JSON-bestand om het lokale leergeheugen te resetten.
 
 ## Vereisten op de hosting
 
@@ -215,7 +239,19 @@ src/
     ReadEmailTool.php
     SearchEmailsTool.php
     SendEmailTool.php
+    AnalyzeEmailTool.php       -> volledige analyse van één bericht
+    AnalyzeEmailsTool.php      -> batchanalyse
+    AnalyzeSenderTool.php      -> samenvatting van domeinreputatie
+    AnalyzeLinksTool.php
+    AnalyzeAttachmentsTool.php
+    GetSenderReputationTool.php
+    IntelligenceSupport.php    -> gedeelde read-only IMAP-orchestratie
     Support.php        -> gedeelde helpers (resultaten, overview-formatting)
+  Intelligence/
+    EmailAnalyzer.php          -> classificatie- en score-engine
+    LinkAnalyzer.php           -> lokale URL-analyse
+    AttachmentAnalyzer.php     -> metadata-analyse van bijlagen
+    ReputationStore.php        -> concurrency-safe lokaal leergeheugen
   Mail/
     ImapClient.php     -> wrapper rond ext-imap
     SmtpClient.php     -> wrapper rond PHPMailer

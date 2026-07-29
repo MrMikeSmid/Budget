@@ -346,7 +346,18 @@ final class ImapClient
             'text' => $textPlain,
             'html' => $textHtml,
             'attachments' => $attachments,
+            'headers' => $this->headers($uid),
         ];
+    }
+
+    /** Returns unfolded raw message headers without changing message flags. */
+    private function headers(int $uid): string
+    {
+        $headers = self::guarded(
+            fn () => imap_fetchheader($this->connection, $uid, FT_UID | FT_PEEK),
+            'Kon berichtheaders niet ophalen'
+        );
+        return $headers === false ? '' : preg_replace("/\r?\n[ \t]+/", ' ', $headers) ?? $headers;
     }
 
     private function walkStructure(

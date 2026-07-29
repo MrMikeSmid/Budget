@@ -9,6 +9,12 @@ use McpEmail\Tools\ReadEmailTool;
 use McpEmail\Tools\SearchEmailsTool;
 use McpEmail\Tools\SendEmailTool;
 use McpEmail\Tools\ToolInterface;
+use McpEmail\Tools\AnalyzeEmailTool;
+use McpEmail\Tools\AnalyzeEmailsTool;
+use McpEmail\Tools\AnalyzeSenderTool;
+use McpEmail\Tools\AnalyzeLinksTool;
+use McpEmail\Tools\AnalyzeAttachmentsTool;
+use McpEmail\Tools\GetSenderReputationTool;
 use Throwable;
 
 /**
@@ -29,7 +35,9 @@ final class McpServer
 
     public function __construct()
     {
-        foreach ([new ListEmailsTool(), new ReadEmailTool(), new SearchEmailsTool(), new SendEmailTool()] as $tool) {
+        foreach ([new ListEmailsTool(), new ReadEmailTool(), new SearchEmailsTool(), new SendEmailTool(),
+            new AnalyzeEmailTool(), new AnalyzeEmailsTool(), new AnalyzeSenderTool(), new AnalyzeLinksTool(),
+            new AnalyzeAttachmentsTool(), new GetSenderReputationTool()] as $tool) {
             $this->tools[$tool->name()] = $tool;
         }
     }
