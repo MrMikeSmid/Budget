@@ -30,18 +30,9 @@ final class Auth
     {
         $header = self::getAuthorizationHeader();
         if ($header !== null) {
-            $token = str_starts_with($header, 'Bearer ')
-                ? trim(substr($header, strlen('Bearer ')))
-                : '';
+            $token = preg_match('/^Bearer[ \t]+([^\s]+)$/i', trim($header), $match) ? $match[1] : '';
 
             return [$token !== '' ? $token : null, 'authorization'];
-        }
-
-        // Temporary compatibility for ChatGPT MCP.
-        // Preferred authentication is Authorization: Bearer.
-        $queryToken = $_GET['token'] ?? null;
-        if (is_string($queryToken) && $queryToken !== '') {
-            return [$queryToken, 'query'];
         }
 
         return [null, null];
@@ -53,8 +44,7 @@ final class Auth
             return;
         }
 
-        error_log('Auth method: ' . ($method === 'authorization' ? 'Authorization header' : 'query'));
-        error_log('Token prefix: ' . substr($token, 0, 4) . '****');
+        error_log('Auth method: Authorization header; token was not logged');
     }
 
     private static function getAuthorizationHeader(): ?string

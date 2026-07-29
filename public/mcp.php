@@ -64,6 +64,11 @@ function emitJsonRpc(array $response, int $httpStatus = 200): never
         $json = '{"jsonrpc":"2.0","id":null,"error":{"code":-32603,"message":"Interne serverfout."}}';
     }
 
+    if (strlen($json) > 5 * 1024 * 1024) {
+        $json = '{"jsonrpc":"2.0","id":null,"error":{"code":-32603,"message":"MESSAGE_TOO_LARGE: response overschrijdt 5 MiB."}}';
+        http_response_code(413);
+    }
+
     echo $json;
     exit;
 }
@@ -126,6 +131,7 @@ require __DIR__ . '/../vendor/autoload.php';
 use McpEmail\Auth;
 use McpEmail\ConfigException;
 use McpEmail\McpServer;
+use McpEmail\RateLimiter;
 
 $httpMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $requestStopPhase = 'request_validation';
@@ -143,10 +149,14 @@ try {
 }
 
 if ($authError !== null) {
-    emitAuthError($authError);
+    emitAuthError($authError === 'missing_token' ? 'AUTH_REQUIRED' : 'AUTH_INVALID');
 }
 
+$clientIdentity=(string)($_SERVER['REMOTE_ADDR']??'unknown');
+if(!RateLimiter::allow($clientIdentity,60,60)){emitJsonRpc(['success'=>false,'error'=>['code'=>'RATE_LIMITED','message'=>'Te veel aanvragen; probeer het later opnieuw.']],429);}
+
 $raw = file_get_contents('php://input');
+if(is_string($raw)&&strlen($raw)>1048576){emitError(null,-32600,'INVALID_ARGUMENT: request is te groot.',413);}
 try {
     $request = json_decode($raw ?: '', true, 512, JSON_THROW_ON_ERROR);
 } catch (JsonException) {

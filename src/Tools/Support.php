@@ -9,6 +9,16 @@ use McpEmail\Mail\ImapConnectionException;
 
 final class Support
 {
+    public static function apiSuccess(mixed $data, array $meta = []): array
+    {
+        $payload=['success'=>true,'data'=>$data]; if($meta!==[])$payload['meta']=$meta;
+        return self::jsonResult($payload);
+    }
+
+    public static function apiError(string $code, string $message): array
+    {
+        $result=self::jsonResult(['success'=>false,'error'=>['code'=>$code,'message'=>$message]]);$result['isError']=true;return $result;
+    }
     /** @return array{content: array<int, array{type: string, text: string}>} */
     public static function jsonResult(mixed $payload): array
     {
@@ -41,6 +51,7 @@ final class Support
         $isTimeout = $exception->errorType() === 'timeout';
         $payload = [
             'success' => false,
+            'error' => ['code' => 'IMAP_CONNECTION_FAILED', 'message' => 'De verbinding met de mailserver is mislukt.'],
             'phase' => ($debug || $isTimeout)
                 ? (string) ($diagnostics['phase'] ?? 'unknown')
                 : 'mail_connection',
