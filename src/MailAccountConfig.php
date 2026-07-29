@@ -8,6 +8,7 @@ final class MailAccountConfig
 {
     public function __construct(
         public readonly string $id,
+        public readonly string $mailProtocol,
         public readonly string $imapHost,
         public readonly int $imapPort,
         public readonly bool $imapSecure,

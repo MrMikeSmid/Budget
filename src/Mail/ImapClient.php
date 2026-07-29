@@ -7,7 +7,7 @@ namespace McpEmail\Mail;
 use McpEmail\MailAccountConfig;
 
 /**
- * Thin wrapper around PHP's ext-imap. Opens a fresh connection per call and
+ * Thin wrapper around PHP's ext-imap for IMAP and POP3. Opens a fresh connection per call and
  * always closes it afterwards - nothing is cached or kept alive between
  * requests, so mail content is never persisted on the server.
  *
@@ -27,18 +27,19 @@ final class ImapClient
 
     public static function connect(MailAccountConfig $account, string $folder): self
     {
-        $flags = $account->imapSecure ? '/imap/ssl' : '/imap';
+        $protocol = $account->mailProtocol;
+        $flags = '/' . $protocol . ($account->imapSecure ? '/ssl' : '');
         $mailboxSpec = '{' . $account->imapHost . ':' . $account->imapPort . $flags . '}' . self::encodeFolder($folder);
 
         $connection = self::guarded(
             fn () => imap_open($mailboxSpec, $account->imapUser, $account->imapPass, 0, 1),
-            "Kan geen verbinding maken met IMAP-server {$account->imapHost}:{$account->imapPort}"
+            "Kan geen verbinding maken met " . strtoupper($protocol) . "-server {$account->imapHost}:{$account->imapPort}"
         );
 
         if ($connection === false) {
             $detail = imap_last_error();
             throw new ImapConnectionException(
-                "Kan geen verbinding maken met IMAP-server {$account->imapHost}:{$account->imapPort}" .
+                "Kan geen verbinding maken met " . strtoupper($protocol) . "-server {$account->imapHost}:{$account->imapPort}" .
                     ($detail ? " ($detail)" : '')
             );
         }

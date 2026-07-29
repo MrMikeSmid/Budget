@@ -17,6 +17,8 @@ return [
     'MCP_BEARER_TOKEN' => '',
 
     // ---- Enkel account (MVP) ----
+    // Kies 'imap' of 'pop3'. De bestaande IMAP_* sleutels bevatten in beide gevallen de inkomende mailgegevens.
+    'MAIL_PROTOCOL' => 'imap',
     'IMAP_HOST' => 'mail.jouwdomein.nl',
     'IMAP_PORT' => 993,
     'IMAP_SECURE' => true,
@@ -37,6 +39,7 @@ return [
     // 'accounts' => [
     //     [
     //         'id' => 'werk',
+    //         'mailProtocol' => 'imap',
     //         'imapHost' => 'mail.werkdomein.nl',
     //         'imapUser' => 'werk@werkdomein.nl',
     //         'imapPass' => '...',
@@ -46,6 +49,7 @@ return [
     //     ],
     //     [
     //         'id' => 'prive',
+    //         'mailProtocol' => 'pop3',
     //         'imapHost' => 'mail.privedomein.nl',
     //         'imapUser' => 'ik@privedomein.nl',
     //         'imapPass' => '...',
