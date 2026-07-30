@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\FixedCost;
 use App\Support\Csrf;
 use App\Support\View;
 
@@ -14,6 +15,9 @@ use App\Support\View;
 /** @var string $deletePage */
 /** @var string[] $statusSuggestions */
 /** @var string $outstandingLabel */
+/** @var bool $showRecurrenceOptions */
+
+$showRecurrenceOptions = $showRecurrenceOptions ?? false;
 ?>
 <?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => $listPage], null); ?>
 
@@ -48,9 +52,38 @@ use App\Support\View;
                 </datalist>
             </div>
             <div class="checkbox-field">
-                <input type="checkbox" id="is_recurring" name="is_recurring" <?= !empty($editing['is_recurring']) ? 'checked' : '' ?>>
-                <label for="is_recurring">Terugkerend — bij een nieuwe periode automatisch overnemen</label>
+                <input type="checkbox" id="is_recurring" name="is_recurring"
+                    <?= !empty($editing['is_recurring']) ? 'checked' : '' ?>
+                    <?php if ($showRecurrenceOptions): ?>onchange="document.getElementById('recurrence-options').style.display = this.checked ? 'block' : 'none';"<?php endif; ?>>
+                <label for="is_recurring">Terugkerend — automatisch overnemen bij een nieuwe periode</label>
             </div>
+            <?php if ($showRecurrenceOptions): ?>
+                <div id="recurrence-options" style="display: <?= !empty($editing['is_recurring']) ? 'block' : 'none' ?>;">
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="recurrence_interval">Frequentie</label>
+                            <select id="recurrence_interval" name="recurrence_interval" onchange="document.getElementById('recurrence-mode-wrap').style.display = this.value === 'maandelijks' ? 'none' : 'block';">
+                                <?php foreach (FixedCost::INTERVALS as $key => $label): ?>
+                                    <option value="<?= View::e($key) ?>" <?= ($editing['recurrence_interval'] ?? 'maandelijks') === $key ? 'selected' : '' ?>><?= View::e($label) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="field" id="recurrence-mode-wrap" style="<?= ($editing['recurrence_interval'] ?? 'maandelijks') === 'maandelijks' ? 'display:none;' : '' ?>">
+                            <label for="recurrence_mode">Komt terug</label>
+                            <select id="recurrence_mode" name="recurrence_mode" onchange="document.getElementById('recurrence-date-field').style.display = this.value === 'datum' ? 'block' : 'none';">
+                                <?php foreach (FixedCost::MODES as $key => $label): ?>
+                                    <option value="<?= View::e($key) ?>" <?= ($editing['recurrence_mode'] ?? 'periode') === $key ? 'selected' : '' ?>><?= View::e($label) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field" id="recurrence-date-field" style="<?= ($editing['recurrence_mode'] ?? 'periode') === 'datum' ? '' : 'display:none;' ?>">
+                        <label for="recurrence_date">Vaste datum</label>
+                        <input type="date" id="recurrence_date" name="recurrence_date" value="<?= View::e($editing['recurrence_date'] ?? '') ?>">
+                        <p class="text-muted" style="font-size:12px; margin:4px 0 0;">Komt terug op deze datum, en daarna telkens weer na de gekozen frequentie (bijv. jaarlijks op dezelfde dag).</p>
+                    </div>
+                </div>
+            <?php endif; ?>
             <button type="submit" class="btn"><?= $editing ? 'Opslaan' : 'Toevoegen' ?></button>
             <?php if ($editing): ?>
                 <a class="btn secondary" href="<?= View::e(View::url($listPage, ['period' => $period['id']])) ?>">Annuleren</a>
@@ -87,7 +120,11 @@ use App\Support\View;
                     <tbody>
                     <?php foreach ($items as $item): ?>
                         <tr>
-                            <td><?= View::e($item['description']) ?><?php if (!empty($item['is_recurring'])): ?> <span title="Terugkerend" class="text-muted">&#8635;</span><?php endif; ?></td>
+                            <td>
+                                <?= View::e($item['description']) ?>
+                                <?php if (!empty($item['is_recurring'])): ?> <span title="Terugkerend (<?= View::e(FixedCost::INTERVALS[$item['recurrence_interval'] ?? 'maandelijks'] ?? 'Maandelijks') ?>)" class="text-muted">&#8635;</span><?php endif; ?>
+                                <?php if (!empty($item['loan_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een lening">Lening</span><?php endif; ?>
+                            </td>
                             <td class="num"><?= View::money((float) $item['budgeted']) ?></td>
                             <td class="num"><?= $item['actual'] !== null ? View::money((float) $item['actual']) : '-' ?></td>
                             <td>

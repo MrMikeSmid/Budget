@@ -27,6 +27,23 @@ nieuwe periode, met een leeg werkelijk-bedrag en status — klaar om die maand
 af te vinken. Potjes zijn niet aan een periode gekoppeld en hoeven dus nooit
 opnieuw ingevoerd te worden.
 
+Een terugkerende vaste last hoeft niet per se maandelijks te zijn: kies bij
+"Frequentie" ook per kwartaal, halfjaarlijks of jaarlijks, en bij "Komt
+terug" of dat simpelweg elke nieuwe periode is (op basis van hoeveel
+maanden er sinds de vorige keer verstreken zijn) of op een vaste datum
+(bijv. een jaarlijkse premie die altijd rond dezelfde dag valt) — de
+berekening zoekt dan zelf de eerstvolgende vervaldatum die in de nieuwe
+periode valt.
+
+**Leningen & schulden** (onder "Meer") houden een totaalbedrag en een
+termijnbedrag bij. Bij het aanmaken komt de eerste termijn automatisch als
+terugkerende vaste last op de actieve periode te staan. Zodra die regel op
+status "Betaald" (of een variant daarvan) gezet wordt, wordt de termijn
+geboekt als aflossing en gaat het openstaande bedrag omlaag; verander je de
+status weer terug, dan wordt de boeking automatisch teruggedraaid. Is een
+lening volledig afgelost, dan stopt de terugkerende vaste last vanzelf met
+verschijnen in nieuwe periodes.
+
 Onder "Meer" → "Statistieken" staat een overzichtspagina met inkomsten/
 uitgaven per maand, kwartaal of jaar (lijndiagram), een apart donut-diagram
 voor de verdeling van leefpotjes en van spaarpotjes, en een volledige

@@ -10,6 +10,7 @@ use App\Controllers\AuthController;
 use App\Controllers\DashboardController;
 use App\Controllers\FixedCostController;
 use App\Controllers\IncomeController;
+use App\Controllers\LoanController;
 use App\Controllers\PeriodController;
 use App\Controllers\PotController;
 use App\Controllers\PotTransactionController;
@@ -95,6 +96,11 @@ $router->post('potjes-delete', authed([PotController::class, 'delete']));
 $router->get('potje', authed([PotTransactionController::class, 'index']));
 $router->post('potje-transactie-save', authed([PotTransactionController::class, 'save']));
 $router->post('potje-transactie-delete', authed([PotTransactionController::class, 'delete']));
+
+// Leningen/schulden
+$router->get('leningen', authed([LoanController::class, 'index']));
+$router->post('leningen-save', authed([LoanController::class, 'save']));
+$router->post('leningen-delete', authed([LoanController::class, 'delete']));
 
 // Statistieken
 $router->get('statistieken', authed([StatisticsController::class, 'index']));
