@@ -11,9 +11,9 @@ Vier onderdelen, direct gebaseerd op het oorspronkelijke Excel-bestand:
 - **Kasstroom** — transacties per budgetperiode met automatisch lopend saldo.
 - **Vaste lasten** — begroot vs. werkelijk per post, met status (Betaald/Open/...).
 - **Inkomsten** — begroot vs. ontvangen per inkomstenbron.
-- **Potjes** — losse spaarpotjes; een potje kan gekoppeld worden aan het
-  actuele eindsaldo van een periode (zoals het "Vaste lasten"-potje in de
-  Excel dat naar het Kasstroom-tabblad verwees).
+- **Potjes** — leefpotjes (dagelijkse uitgaven) of spaarpotjes, elk optioneel
+  gekoppeld aan het actuele eindsaldo van een periode (zoals het "Vaste
+  lasten"-potje in de Excel dat naar het Kasstroom-tabblad verwees).
 
 Budgetperiodes zijn niet aan een kalendermaand gebonden (bijv. "20 juli t/m
 19 augustus") en je maakt er elke maand een nieuwe aan — oudere periodes
@@ -28,9 +28,9 @@ af te vinken. Potjes zijn niet aan een periode gekoppeld en hoeven dus nooit
 opnieuw ingevoerd te worden.
 
 Onder "Meer" → "Statistieken" staat een overzichtspagina met inkomsten/
-uitgaven per maand, kwartaal of jaar (lijndiagram), de verdeling van je
-potjes (donut-diagram) en een volledige totaaltabel — puur inline SVG,
-geen externe library.
+uitgaven per maand, kwartaal of jaar (lijndiagram), een apart donut-diagram
+voor de verdeling van leefpotjes en van spaarpotjes, en een volledige
+totaaltabel — puur inline SVG, geen externe library.
 
 Iedereen met een account heeft volledige rechten (geen rollen/niveaus). Er is
 geen openbare registratie: het eerste account maak je aan bij de eerste

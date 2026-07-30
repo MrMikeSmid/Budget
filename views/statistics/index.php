@@ -15,13 +15,19 @@ $incomeSeries = array_map(static fn ($b) => $b['income_actual'], $buckets);
 $fixedSeries = array_map(static fn ($b) => $b['fixed_actual'], $buckets);
 $netSeries = array_map(static fn ($b) => $b['income_actual'] - $b['fixed_actual'], $buckets);
 
-$potSlices = [];
+$leefpotjeSlices = [];
+$spaarpotjeSlices = [];
 foreach ($pots as $pot) {
-    if ((float) $pot['resolved_amount'] > 0) {
-        $potSlices[$pot['name']] = (float) $pot['resolved_amount'];
+    if ((float) $pot['resolved_amount'] <= 0) {
+        continue;
+    }
+    if (($pot['type'] ?? 'leefpotje') === 'spaarpotje') {
+        $spaarpotjeSlices[$pot['name']] = (float) $pot['resolved_amount'];
+    } else {
+        $leefpotjeSlices[$pot['name']] = (float) $pot['resolved_amount'];
     }
 }
-$potTotal = array_sum($potSlices);
+$potTotal = array_sum($leefpotjeSlices) + array_sum($spaarpotjeSlices);
 ?>
 <div class="range-tabs">
     <?php foreach ($rangeLabels as $key => $label): ?>
@@ -62,11 +68,20 @@ $potTotal = array_sum($potSlices);
 </div>
 
 <div class="card">
-    <h2 class="mt-0">Verdeling potjes</h2>
-    <?php if (empty($potSlices)): ?>
-        <p class="text-muted">Nog geen potjes met een positief bedrag.</p>
+    <h2 class="mt-0">Verdeling leefpotjes</h2>
+    <?php if (empty($leefpotjeSlices)): ?>
+        <p class="text-muted">Nog geen leefpotjes met een positief bedrag.</p>
     <?php else: ?>
-        <?= Charts::donutChart($potSlices, 220, 'in potjes') ?>
+        <?= Charts::donutChart($leefpotjeSlices, 220, 'leefpotjes') ?>
+    <?php endif; ?>
+</div>
+
+<div class="card">
+    <h2 class="mt-0">Verdeling spaarpotjes</h2>
+    <?php if (empty($spaarpotjeSlices)): ?>
+        <p class="text-muted">Nog geen spaarpotjes met een positief bedrag.</p>
+    <?php else: ?>
+        <?= Charts::donutChart($spaarpotjeSlices, 220, 'spaarpotjes') ?>
     <?php endif; ?>
 </div>
 

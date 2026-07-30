@@ -6,6 +6,8 @@ use App\Support\Database;
 
 final class Pot
 {
+    public const TYPES = ['leefpotje' => 'Leefpotje', 'spaarpotje' => 'Spaarpotje'];
+
     public static function all(): array
     {
         $stmt = Database::connection()->query(
@@ -64,15 +66,15 @@ final class Pot
         return $row;
     }
 
-    public static function create(string $name, string $icon, ?float $amount, string $note, ?int $linkedPeriodId): int
+    public static function create(string $name, string $icon, ?float $amount, string $note, ?int $linkedPeriodId, string $type = 'leefpotje'): int
     {
         $pdo = Database::connection();
 
         $sortOrder = (int) $pdo->query('SELECT COALESCE(MAX(sort_order), 0) + 1 FROM pots')->fetchColumn();
 
         $stmt = $pdo->prepare(
-            'INSERT INTO pots (name, icon, amount, note, linked_period_id, sort_order)
-             VALUES (:name, :icon, :amount, :note, :linked_period_id, :sort_order)'
+            'INSERT INTO pots (name, icon, amount, note, linked_period_id, type, sort_order)
+             VALUES (:name, :icon, :amount, :note, :linked_period_id, :type, :sort_order)'
         );
         $stmt->execute([
             'name' => $name,
@@ -80,16 +82,17 @@ final class Pot
             'amount' => $linkedPeriodId ? null : $amount,
             'note' => $note,
             'linked_period_id' => $linkedPeriodId ?: null,
+            'type' => self::normalizeType($type),
             'sort_order' => $sortOrder,
         ]);
 
         return (int) $pdo->lastInsertId();
     }
 
-    public static function update(int $id, string $name, string $icon, ?float $amount, string $note, ?int $linkedPeriodId): void
+    public static function update(int $id, string $name, string $icon, ?float $amount, string $note, ?int $linkedPeriodId, string $type = 'leefpotje'): void
     {
         $stmt = Database::connection()->prepare(
-            'UPDATE pots SET name = :name, icon = :icon, amount = :amount, note = :note, linked_period_id = :linked_period_id WHERE id = :id'
+            'UPDATE pots SET name = :name, icon = :icon, amount = :amount, note = :note, linked_period_id = :linked_period_id, type = :type WHERE id = :id'
         );
         $stmt->execute([
             'name' => $name,
@@ -97,8 +100,14 @@ final class Pot
             'amount' => $linkedPeriodId ? null : $amount,
             'note' => $note,
             'linked_period_id' => $linkedPeriodId ?: null,
+            'type' => self::normalizeType($type),
             'id' => $id,
         ]);
+    }
+
+    public static function normalizeType(string $type): string
+    {
+        return array_key_exists($type, self::TYPES) ? $type : 'leefpotje';
     }
 
     public static function delete(int $id): void
