@@ -33,7 +33,7 @@ use App\Support\View;
                 <input type="date" id="txn_date" name="txn_date" required value="<?= View::e($editing['txn_date'] ?? date('Y-m-d')) ?>">
             </div>
             <div class="field">
-                <label for="amount">Bedrag (storten + / opnemen -)</label>
+                <label for="amount">Bedrag (+ / -)</label>
                 <input type="number" step="0.01" id="amount" name="amount" required value="<?= View::e((string) ($editing['amount'] ?? '')) ?>">
             </div>
         </div>
