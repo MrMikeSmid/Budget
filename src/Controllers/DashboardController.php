@@ -20,6 +20,7 @@ final class DashboardController
         $fixedOutstanding = 0.0;
         $transactions = [];
         $balance = null;
+        $balanceAfterFixedCosts = null;
 
         if ($period) {
             $incomeTotals = IncomeItem::totals((int) $period['id']);
@@ -27,6 +28,7 @@ final class DashboardController
             $fixedOutstanding = FixedCost::outstanding((int) $period['id']);
             $transactions = Transaction::forPeriod((int) $period['id']);
             $balance = BudgetPeriod::endingBalance((int) $period['id']);
+            $balanceAfterFixedCosts = (float) $incomeTotals['actual'] - (float) $fixedTotals['budgeted'];
         }
 
         View::render('dashboard/index', [
@@ -36,6 +38,7 @@ final class DashboardController
             'fixedTotals' => $fixedTotals,
             'fixedOutstanding' => $fixedOutstanding,
             'balance' => $balance,
+            'balanceAfterFixedCosts' => $balanceAfterFixedCosts,
             'recentTransactions' => array_slice(array_reverse($transactions), 0, 5),
             'pots' => Pot::all(),
         ]);

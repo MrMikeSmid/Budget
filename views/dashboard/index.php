@@ -8,6 +8,7 @@ use App\Support\View;
 /** @var array $fixedTotals */
 /** @var float $fixedOutstanding */
 /** @var float|null $balance */
+/** @var float|null $balanceAfterFixedCosts */
 /** @var array $recentTransactions */
 /** @var array $pots */
 ?>
@@ -33,10 +34,12 @@ use App\Support\View;
         </div>
     </div>
 
-    <div class="card">
-        <h2 class="mt-0">Verwacht saldo kasstroom</h2>
-        <div class="value <?= $balance !== null && $balance < 0 ? 'negative' : 'positive' ?>" style="font-size:28px;">
-            <?= View::money($balance) ?>
+    <div class="card balance-card">
+        <div class="balance-grid">
+            <div class="balance-label">Saldo</div>
+            <div class="balance-amount <?= $balance !== null && $balance < 0 ? 'negative' : 'positive' ?>"><?= View::money($balance) ?></div>
+            <div class="balance-amount <?= $balanceAfterFixedCosts !== null && $balanceAfterFixedCosts < 0 ? 'negative' : 'positive' ?>"><?= View::money($balanceAfterFixedCosts) ?></div>
+            <div class="balance-label">na vaste lasten</div>
         </div>
         <p><a href="<?= View::e(View::url('kasstroom', ['period' => $period['id']])) ?>">Bekijk kasstroom &rarr;</a></p>
     </div>

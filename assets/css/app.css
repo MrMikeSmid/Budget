@@ -523,6 +523,40 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     margin-bottom: 12px;
 }
 
+/* Saldokaart op het dashboard: bank-app-stijl rekeningkaartje. Twee
+   rijen (label + bedrag), beide in hetzelfde lettertype en dezelfde grootte. */
+.balance-card { padding: 18px; }
+
+.balance-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    row-gap: 10px;
+    column-gap: 12px;
+    align-items: baseline;
+}
+/* Rechterkolom (bedrag/toelichting) altijd rechts uitgelijnd, ongeacht
+   welke rij: de kolombreedte volgt de langste inhoud (bijv. het bedrag),
+   dus zonder dit zou een korte tekst als "na vaste lasten" naar het
+   midden lijken te schuiven. */
+.balance-grid > *:nth-child(2n) {
+    text-align: right;
+}
+
+.balance-label {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.balance-amount {
+    font-weight: 700;
+    font-size: 26px;
+    white-space: nowrap;
+}
+.balance-amount.positive { color: var(--green); }
+.balance-amount.negative { color: var(--red); }
+
+.balance-card p { margin: 12px 0 0; }
+
 .text-muted { color: var(--text-muted); }
 .mt-0 { margin-top: 0; }
 
