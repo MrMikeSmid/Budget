@@ -26,7 +26,6 @@ final class PeriodController
         $name = trim($_POST['name'] ?? '');
         $start = $_POST['start_date'] ?? '';
         $end = $_POST['end_date'] ?? '';
-        $opening = (float) str_replace(',', '.', $_POST['opening_balance'] ?? '0');
         $makeActive = !empty($_POST['is_active']);
         $copyRecurring = !empty($_POST['copy_recurring']);
 
@@ -39,10 +38,10 @@ final class PeriodController
         $isNew = $id === 0;
 
         if ($isNew) {
-            $id = BudgetPeriod::create($name, $start, $end, $opening);
+            $id = BudgetPeriod::create($name, $start, $end);
             Activity::log('periods', 'Periode aangemaakt: ' . $name);
         } else {
-            BudgetPeriod::update($id, $name, $start, $end, $opening);
+            BudgetPeriod::update($id, $name, $start, $end);
             Activity::log('periods', 'Periode bijgewerkt: ' . $name);
         }
 

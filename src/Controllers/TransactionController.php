@@ -19,6 +19,7 @@ final class TransactionController
             'periods' => BudgetPeriod::all(),
             'period' => $period,
             'transactions' => $period ? Transaction::forPeriod((int) $period['id']) : [],
+            'expectedBalance' => $period ? BudgetPeriod::endingBalance((int) $period['id']) : null,
             'pots' => Pot::all(),
             'editing' => $editId ? Transaction::find($editId) : null,
         ]);

@@ -84,32 +84,30 @@ final class BudgetPeriod
         return $row ?: null;
     }
 
-    public static function create(string $name, string $startDate, string $endDate, float $openingBalance): int
+    public static function create(string $name, string $startDate, string $endDate): int
     {
         $pdo = Database::connection();
         $stmt = $pdo->prepare(
-            'INSERT INTO budget_periods (name, start_date, end_date, opening_balance) VALUES (:name, :start, :end, :opening)'
+            'INSERT INTO budget_periods (name, start_date, end_date) VALUES (:name, :start, :end)'
         );
         $stmt->execute([
             'name' => $name,
             'start' => $startDate,
             'end' => $endDate,
-            'opening' => $openingBalance,
         ]);
 
         return (int) $pdo->lastInsertId();
     }
 
-    public static function update(int $id, string $name, string $startDate, string $endDate, float $openingBalance): void
+    public static function update(int $id, string $name, string $startDate, string $endDate): void
     {
         $stmt = Database::connection()->prepare(
-            'UPDATE budget_periods SET name = :name, start_date = :start, end_date = :end, opening_balance = :opening WHERE id = :id'
+            'UPDATE budget_periods SET name = :name, start_date = :start, end_date = :end WHERE id = :id'
         );
         $stmt->execute([
             'name' => $name,
             'start' => $startDate,
             'end' => $endDate,
-            'opening' => $openingBalance,
             'id' => $id,
         ]);
     }
@@ -146,27 +144,25 @@ final class BudgetPeriod
         )->fetchAll();
 
         foreach ($rows as &$row) {
-            $row['ending_balance'] = (float) $row['opening_balance'] + (float) $row['transactions_sum'];
+            $row['ending_balance'] = (float) $row['income_actual'] - (float) $row['fixed_actual'] + (float) $row['transactions_sum'];
         }
 
         return $rows;
     }
 
     /**
-     * Eindsaldo van de kasstroom voor deze periode: openingsbalans + som van alle mutaties.
+     * Verwacht saldo kasstroom van deze periode: ontvangen inkomsten min
+     * betaalde vaste lasten, plus de som van alle kasstroommutaties.
      */
     public static function endingBalance(int $id): float
     {
-        $pdo = Database::connection();
+        $incomeActual = (float) IncomeItem::totals($id)['actual'];
+        $fixedActual = (float) FixedCost::totals($id)['actual'];
 
-        $stmt = $pdo->prepare('SELECT opening_balance FROM budget_periods WHERE id = :id');
-        $stmt->execute(['id' => $id]);
-        $opening = (float) $stmt->fetchColumn();
-
-        $stmt = $pdo->prepare('SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE period_id = :id');
+        $stmt = Database::connection()->prepare('SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE period_id = :id');
         $stmt->execute(['id' => $id]);
         $sum = (float) $stmt->fetchColumn();
 
-        return $opening + $sum;
+        return $incomeActual - $fixedActual + $sum;
     }
 }

@@ -25,10 +25,6 @@ use App\Support\View;
                 <input type="date" id="end_date" name="end_date" required value="<?= View::e($editing['end_date'] ?? '') ?>">
             </div>
         </div>
-        <div class="field">
-            <label for="opening_balance">Beginstand</label>
-            <input type="number" step="0.01" id="opening_balance" name="opening_balance" value="<?= View::e((string) ($editing['opening_balance'] ?? '0')) ?>">
-        </div>
         <div class="checkbox-field">
             <input type="checkbox" id="is_active" name="is_active" <?= !empty($editing['is_active']) ? 'checked' : '' ?>>
             <label for="is_active">Actieve periode</label>
@@ -53,13 +49,12 @@ use App\Support\View;
     <?php else: ?>
         <div class="table-scroll">
             <table>
-                <thead><tr><th>Naam</th><th>Periode</th><th class="num">Beginstand</th><th></th><th></th></tr></thead>
+                <thead><tr><th>Naam</th><th>Periode</th><th></th><th></th></tr></thead>
                 <tbody>
                 <?php foreach ($periods as $p): ?>
                     <tr>
                         <td><?= View::e($p['name']) ?> <?php if ($p['is_active']): ?><span class="badge paid">actief</span><?php endif; ?></td>
                         <td><?= View::e($p['start_date']) ?> t/m <?= View::e($p['end_date']) ?></td>
-                        <td class="num"><?= View::money((float) $p['opening_balance']) ?></td>
                         <td>
                             <a class="btn small secondary" href="<?= View::e(View::url('periods', ['edit' => $p['id']])) ?>">Bewerken</a>
                         </td>
