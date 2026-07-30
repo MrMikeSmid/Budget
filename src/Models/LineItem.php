@@ -31,7 +31,7 @@ abstract class LineItem
         return $row ?: null;
     }
 
-    public static function create(int $periodId, string $description, float $budgeted, ?float $actual, string $status): int
+    public static function create(int $periodId, string $description, float $budgeted, ?float $actual, string $status, bool $isRecurring = false): int
     {
         $pdo = Database::connection();
 
@@ -40,8 +40,8 @@ abstract class LineItem
         $sortOrder = (int) $stmt->fetchColumn();
 
         $stmt = $pdo->prepare(
-            'INSERT INTO ' . static::table() . ' (period_id, description, budgeted, actual, status, sort_order)
-             VALUES (:period_id, :description, :budgeted, :actual, :status, :sort_order)'
+            'INSERT INTO ' . static::table() . ' (period_id, description, budgeted, actual, status, is_recurring, sort_order)
+             VALUES (:period_id, :description, :budgeted, :actual, :status, :is_recurring, :sort_order)'
         );
         $stmt->execute([
             'period_id' => $periodId,
@@ -49,22 +49,24 @@ abstract class LineItem
             'budgeted' => $budgeted,
             'actual' => $actual,
             'status' => $status,
+            'is_recurring' => $isRecurring ? 1 : 0,
             'sort_order' => $sortOrder,
         ]);
 
         return (int) $pdo->lastInsertId();
     }
 
-    public static function update(int $id, string $description, float $budgeted, ?float $actual, string $status): void
+    public static function update(int $id, string $description, float $budgeted, ?float $actual, string $status, bool $isRecurring = false): void
     {
         $stmt = Database::connection()->prepare(
-            'UPDATE ' . static::table() . ' SET description = :description, budgeted = :budgeted, actual = :actual, status = :status WHERE id = :id'
+            'UPDATE ' . static::table() . ' SET description = :description, budgeted = :budgeted, actual = :actual, status = :status, is_recurring = :is_recurring WHERE id = :id'
         );
         $stmt->execute([
             'description' => $description,
             'budgeted' => $budgeted,
             'actual' => $actual,
             'status' => $status,
+            'is_recurring' => $isRecurring ? 1 : 0,
             'id' => $id,
         ]);
     }
@@ -84,5 +86,23 @@ abstract class LineItem
         $stmt->execute(['period_id' => $periodId]);
 
         return $stmt->fetch();
+    }
+
+    /**
+     * Kopieert alle als terugkerend gemarkeerde regels van de ene periode naar
+     * de andere. Werkelijk bedrag en status worden leeggemaakt (nieuwe maand,
+     * nog niets betaald/ontvangen); terugkerend blijft aan staan.
+     */
+    public static function copyRecurring(int $fromPeriodId, int $toPeriodId): void
+    {
+        $items = self::forPeriod($fromPeriodId);
+
+        foreach ($items as $item) {
+            if (!$item['is_recurring']) {
+                continue;
+            }
+
+            static::create($toPeriodId, $item['description'], (float) $item['budgeted'], null, '', true);
+        }
     }
 }

@@ -3,6 +3,8 @@
 namespace App\Controllers;
 
 use App\Models\BudgetPeriod;
+use App\Models\FixedCost;
+use App\Models\IncomeItem;
 use App\Support\View;
 
 final class PeriodController
@@ -25,6 +27,7 @@ final class PeriodController
         $end = $_POST['end_date'] ?? '';
         $opening = (float) str_replace(',', '.', $_POST['opening_balance'] ?? '0');
         $makeActive = !empty($_POST['is_active']);
+        $copyRecurring = !empty($_POST['copy_recurring']);
 
         if ($name === '' || $start === '' || $end === '') {
             View::flash('Vul een naam en begin- en einddatum in.', 'error');
@@ -32,14 +35,24 @@ final class PeriodController
             exit;
         }
 
-        if ($id > 0) {
-            BudgetPeriod::update($id, $name, $start, $end, $opening);
-        } else {
+        $isNew = $id === 0;
+
+        if ($isNew) {
             $id = BudgetPeriod::create($name, $start, $end, $opening);
+        } else {
+            BudgetPeriod::update($id, $name, $start, $end, $opening);
         }
 
         if ($makeActive) {
             BudgetPeriod::setActive($id);
+        }
+
+        if ($isNew && $copyRecurring) {
+            $previous = BudgetPeriod::previousBefore($id, $start);
+            if ($previous) {
+                IncomeItem::copyRecurring((int) $previous['id'], $id);
+                FixedCost::copyRecurring((int) $previous['id'], $id);
+            }
         }
 
         View::flash('Periode opgeslagen.');

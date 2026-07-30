@@ -20,6 +20,13 @@ Budgetperiodes zijn niet aan een kalendermaand gebonden (bijv. "20 juli t/m
 blijven bewaard. Alle statussen zijn vrije tekst, dus net zo flexibel als in
 Excel.
 
+Inkomsten en vaste lasten kun je per regel als "terugkerend" markeren. Bij
+het aanmaken van een nieuwe periode (met "terugkerende posten overnemen"
+aangevinkt, standaard aan) worden die regels automatisch gekopieerd naar de
+nieuwe periode, met een leeg werkelijk-bedrag en status — klaar om die maand
+af te vinken. Potjes zijn niet aan een periode gekoppeld en hoeven dus nooit
+opnieuw ingevoerd te worden.
+
 Iedereen met een account heeft volledige rechten (geen rollen/niveaus). Er is
 geen openbare registratie: het eerste account maak je aan bij de eerste
 bezoek aan de app, daarna maak je extra accounts aan via het account binnen
