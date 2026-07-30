@@ -48,6 +48,7 @@ final class PeriodController
 
         if ($makeActive) {
             BudgetPeriod::setActive($id);
+            $_SESSION['selected_period_id'] = $id;
         }
 
         if ($isNew && $copyRecurring) {
@@ -67,6 +68,7 @@ final class PeriodController
     {
         $id = (int) ($_POST['id'] ?? 0);
         BudgetPeriod::setActive($id);
+        $_SESSION['selected_period_id'] = $id;
         View::flash('Periode actief gezet.');
         header('Location: ' . View::url('periods'));
         exit;
@@ -79,6 +81,9 @@ final class PeriodController
         BudgetPeriod::delete($id);
         if ($period) {
             Activity::log('periods', 'Periode verwijderd: ' . $period['name']);
+        }
+        if (($_SESSION['selected_period_id'] ?? null) === $id) {
+            unset($_SESSION['selected_period_id']);
         }
         View::flash('Periode verwijderd.');
         header('Location: ' . View::url('periods'));

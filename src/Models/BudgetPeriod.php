@@ -23,7 +23,10 @@ final class BudgetPeriod
     }
 
     /**
-     * Periode uit de request (?period=ID) of anders de actieve periode.
+     * Periode uit de request (?period=ID), anders de laatst gekozen periode
+     * uit de sessie, anders de actieve periode. Zo blijft een handmatig
+     * gekozen periode staan zolang je door de app navigeert, i.p.v. steeds
+     * terug te vallen op de actieve periode zodra je een andere pagina opent.
      */
     public static function resolveFromRequest(): ?array
     {
@@ -31,6 +34,15 @@ final class BudgetPeriod
 
         if ($id) {
             $period = self::find((int) $id);
+            if ($period) {
+                $_SESSION['selected_period_id'] = (int) $period['id'];
+
+                return $period;
+            }
+        }
+
+        if (!empty($_SESSION['selected_period_id'])) {
+            $period = self::find((int) $_SESSION['selected_period_id']);
             if ($period) {
                 return $period;
             }
