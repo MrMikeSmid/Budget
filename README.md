@@ -46,19 +46,16 @@ via FTP naar de serverdirectory, en installeert automatisch
 composer-dependencies. Het sluit twee dingen bewust uit van elke deploy, zodat
 ze nooit overschreven worden:
 
-- `config/config.php` — instellingen die per omgeving verschillen.
+- `config/config.php` — optioneel; alleen nodig als je instellingen per
+  omgeving wilt overschrijven (bijv. een ander `db_path`). Ontbreekt dit
+  bestand, dan gebruikt de app gewoon de standaardwaarden.
 - `storage/` — bevat de SQLite-database, moet dus overleven tussen deploys.
 
-**Eenmalige stappen op de server, vóór de eerste deploy** (via FTP of de
-hostingpaneel-bestandsbeheerder):
-
-1. Maak `config/config.php` aan op basis van `config/config.example.php` en
-   pas eventueel het `db_path` aan.
-2. Zorg dat er een schrijfbare map `storage/` bestaat op de server.
-
-Dat is alles — de app maakt de database en het `.htaccess`-bestand dat de
-map beschermt zelf aan bij het eerste bezoek. Na deze eenmalige stap kun je
-gewoon blijven pushen naar de deploy-branch; de data blijft altijd staan.
+Er zijn geen handmatige stappen nodig: bij het eerste bezoek maakt de app
+zelf `storage/`, de SQLite-database en het `.htaccess`-bestand dat die map
+beschermt aan. Wil je later toch instellingen overschrijven, kopieer dan
+`config/config.example.php` naar `config/config.php` op de server en pas de
+waarden aan — dat bestand overleeft daarna elke volgende deploy.
 
 ## Verplaatsen naar een andere map
 

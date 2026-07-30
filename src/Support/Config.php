@@ -9,15 +9,16 @@ final class Config
     public static function get(): array
     {
         if (self::$values === null) {
+            $defaults = [
+                'db_path' => __DIR__ . '/../../storage/database.sqlite',
+                'session_name' => 'budgetapp_session',
+                'debug' => false,
+            ];
+
             $configFile = __DIR__ . '/../../config/config.php';
+            $overrides = file_exists($configFile) ? require $configFile : [];
 
-            if (!file_exists($configFile)) {
-                http_response_code(500);
-                echo 'Configuratiebestand ontbreekt. Kopieer config/config.example.php naar config/config.php en pas de waarden aan.';
-                exit;
-            }
-
-            self::$values = require $configFile;
+            self::$values = array_merge($defaults, $overrides);
         }
 
         return self::$values;
