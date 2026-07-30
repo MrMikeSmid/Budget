@@ -117,6 +117,30 @@ final class BudgetPeriod
     }
 
     /**
+     * Alle periodes, chronologisch, elk met totalen inkomsten/vaste lasten en eindsaldo.
+     * Basis voor de statistiekenpagina.
+     */
+    public static function allWithTotals(): array
+    {
+        $rows = Database::connection()->query(
+            "SELECT p.*,
+                COALESCE((SELECT SUM(budgeted) FROM income_items WHERE period_id = p.id), 0) AS income_budgeted,
+                COALESCE((SELECT SUM(actual) FROM income_items WHERE period_id = p.id), 0) AS income_actual,
+                COALESCE((SELECT SUM(budgeted) FROM fixed_costs WHERE period_id = p.id), 0) AS fixed_budgeted,
+                COALESCE((SELECT SUM(actual) FROM fixed_costs WHERE period_id = p.id), 0) AS fixed_actual,
+                COALESCE((SELECT SUM(amount) FROM transactions WHERE period_id = p.id), 0) AS transactions_sum
+             FROM budget_periods p
+             ORDER BY p.start_date ASC"
+        )->fetchAll();
+
+        foreach ($rows as &$row) {
+            $row['ending_balance'] = (float) $row['opening_balance'] + (float) $row['transactions_sum'];
+        }
+
+        return $rows;
+    }
+
+    /**
      * Eindsaldo van de kasstroom voor deze periode: openingsbalans + som van alle mutaties.
      */
     public static function endingBalance(int $id): float

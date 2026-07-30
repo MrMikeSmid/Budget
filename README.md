@@ -27,6 +27,11 @@ nieuwe periode, met een leeg werkelijk-bedrag en status — klaar om die maand
 af te vinken. Potjes zijn niet aan een periode gekoppeld en hoeven dus nooit
 opnieuw ingevoerd te worden.
 
+Onder "Meer" → "Statistieken" staat een overzichtspagina met inkomsten/
+uitgaven per maand, kwartaal of jaar (lijndiagram), de verdeling van je
+potjes (donut-diagram) en een volledige totaaltabel — puur inline SVG,
+geen externe library.
+
 Iedereen met een account heeft volledige rechten (geen rollen/niveaus). Er is
 geen openbare registratie: het eerste account maak je aan bij de eerste
 bezoek aan de app, daarna maak je extra accounts aan via het account binnen

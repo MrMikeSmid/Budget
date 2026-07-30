@@ -14,6 +14,17 @@
     --amber: #d97706;
     --radius: 12px;
     --nav-height: 68px;
+
+    /* Categorale grafiekkleuren, vaste volgorde (dataviz-richtlijn). */
+    --chart-1: #2a78d6;
+    --chart-2: #eb6834;
+    --chart-3: #1baf7a;
+    --chart-4: #eda100;
+    --chart-5: #e87ba4;
+    --chart-6: #008300;
+    --chart-7: #4a3aa7;
+    --chart-8: #e34948;
+    --chart-grid: #e1e0d9;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,6 +34,16 @@
         --text: #eceef1;
         --text-muted: #9aa0ab;
         --border: #2c3038;
+
+        --chart-1: #3987e5;
+        --chart-2: #d95926;
+        --chart-3: #199e70;
+        --chart-4: #c98500;
+        --chart-5: #d55181;
+        --chart-6: #008300;
+        --chart-7: #9085e9;
+        --chart-8: #e66767;
+        --chart-grid: #2c2c2a;
     }
 }
 
@@ -352,6 +373,78 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+}
+
+.chart {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.chart-grid { stroke: var(--chart-grid); stroke-width: 1; }
+
+.chart-axis-label {
+    fill: var(--text-muted);
+    font-size: 10px;
+    font-family: inherit;
+}
+
+.chart-end-label {
+    fill: var(--text);
+    font-size: 11px;
+    font-weight: 600;
+    font-family: inherit;
+}
+
+.chart-center-value {
+    fill: var(--text);
+    font-size: 18px;
+    font-weight: 700;
+    font-family: inherit;
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin-top: 12px;
+    font-size: 13px;
+}
+
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text);
+}
+
+.chart-legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex: none;
+}
+
+.range-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.range-tabs a {
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.range-tabs a.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
 }
 
 .section-header {

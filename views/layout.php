@@ -39,7 +39,7 @@ $navItems = [
     <nav class="bottom-nav">
         <?php foreach ($navItems as $page => $item): ?>
             <?php
-            $isActive = $currentPage === $page || ($page === 'instellingen' && in_array($currentPage, ['periods', 'accounts', 'instellingen'], true));
+            $isActive = $currentPage === $page || ($page === 'instellingen' && in_array($currentPage, ['periods', 'accounts', 'statistieken', 'instellingen'], true));
             $classes = trim('nav-' . $page . ($isActive ? ' active' : ''));
             ?>
             <a href="<?= View::e(View::url($page)) ?>" class="<?= View::e($classes) ?>">

@@ -11,6 +11,7 @@ use App\Controllers\FixedCostController;
 use App\Controllers\IncomeController;
 use App\Controllers\PeriodController;
 use App\Controllers\PotController;
+use App\Controllers\StatisticsController;
 use App\Controllers\TransactionController;
 use App\Models\User;
 use App\Support\Auth;
@@ -87,6 +88,9 @@ $router->post('kasstroom-delete', authed([TransactionController::class, 'delete'
 $router->get('potjes', authed([PotController::class, 'index']));
 $router->post('potjes-save', authed([PotController::class, 'save']));
 $router->post('potjes-delete', authed([PotController::class, 'delete']));
+
+// Statistieken
+$router->get('statistieken', authed([StatisticsController::class, 'index']));
 
 // Accounts
 $router->get('accounts', authed([AccountController::class, 'index']));
