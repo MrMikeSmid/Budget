@@ -25,11 +25,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: PHP en Composer installeren
+        if: ${{ hashFiles('composer.json') != '' }}
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
 
       - name: Composer-dependencies installeren
+        if: ${{ hashFiles('composer.json') != '' }}
         run: composer install --no-dev --optimize-autoloader --no-interaction --no-progress
 
       - name: FTP-client installeren
