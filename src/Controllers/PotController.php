@@ -29,15 +29,16 @@ final class PotController
         $linkedPeriodId = (int) ($_POST['linked_period_id'] ?? 0) ?: null;
         $amountRaw = trim($_POST['amount'] ?? '');
         $amount = $amountRaw === '' ? null : (float) str_replace(',', '.', $amountRaw);
+        $type = Pot::normalizeType((string) ($_POST['type'] ?? 'leefpotje'));
 
         if ($name === '') {
             View::flash('Vul een naam in.', 'error');
         } elseif ($id > 0) {
-            Pot::update($id, $name, $icon, $amount, $note, $linkedPeriodId);
+            Pot::update($id, $name, $icon, $amount, $note, $linkedPeriodId, $type);
             Activity::log('potjes', 'Potje bijgewerkt: ' . $name);
             View::flash('Potje opgeslagen.');
         } else {
-            Pot::create($name, $icon, $amount, $note, $linkedPeriodId);
+            Pot::create($name, $icon, $amount, $note, $linkedPeriodId, $type);
             Activity::log('potjes', 'Potje aangemaakt: ' . $name);
             View::flash('Potje toegevoegd.');
         }
