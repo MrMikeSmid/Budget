@@ -14,6 +14,8 @@
     --amber: #d97706;
     --radius: 12px;
     --nav-height: 60px;
+    --nav-icon-bg: #e5e7eb;
+    --nav-icon-bg-active: #d1d5db;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,6 +25,8 @@
         --text: #eceef1;
         --text-muted: #9aa0ab;
         --border: #2c3038;
+        --nav-icon-bg: #2c3038;
+        --nav-icon-bg-active: #3a3f4a;
     }
 }
 
@@ -112,30 +116,14 @@ nav.bottom-nav a .icon {
     align-items: center;
     justify-content: center;
     font-size: 16px;
-    background: var(--nav-icon-bg, var(--border));
-    transition: box-shadow .15s ease, transform .15s ease;
+    background: var(--nav-icon-bg);
+    filter: grayscale(1);
+    transition: box-shadow .15s ease, transform .15s ease, background .15s ease;
 }
 
 nav.bottom-nav a.active { color: var(--primary); font-weight: 600; text-decoration: none; }
-nav.bottom-nav a.active .icon { box-shadow: 0 0 0 2px var(--primary); transform: scale(1.05); }
+nav.bottom-nav a.active .icon { background: var(--nav-icon-bg-active); box-shadow: 0 0 0 2px var(--primary); transform: scale(1.05); }
 nav.bottom-nav a:hover .icon { transform: scale(1.05); }
-
-/* Lichte pastel-tint per icoon, zodat de navigatie in één oogopslag herkenbaar is. */
-nav.bottom-nav a.nav-dashboard { --nav-icon-bg: #dbeafe; }
-nav.bottom-nav a.nav-kasstroom { --nav-icon-bg: #dcfce7; }
-nav.bottom-nav a.nav-inkomsten { --nav-icon-bg: #fef3c7; }
-nav.bottom-nav a.nav-vaste-lasten { --nav-icon-bg: #fee2e2; }
-nav.bottom-nav a.nav-potjes { --nav-icon-bg: #fae8ff; }
-nav.bottom-nav a.nav-instellingen { --nav-icon-bg: #e5e7eb; }
-
-@media (prefers-color-scheme: dark) {
-    nav.bottom-nav a.nav-dashboard { --nav-icon-bg: #1e3a5f; }
-    nav.bottom-nav a.nav-kasstroom { --nav-icon-bg: #14351f; }
-    nav.bottom-nav a.nav-inkomsten { --nav-icon-bg: #3a2a08; }
-    nav.bottom-nav a.nav-vaste-lasten { --nav-icon-bg: #3f1d1d; }
-    nav.bottom-nav a.nav-potjes { --nav-icon-bg: #3a1f47; }
-    nav.bottom-nav a.nav-instellingen { --nav-icon-bg: #2c3038; }
-}
 
 .card {
     background: var(--surface);
