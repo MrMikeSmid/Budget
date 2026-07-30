@@ -1,0 +1,3 @@
+<?php
+declare(strict_types=1); namespace McpEmail\Tools; use McpEmail\Intelligence\AttachmentAnalyzer;
+final class ListAttachmentsTool implements ToolInterface {public function name():string{return 'list_attachments';}public function definition():array{return ['title'=>'Bijlagen inventariseren','description'=>'Toont metadata en lokale veiligheidsclassificatie; voert bijlagen nooit uit. Hash is null omdat inhoud standaard niet wordt opgehaald.','inputSchema'=>['type'=>'object','properties'=>SecurityToolSupport::schema(),'required'=>['uid'],'additionalProperties'=>false]];}public function call(array $a):array{return SecurityToolSupport::withMessage($a,fn(array $m)=>['uid'=>$m['uid'],'attachments'=>(new AttachmentAnalyzer())->analyze($m['attachments'])]);}}

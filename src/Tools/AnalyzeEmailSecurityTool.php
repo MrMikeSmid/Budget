@@ -1,0 +1,3 @@
+<?php
+declare(strict_types=1); namespace McpEmail\Tools; use McpEmail\Security\EmailSecurityAnalyzer;
+final class AnalyzeEmailSecurityTool implements ToolInterface {public function name():string{return 'analyze_email_security';}public function definition():array{return ['title'=>'E-mail veiligheidsanalyse','description'=>'Deterministische lokale risicoanalyse (0-100) van authenticatie, inhoud, links en bijlagen. Wijzigt de mailbox nooit.','inputSchema'=>['type'=>'object','properties'=>SecurityToolSupport::schema(),'required'=>['uid'],'additionalProperties'=>false]];}public function call(array $a):array{return SecurityToolSupport::withMessage($a,fn(array $m)=>(new EmailSecurityAnalyzer())->analyze($m));}}
