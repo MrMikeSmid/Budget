@@ -279,7 +279,7 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
 .btn.danger { background: var(--red); color: #fff; }
 .btn.small { padding: 6px 10px; font-size: 13px; }
 
-.row-actions { display: flex; gap: 6px; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .row-actions form { display: inline; }
 
 .flash {
@@ -366,13 +366,18 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
 
 /* Bedrag (+ eventuele knoppen) schuift naar rechts op de eerste regel die
    past, en wrapt anders netjes naar een eigen regel i.p.v. af te snijden. */
-.pot-card > .pot-amount,
+.pot-card > .pot-amount {
+    margin-left: auto;
+}
+
+/* Altijd bedrag boven knoppen, ongeacht hoe kort het bedrag is — nooit
+   naast elkaar, zodat elke potje-kaart er hetzelfde uitziet. */
 .pot-card-actions {
     margin-left: auto;
     display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
 }
 
 .timeline {
