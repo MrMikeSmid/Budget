@@ -23,7 +23,7 @@ final class Pot
                 ? BudgetPeriod::endingBalance((int) $row['linked_period_id'])
                 : (float) $row['amount'];
             $row['base_amount'] = $base;
-            $row['resolved_amount'] = $base + PotTransaction::sumForPot((int) $row['id']);
+            $row['resolved_amount'] = $base + self::mutationsSum((int) $row['id']);
         }
 
         return $rows;
@@ -61,9 +61,67 @@ final class Pot
             ? BudgetPeriod::endingBalance((int) $row['linked_period_id'])
             : (float) $row['amount'];
         $row['base_amount'] = $base;
-        $row['resolved_amount'] = $base + PotTransaction::sumForPot((int) $row['id']);
+        $row['resolved_amount'] = $base + self::mutationsSum((int) $row['id']);
 
         return $row;
+    }
+
+    /**
+     * Som van alle mutaties op dit potje: handmatige pot-transacties plus
+     * kasstroommutaties die aan dit potje gekoppeld zijn.
+     */
+    public static function mutationsSum(int $potId): float
+    {
+        $pdo = Database::connection();
+
+        $stmt = $pdo->prepare('SELECT COALESCE(SUM(amount), 0) FROM pot_transactions WHERE pot_id = :pot_id');
+        $stmt->execute(['pot_id' => $potId]);
+        $fromPot = (float) $stmt->fetchColumn();
+
+        $stmt = $pdo->prepare('SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE pot_id = :pot_id');
+        $stmt->execute(['pot_id' => $potId]);
+        $fromKasstroom = (float) $stmt->fetchColumn();
+
+        return $fromPot + $fromKasstroom;
+    }
+
+    /**
+     * Volledige mutatiegeschiedenis van een potje: handmatige pot-transacties
+     * samengevoegd met gekoppelde kasstroommutaties, chronologisch met
+     * lopend saldo. Basis voor de detailpagina van een potje.
+     */
+    public static function ledger(int $potId, float $openingBalance): array
+    {
+        // ORDER BY op kolompositie (3=txn_date, 1=id) i.p.v. naam: SQLite kan de
+        // naam niet altijd matchen zodra dezelfde kolomnaam ('id') via een JOIN
+        // dubbel voorkomt binnen een UNION.
+        $stmt = Database::connection()->prepare(
+            "SELECT pt.id, 'potje' AS source, pt.txn_date, pt.description, pt.amount,
+                    u.name AS user_name, NULL AS period_id, NULL AS period_name
+             FROM pot_transactions pt
+             LEFT JOIN users u ON u.id = pt.user_id
+             WHERE pt.pot_id = :pot_id1
+
+             UNION ALL
+
+             SELECT t.id, 'kasstroom' AS source, t.txn_date, t.description, t.amount,
+                    NULL AS user_name, t.period_id, bp.name AS period_name
+             FROM transactions t
+             LEFT JOIN budget_periods bp ON bp.id = t.period_id
+             WHERE t.pot_id = :pot_id2
+
+             ORDER BY 3, 1"
+        );
+        $stmt->execute(['pot_id1' => $potId, 'pot_id2' => $potId]);
+        $rows = $stmt->fetchAll();
+
+        $running = $openingBalance;
+        foreach ($rows as &$row) {
+            $running += (float) $row['amount'];
+            $row['balance'] = $running;
+        }
+
+        return $rows;
     }
 
     public static function create(string $name, string $icon, ?float $amount, string $note, ?int $linkedPeriodId, string $type = 'leefpotje'): int

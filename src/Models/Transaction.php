@@ -13,7 +13,10 @@ final class Transaction
     {
         $period = BudgetPeriod::find($periodId);
         $stmt = Database::connection()->prepare(
-            'SELECT * FROM transactions WHERE period_id = :period_id ORDER BY sort_order, id'
+            'SELECT t.*, p.name AS pot_name, p.icon AS pot_icon
+             FROM transactions t
+             LEFT JOIN pots p ON p.id = t.pot_id
+             WHERE t.period_id = :period_id ORDER BY t.sort_order, t.id'
         );
         $stmt->execute(['period_id' => $periodId]);
         $rows = $stmt->fetchAll();
@@ -36,7 +39,7 @@ final class Transaction
         return $row ?: null;
     }
 
-    public static function create(int $periodId, string $date, string $description, float $amount, bool $isSettled): int
+    public static function create(int $periodId, string $date, string $description, float $amount, bool $isSettled, ?int $potId = null): int
     {
         $pdo = Database::connection();
 
@@ -45,8 +48,8 @@ final class Transaction
         $sortOrder = (int) $stmt->fetchColumn();
 
         $stmt = $pdo->prepare(
-            'INSERT INTO transactions (period_id, txn_date, description, amount, is_settled, sort_order)
-             VALUES (:period_id, :date, :description, :amount, :settled, :sort_order)'
+            'INSERT INTO transactions (period_id, txn_date, description, amount, is_settled, sort_order, pot_id)
+             VALUES (:period_id, :date, :description, :amount, :settled, :sort_order, :pot_id)'
         );
         $stmt->execute([
             'period_id' => $periodId,
@@ -55,21 +58,23 @@ final class Transaction
             'amount' => $amount,
             'settled' => $isSettled ? 1 : 0,
             'sort_order' => $sortOrder,
+            'pot_id' => $potId,
         ]);
 
         return (int) $pdo->lastInsertId();
     }
 
-    public static function update(int $id, string $date, string $description, float $amount, bool $isSettled): void
+    public static function update(int $id, string $date, string $description, float $amount, bool $isSettled, ?int $potId = null): void
     {
         $stmt = Database::connection()->prepare(
-            'UPDATE transactions SET txn_date = :date, description = :description, amount = :amount, is_settled = :settled WHERE id = :id'
+            'UPDATE transactions SET txn_date = :date, description = :description, amount = :amount, is_settled = :settled, pot_id = :pot_id WHERE id = :id'
         );
         $stmt->execute([
             'date' => $date,
             'description' => $description,
             'amount' => $amount,
             'settled' => $isSettled ? 1 : 0,
+            'pot_id' => $potId,
             'id' => $id,
         ]);
     }

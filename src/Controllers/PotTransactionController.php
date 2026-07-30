@@ -25,7 +25,7 @@ final class PotTransactionController
 
         View::render('pots/show', [
             'pot' => $pot,
-            'transactions' => PotTransaction::forPot($id, (float) $pot['base_amount']),
+            'ledger' => Pot::ledger($id, (float) $pot['base_amount']),
             'editing' => $editId ? PotTransaction::find($editId) : null,
         ]);
     }

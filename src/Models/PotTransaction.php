@@ -6,40 +6,6 @@ use App\Support\Database;
 
 final class PotTransaction
 {
-    /**
-     * Alle transacties van een potje, elk met lopend saldo (basisbedrag van
-     * het potje + som van de mutaties tot en met die transactie).
-     */
-    public static function forPot(int $potId, float $openingBalance): array
-    {
-        $stmt = Database::connection()->prepare(
-            'SELECT pt.*, u.name AS user_name
-             FROM pot_transactions pt
-             LEFT JOIN users u ON u.id = pt.user_id
-             WHERE pt.pot_id = :pot_id ORDER BY pt.txn_date, pt.id'
-        );
-        $stmt->execute(['pot_id' => $potId]);
-        $rows = $stmt->fetchAll();
-
-        $running = $openingBalance;
-        foreach ($rows as &$row) {
-            $running += (float) $row['amount'];
-            $row['balance'] = $running;
-        }
-
-        return $rows;
-    }
-
-    public static function sumForPot(int $potId): float
-    {
-        $stmt = Database::connection()->prepare(
-            'SELECT COALESCE(SUM(amount), 0) FROM pot_transactions WHERE pot_id = :pot_id'
-        );
-        $stmt->execute(['pot_id' => $potId]);
-
-        return (float) $stmt->fetchColumn();
-    }
-
     public static function find(int $id): ?array
     {
         $stmt = Database::connection()->prepare('SELECT * FROM pot_transactions WHERE id = :id');
