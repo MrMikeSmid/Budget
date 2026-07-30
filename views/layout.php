@@ -5,12 +5,12 @@ use App\Support\View;
 $currentPage = $_GET['page'] ?? 'dashboard';
 $flash = View::flash();
 $navItems = [
-    'dashboard' => ['icon' => '🏠', 'label' => 'Overzicht'],
-    'kasstroom' => ['icon' => '💸', 'label' => 'Kasstroom'],
-    'inkomsten' => ['icon' => '💰', 'label' => 'Inkomsten'],
-    'vaste-lasten' => ['icon' => '📌', 'label' => 'Vaste lasten'],
-    'potjes' => ['icon' => '🐷', 'label' => 'Potjes'],
-    'instellingen' => ['icon' => '⚙️', 'label' => 'Meer'],
+    'dashboard' => ['label' => 'Overzicht'],
+    'kasstroom' => ['label' => 'Kasstroom'],
+    'inkomsten' => ['label' => 'Inkomsten'],
+    'vaste-lasten' => ['label' => 'Lasten'],
+    'potjes' => ['label' => 'Potjes'],
+    'instellingen' => ['label' => 'Meer'],
 ];
 ?>
 <!doctype html>
@@ -43,7 +43,7 @@ $navItems = [
             $classes = trim('nav-' . $page . ($isActive ? ' active' : ''));
             ?>
             <a href="<?= View::e(View::url($page)) ?>" class="<?= View::e($classes) ?>">
-                <span class="icon"><?= $item['icon'] ?></span>
+                <?= View::navIcon($page) ?>
                 <span class="label"><?= View::e($item['label']) ?></span>
             </a>
         <?php endforeach; ?>

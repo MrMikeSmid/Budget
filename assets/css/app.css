@@ -13,9 +13,7 @@
     --red: #dc2626;
     --amber: #d97706;
     --radius: 12px;
-    --nav-height: 60px;
-    --nav-icon-bg: #e5e7eb;
-    --nav-icon-bg-active: #d1d5db;
+    --nav-height: 68px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -25,8 +23,6 @@
         --text: #eceef1;
         --text-muted: #9aa0ab;
         --border: #2c3038;
-        --nav-icon-bg: #2c3038;
-        --nav-icon-bg-active: #3a3f4a;
     }
 }
 
@@ -101,29 +97,27 @@ nav.bottom-nav a {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    font-size: 11px;
+    gap: 6px;
+    font-size: 12px;
     color: var(--text-muted);
     text-decoration: none;
-    padding: 6px 2px;
+    padding: 8px 2px;
 }
 
 nav.bottom-nav a .icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    background: var(--nav-icon-bg);
-    filter: grayscale(1);
-    transition: box-shadow .15s ease, transform .15s ease, background .15s ease;
+    width: 24px;
+    height: 24px;
+    color: var(--text-muted);
+    transition: color .15s ease;
 }
 
-nav.bottom-nav a.active { color: var(--primary); font-weight: 600; text-decoration: none; }
-nav.bottom-nav a.active .icon { background: var(--nav-icon-bg-active); box-shadow: 0 0 0 2px var(--primary); transform: scale(1.05); }
-nav.bottom-nav a:hover .icon { transform: scale(1.05); }
+nav.bottom-nav a .label { transition: color .15s ease; }
+
+nav.bottom-nav a.active { text-decoration: none; }
+nav.bottom-nav a.active .icon,
+nav.bottom-nav a.active .label { color: var(--text); font-weight: 600; }
+nav.bottom-nav a:hover .icon,
+nav.bottom-nav a:hover .label { color: var(--text); }
 
 .card {
     background: var(--surface);
@@ -383,7 +377,7 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
 
     nav.bottom-nav a:hover { background: var(--bg); }
     nav.bottom-nav a.active { background: var(--bg); }
-    nav.bottom-nav a .icon { width: 30px; height: 30px; font-size: 15px; flex: none; }
+    nav.bottom-nav a .icon { width: 20px; height: 20px; flex: none; }
     nav.bottom-nav a .label { flex: 1; }
 
     main.content {
