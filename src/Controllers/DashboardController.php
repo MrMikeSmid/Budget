@@ -26,7 +26,7 @@ final class DashboardController
             $fixedTotals = FixedCost::totals((int) $period['id']);
             $fixedOutstanding = FixedCost::outstanding((int) $period['id']);
             $transactions = Transaction::forPeriod((int) $period['id']);
-            $balance = $transactions ? end($transactions)['balance'] : (float) $period['opening_balance'];
+            $balance = BudgetPeriod::endingBalance((int) $period['id']);
         }
 
         View::render('dashboard/index', [

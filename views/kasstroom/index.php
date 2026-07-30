@@ -6,6 +6,7 @@ use App\Support\View;
 /** @var array $periods */
 /** @var array|null $period */
 /** @var array $transactions */
+/** @var float|null $expectedBalance */
 /** @var array $pots */
 /** @var array|null $editing */
 ?>
@@ -56,9 +57,10 @@ use App\Support\View;
 
     <div class="card">
         <div class="section-header">
-            <h2 class="mt-0">Beginstand</h2>
-            <div class="value"><?= View::money((float) $period['opening_balance']) ?></div>
+            <h2 class="mt-0">Verwacht saldo kasstroom</h2>
+            <div class="value <?= $expectedBalance !== null && $expectedBalance < 0 ? 'negative' : 'positive' ?>"><?= View::money($expectedBalance) ?></div>
         </div>
+        <p class="text-muted">Ontvangen inkomsten min betaalde vaste lasten, plus de mutaties hieronder.</p>
         <?php if (empty($transactions)): ?>
             <p class="text-muted">Nog geen mutaties voor deze periode.</p>
         <?php else: ?>

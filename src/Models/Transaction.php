@@ -7,11 +7,13 @@ use App\Support\Database;
 final class Transaction
 {
     /**
-     * Alle transacties van een periode, elk met lopend saldo (D-kolom in de oude Excel).
+     * Alle transacties van een periode, elk met lopend saldo. Start niet
+     * vanaf een handmatige beginstand, maar vanaf de ontvangen inkomsten
+     * min de betaalde vaste lasten: zo eindigt de laatste rij op het
+     * "verwachte saldo kasstroom" van de periode.
      */
     public static function forPeriod(int $periodId): array
     {
-        $period = BudgetPeriod::find($periodId);
         $stmt = Database::connection()->prepare(
             'SELECT t.*, p.name AS pot_name, p.icon AS pot_icon
              FROM transactions t
@@ -21,7 +23,7 @@ final class Transaction
         $stmt->execute(['period_id' => $periodId]);
         $rows = $stmt->fetchAll();
 
-        $running = $period ? (float) $period['opening_balance'] : 0.0;
+        $running = (float) IncomeItem::totals($periodId)['actual'] - (float) FixedCost::totals($periodId)['actual'];
         foreach ($rows as &$row) {
             $running += (float) $row['amount'];
             $row['balance'] = $running;
