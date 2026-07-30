@@ -35,13 +35,11 @@ use App\Support\View;
     </div>
 
     <div class="card balance-card">
-        <div class="balance-row">
+        <div class="balance-grid">
             <div class="balance-label">Saldo</div>
             <div class="balance-amount <?= $balance !== null && $balance < 0 ? 'negative' : 'positive' ?>"><?= View::money($balance) ?></div>
-        </div>
-        <div class="balance-row">
-            <div class="balance-label">Verwachte saldo na vaste lasten</div>
-            <div class="balance-amount <?= $balanceAfterFixedCosts !== null && $balanceAfterFixedCosts < 0 ? 'negative' : 'positive' ?>"><?= View::money($balanceAfterFixedCosts) ?></div>
+            <div class="balance-sub-amount"><?= View::money($balanceAfterFixedCosts) ?></div>
+            <div class="balance-sub-label">na vaste lasten</div>
         </div>
         <p><a href="<?= View::e(View::url('kasstroom', ['period' => $period['id']])) ?>">Bekijk kasstroom &rarr;</a></p>
     </div>
