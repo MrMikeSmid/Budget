@@ -1,2 +1,8 @@
-/var/*.sqlite
-/var/*.sqlite-*
+/vendor/
+/config/config.php
+/storage/*.sqlite
+/storage/*.sqlite-journal
+/storage/*.sqlite-wal
+/storage/*.sqlite-shm
+/storage/sessions/
+.DS_Store
