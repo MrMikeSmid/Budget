@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Models\Activity;
 use App\Models\BudgetPeriod;
 use App\Models\Pot;
 use App\Support\View;
@@ -33,9 +34,11 @@ final class PotController
             View::flash('Vul een naam in.', 'error');
         } elseif ($id > 0) {
             Pot::update($id, $name, $icon, $amount, $note, $linkedPeriodId);
+            Activity::log('potjes', 'Potje bijgewerkt: ' . $name);
             View::flash('Potje opgeslagen.');
         } else {
             Pot::create($name, $icon, $amount, $note, $linkedPeriodId);
+            Activity::log('potjes', 'Potje aangemaakt: ' . $name);
             View::flash('Potje toegevoegd.');
         }
 
@@ -46,7 +49,11 @@ final class PotController
     public static function delete(): void
     {
         $id = (int) ($_POST['id'] ?? 0);
+        $pot = Pot::find($id);
         Pot::delete($id);
+        if ($pot) {
+            Activity::log('potjes', 'Potje verwijderd: ' . $pot['name']);
+        }
         View::flash('Potje verwijderd.');
         header('Location: ' . View::url('potjes'));
         exit;

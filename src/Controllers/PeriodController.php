@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Models\Activity;
 use App\Models\BudgetPeriod;
 use App\Models\FixedCost;
 use App\Models\IncomeItem;
@@ -39,8 +40,10 @@ final class PeriodController
 
         if ($isNew) {
             $id = BudgetPeriod::create($name, $start, $end, $opening);
+            Activity::log('periods', 'Periode aangemaakt: ' . $name);
         } else {
             BudgetPeriod::update($id, $name, $start, $end, $opening);
+            Activity::log('periods', 'Periode bijgewerkt: ' . $name);
         }
 
         if ($makeActive) {
@@ -72,7 +75,11 @@ final class PeriodController
     public static function delete(): void
     {
         $id = (int) ($_POST['id'] ?? 0);
+        $period = BudgetPeriod::find($id);
         BudgetPeriod::delete($id);
+        if ($period) {
+            Activity::log('periods', 'Periode verwijderd: ' . $period['name']);
+        }
         View::flash('Periode verwijderd.');
         header('Location: ' . View::url('periods'));
         exit;

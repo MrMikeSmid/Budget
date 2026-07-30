@@ -17,3 +17,8 @@ use App\Support\View;
     <p class="text-muted">Accounts toevoegen of verwijderen. Iedereen heeft volledige rechten.</p>
     <a class="btn secondary" href="<?= View::e(View::url('accounts')) ?>">Openen</a>
 </div>
+<div class="card">
+    <h2 class="mt-0">🕒 Activiteit</h2>
+    <p class="text-muted">Tijdlijn van de laatste mutaties: wie wat heeft toegevoegd, gewijzigd of verwijderd.</p>
+    <a class="btn secondary" href="<?= View::e(View::url('activiteit')) ?>">Openen</a>
+</div>

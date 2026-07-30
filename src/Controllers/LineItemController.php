@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Models\Activity;
 use App\Models\BudgetPeriod;
 use App\Support\View;
 
@@ -17,6 +18,12 @@ abstract class LineItemController
     abstract protected static function view(): string;
 
     abstract protected static function page(): string;
+
+    /** Naam voor in de activiteiten-tijdlijn, bijv. "Inkomst" of "Vaste last". */
+    abstract protected static function label(): string;
+
+    /** +1 voor inkomsten, -1 voor lasten, zodat de tijdlijn de juiste kleur/richting toont. */
+    abstract protected static function amountSign(): int;
 
     public static function index(): void
     {
@@ -50,9 +57,11 @@ abstract class LineItemController
             View::flash('Vul een omschrijving in.', 'error');
         } elseif ($id > 0) {
             $model::update($id, $description, $budgeted, $actual, $status, $isRecurring);
+            Activity::log(static::page(), static::label() . ' bijgewerkt: ' . $description, $budgeted * static::amountSign());
             View::flash('Regel opgeslagen.');
         } else {
             $model::create($periodId, $description, $budgeted, $actual, $status, $isRecurring);
+            Activity::log(static::page(), static::label() . ' toegevoegd: ' . $description, $budgeted * static::amountSign());
             View::flash('Regel toegevoegd.');
         }
 
@@ -66,7 +75,12 @@ abstract class LineItemController
         $id = (int) ($_POST['id'] ?? 0);
         $periodId = (int) ($_POST['period_id'] ?? 0);
 
+        $item = $model::find($id);
         $model::delete($id);
+        if ($item) {
+            $amount = (float) $item['budgeted'] * static::amountSign();
+            Activity::log(static::page(), static::label() . ' verwijderd: ' . $item['description'], $amount);
+        }
         View::flash('Regel verwijderd.');
 
         header('Location: ' . View::url(static::page(), ['period' => $periodId]));

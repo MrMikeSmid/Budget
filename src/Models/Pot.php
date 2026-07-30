@@ -17,9 +17,11 @@ final class Pot
         $rows = $stmt->fetchAll();
 
         foreach ($rows as &$row) {
-            $row['resolved_amount'] = $row['linked_period_id']
+            $base = $row['linked_period_id']
                 ? BudgetPeriod::endingBalance((int) $row['linked_period_id'])
                 : (float) $row['amount'];
+            $row['base_amount'] = $base;
+            $row['resolved_amount'] = $base + PotTransaction::sumForPot((int) $row['id']);
         }
 
         return $rows;
@@ -32,6 +34,34 @@ final class Pot
         $row = $stmt->fetch();
 
         return $row ?: null;
+    }
+
+    /**
+     * Eén potje met dezelfde afgeleide velden (base_amount/resolved_amount)
+     * als all(), voor de detailpagina met transacties.
+     */
+    public static function withDetails(int $id): ?array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT p.*, bp.name AS linked_period_name
+             FROM pots p
+             LEFT JOIN budget_periods bp ON bp.id = p.linked_period_id
+             WHERE p.id = :id'
+        );
+        $stmt->execute(['id' => $id]);
+        $row = $stmt->fetch();
+
+        if (!$row) {
+            return null;
+        }
+
+        $base = $row['linked_period_id']
+            ? BudgetPeriod::endingBalance((int) $row['linked_period_id'])
+            : (float) $row['amount'];
+        $row['base_amount'] = $base;
+        $row['resolved_amount'] = $base + PotTransaction::sumForPot((int) $row['id']);
+
+        return $row;
     }
 
     public static function create(string $name, string $icon, ?float $amount, string $note, ?int $linkedPeriodId): int
