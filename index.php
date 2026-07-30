@@ -5,12 +5,14 @@ declare(strict_types=1);
 require __DIR__ . '/vendor/autoload.php';
 
 use App\Controllers\AccountController;
+use App\Controllers\ActivityController;
 use App\Controllers\AuthController;
 use App\Controllers\DashboardController;
 use App\Controllers\FixedCostController;
 use App\Controllers\IncomeController;
 use App\Controllers\PeriodController;
 use App\Controllers\PotController;
+use App\Controllers\PotTransactionController;
 use App\Controllers\StatisticsController;
 use App\Controllers\TransactionController;
 use App\Models\User;
@@ -89,8 +91,16 @@ $router->get('potjes', authed([PotController::class, 'index']));
 $router->post('potjes-save', authed([PotController::class, 'save']));
 $router->post('potjes-delete', authed([PotController::class, 'delete']));
 
+// Potje-detail: transacties (stortingen/opnames) op een potje
+$router->get('potje', authed([PotTransactionController::class, 'index']));
+$router->post('potje-transactie-save', authed([PotTransactionController::class, 'save']));
+$router->post('potje-transactie-delete', authed([PotTransactionController::class, 'delete']));
+
 // Statistieken
 $router->get('statistieken', authed([StatisticsController::class, 'index']));
+
+// Activiteit (tijdlijn van alle mutaties)
+$router->get('activiteit', authed([ActivityController::class, 'index']));
 
 // Accounts
 $router->get('accounts', authed([AccountController::class, 'index']));

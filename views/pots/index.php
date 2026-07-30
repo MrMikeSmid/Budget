@@ -70,6 +70,7 @@ use App\Support\View;
                     <div class="pot-card-actions">
                         <div class="pot-amount"><?= View::money((float) $pot['resolved_amount']) ?></div>
                         <div class="row-actions">
+                            <a class="btn small" href="<?= View::e(View::url('potje', ['id' => $pot['id']])) ?>">Transacties</a>
                             <a class="btn small secondary" href="<?= View::e(View::url('potjes', ['edit' => $pot['id']])) ?>">Bewerken</a>
                             <form method="post" action="<?= View::e(View::url('potjes-delete')) ?>" onsubmit="return confirm('Potje verwijderen?');">
                                 <?= Csrf::field() ?>

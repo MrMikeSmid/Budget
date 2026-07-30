@@ -20,4 +20,14 @@ final class FixedCostController extends LineItemController
     {
         return 'vaste-lasten';
     }
+
+    protected static function label(): string
+    {
+        return 'Vaste last';
+    }
+
+    protected static function amountSign(): int
+    {
+        return -1;
+    }
 }

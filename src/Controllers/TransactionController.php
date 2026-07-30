@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Models\Activity;
 use App\Models\BudgetPeriod;
 use App\Models\Transaction;
 use App\Support\View;
@@ -34,9 +35,11 @@ final class TransactionController
             View::flash('Vul een datum en omschrijving in.', 'error');
         } elseif ($id > 0) {
             Transaction::update($id, $date, $description, $amount, $settled);
+            Activity::log('kasstroom', 'Mutatie bijgewerkt: ' . $description, $amount);
             View::flash('Transactie opgeslagen.');
         } else {
             Transaction::create($periodId, $date, $description, $amount, $settled);
+            Activity::log('kasstroom', 'Mutatie toegevoegd: ' . $description, $amount);
             View::flash('Transactie toegevoegd.');
         }
 
@@ -49,7 +52,11 @@ final class TransactionController
         $id = (int) ($_POST['id'] ?? 0);
         $periodId = (int) ($_POST['period_id'] ?? 0);
 
+        $txn = Transaction::find($id);
         Transaction::delete($id);
+        if ($txn) {
+            Activity::log('kasstroom', 'Mutatie verwijderd: ' . $txn['description'], (float) $txn['amount']);
+        }
         View::flash('Transactie verwijderd.');
 
         header('Location: ' . View::url('kasstroom', ['period' => $periodId]));

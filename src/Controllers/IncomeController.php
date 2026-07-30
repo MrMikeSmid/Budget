@@ -20,4 +20,14 @@ final class IncomeController extends LineItemController
     {
         return 'inkomsten';
     }
+
+    protected static function label(): string
+    {
+        return 'Inkomst';
+    }
+
+    protected static function amountSign(): int
+    {
+        return 1;
+    }
 }
