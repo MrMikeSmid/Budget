@@ -97,14 +97,45 @@ nav.bottom-nav a {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 2px;
+    gap: 4px;
     font-size: 11px;
     color: var(--text-muted);
     text-decoration: none;
+    padding: 6px 2px;
 }
 
-nav.bottom-nav a .icon { font-size: 20px; }
-nav.bottom-nav a.active { color: var(--primary); font-weight: 600; }
+nav.bottom-nav a .icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    background: var(--nav-icon-bg, var(--border));
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+
+nav.bottom-nav a.active { color: var(--primary); font-weight: 600; text-decoration: none; }
+nav.bottom-nav a.active .icon { box-shadow: 0 0 0 2px var(--primary); transform: scale(1.05); }
+nav.bottom-nav a:hover .icon { transform: scale(1.05); }
+
+/* Lichte pastel-tint per icoon, zodat de navigatie in één oogopslag herkenbaar is. */
+nav.bottom-nav a.nav-dashboard { --nav-icon-bg: #dbeafe; }
+nav.bottom-nav a.nav-kasstroom { --nav-icon-bg: #dcfce7; }
+nav.bottom-nav a.nav-inkomsten { --nav-icon-bg: #fef3c7; }
+nav.bottom-nav a.nav-vaste-lasten { --nav-icon-bg: #fee2e2; }
+nav.bottom-nav a.nav-potjes { --nav-icon-bg: #fae8ff; }
+nav.bottom-nav a.nav-instellingen { --nav-icon-bg: #e5e7eb; }
+
+@media (prefers-color-scheme: dark) {
+    nav.bottom-nav a.nav-dashboard { --nav-icon-bg: #1e3a5f; }
+    nav.bottom-nav a.nav-kasstroom { --nav-icon-bg: #14351f; }
+    nav.bottom-nav a.nav-inkomsten { --nav-icon-bg: #3a2a08; }
+    nav.bottom-nav a.nav-vaste-lasten { --nav-icon-bg: #3f1d1d; }
+    nav.bottom-nav a.nav-potjes { --nav-icon-bg: #3a1f47; }
+    nav.bottom-nav a.nav-instellingen { --nav-icon-bg: #2c3038; }
+}
 
 .card {
     background: var(--surface);
@@ -337,24 +368,35 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     }
 
     nav.bottom-nav {
+        order: -1;
         position: sticky;
         top: 0;
         left: 0;
         height: 100vh;
         width: 220px;
         flex-direction: column;
+        align-items: stretch;
+        gap: 2px;
         border-top: none;
         border-right: 1px solid var(--border);
-        padding: 20px 0;
+        padding: 20px 12px;
     }
 
     nav.bottom-nav a {
+        flex: 0 0 auto;
         flex-direction: row;
+        align-items: center;
         justify-content: flex-start;
-        gap: 10px;
-        padding: 10px 20px;
+        gap: 12px;
+        padding: 9px 12px;
+        border-radius: 10px;
         font-size: 14px;
     }
+
+    nav.bottom-nav a:hover { background: var(--bg); }
+    nav.bottom-nav a.active { background: var(--bg); }
+    nav.bottom-nav a .icon { width: 30px; height: 30px; font-size: 15px; flex: none; }
+    nav.bottom-nav a .label { flex: 1; }
 
     main.content {
         padding: 28px 32px;
