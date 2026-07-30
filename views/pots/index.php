@@ -56,7 +56,7 @@ use App\Support\View;
         <div class="pots-grid">
             <?php foreach ($pots as $pot): ?>
                 <div class="pot-card">
-                    <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="pot-card-info">
                         <span class="pot-icon"><?= View::e($pot['icon'] ?: '💶') ?></span>
                         <div>
                             <div class="pot-name"><?= View::e($pot['name']) ?></div>
@@ -67,7 +67,7 @@ use App\Support\View;
                             <?php endif; ?>
                         </div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="pot-card-actions">
                         <div class="pot-amount"><?= View::money((float) $pot['resolved_amount']) ?></div>
                         <div class="row-actions">
                             <a class="btn small secondary" href="<?= View::e(View::url('potjes', ['edit' => $pot['id']])) ?>">Bewerken</a>
