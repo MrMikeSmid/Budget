@@ -33,6 +33,12 @@ use App\Support\View;
             <input type="checkbox" id="is_active" name="is_active" <?= !empty($editing['is_active']) ? 'checked' : '' ?>>
             <label for="is_active">Actieve periode</label>
         </div>
+        <?php if (!$editing && !empty($periods)): ?>
+            <div class="checkbox-field">
+                <input type="checkbox" id="copy_recurring" name="copy_recurring" checked>
+                <label for="copy_recurring">Terugkerende inkomsten &amp; vaste lasten overnemen uit de vorige periode</label>
+            </div>
+        <?php endif; ?>
         <button type="submit" class="btn"><?= $editing ? 'Opslaan' : 'Toevoegen' ?></button>
         <?php if ($editing): ?>
             <a class="btn secondary" href="<?= View::e(View::url('periods')) ?>">Annuleren</a>

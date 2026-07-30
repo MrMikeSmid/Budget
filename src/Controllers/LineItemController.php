@@ -44,14 +44,15 @@ abstract class LineItemController
         $actualRaw = trim($_POST['actual'] ?? '');
         $actual = $actualRaw === '' ? null : (float) str_replace(',', '.', $actualRaw);
         $status = trim($_POST['status'] ?? '');
+        $isRecurring = !empty($_POST['is_recurring']);
 
         if ($description === '' || $periodId === 0) {
             View::flash('Vul een omschrijving in.', 'error');
         } elseif ($id > 0) {
-            $model::update($id, $description, $budgeted, $actual, $status);
+            $model::update($id, $description, $budgeted, $actual, $status, $isRecurring);
             View::flash('Regel opgeslagen.');
         } else {
-            $model::create($periodId, $description, $budgeted, $actual, $status);
+            $model::create($periodId, $description, $budgeted, $actual, $status, $isRecurring);
             View::flash('Regel toegevoegd.');
         }
 

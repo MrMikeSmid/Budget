@@ -47,6 +47,10 @@ use App\Support\View;
                     <?php endforeach; ?>
                 </datalist>
             </div>
+            <div class="checkbox-field">
+                <input type="checkbox" id="is_recurring" name="is_recurring" <?= !empty($editing['is_recurring']) ? 'checked' : '' ?>>
+                <label for="is_recurring">Terugkerend — bij een nieuwe periode automatisch overnemen</label>
+            </div>
             <button type="submit" class="btn"><?= $editing ? 'Opslaan' : 'Toevoegen' ?></button>
             <?php if ($editing): ?>
                 <a class="btn secondary" href="<?= View::e(View::url($listPage, ['period' => $period['id']])) ?>">Annuleren</a>
@@ -83,7 +87,7 @@ use App\Support\View;
                     <tbody>
                     <?php foreach ($items as $item): ?>
                         <tr>
-                            <td><?= View::e($item['description']) ?></td>
+                            <td><?= View::e($item['description']) ?><?php if (!empty($item['is_recurring'])): ?> <span title="Terugkerend" class="text-muted">&#8635;</span><?php endif; ?></td>
                             <td class="num"><?= View::money((float) $item['budgeted']) ?></td>
                             <td class="num"><?= $item['actual'] !== null ? View::money((float) $item['actual']) : '-' ?></td>
                             <td>

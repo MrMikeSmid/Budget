@@ -57,6 +57,21 @@ final class BudgetPeriod
         return $row ?: null;
     }
 
+    /**
+     * Meest recente periode die vóór de gegeven periode is gestart, voor het
+     * overnemen van terugkerende inkomsten/vaste lasten bij een nieuwe periode.
+     */
+    public static function previousBefore(int $excludeId, string $beforeStartDate): ?array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT * FROM budget_periods WHERE id != :id AND start_date < :start ORDER BY start_date DESC LIMIT 1'
+        );
+        $stmt->execute(['id' => $excludeId, 'start' => $beforeStartDate]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
+    }
+
     public static function create(string $name, string $startDate, string $endDate, float $openingBalance): int
     {
         $pdo = Database::connection();
