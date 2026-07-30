@@ -1,0 +1,6 @@
+vendor/
+composer.phar
+config/config.php
+*.log
+.DS_Store
+.php-cs-fixer.cache
