@@ -6,6 +6,7 @@ use App\Support\View;
 /** @var array $periods */
 /** @var array|null $period */
 /** @var array $transactions */
+/** @var array $pots */
 /** @var array|null $editing */
 ?>
 <?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => 'kasstroom'], null); ?>
@@ -30,6 +31,17 @@ use App\Support\View;
             <div class="field">
                 <label for="description">Omschrijving</label>
                 <input type="text" id="description" name="description" required value="<?= View::e($editing['description'] ?? '') ?>">
+            </div>
+            <div class="field">
+                <label for="pot_id">Potje (optioneel)</label>
+                <select id="pot_id" name="pot_id">
+                    <option value="">Geen koppeling</option>
+                    <?php foreach ($pots as $p): ?>
+                        <option value="<?= (int) $p['id'] ?>" <?= !empty($editing['pot_id']) && (int) $editing['pot_id'] === (int) $p['id'] ? 'selected' : '' ?>>
+                            <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <div class="checkbox-field">
                 <input type="checkbox" id="is_settled" name="is_settled" <?= !empty($editing['is_settled']) ? 'checked' : '' ?>>
@@ -66,7 +78,11 @@ use App\Support\View;
                     <?php foreach ($transactions as $t): ?>
                         <tr style="<?= $t['is_settled'] ? 'opacity:.65;' : '' ?>">
                             <td><?= View::e($t['txn_date']) ?></td>
-                            <td><?= View::e($t['description']) ?><?php if ($t['is_settled']): ?> <span class="badge paid">verwerkt</span><?php endif; ?></td>
+                            <td>
+                                <?= View::e($t['description']) ?>
+                                <?php if ($t['is_settled']): ?> <span class="badge paid">verwerkt</span><?php endif; ?>
+                                <?php if ($t['pot_name']): ?> <span class="badge neutral"><?= View::e($t['pot_icon'] ?: '💶') ?> <?= View::e($t['pot_name']) ?></span><?php endif; ?>
+                            </td>
                             <td class="num <?= $t['amount'] < 0 ? 'negative' : 'positive' ?>"><?= View::money((float) $t['amount']) ?></td>
                             <td class="num"><?= View::money((float) $t['balance']) ?></td>
                             <td>

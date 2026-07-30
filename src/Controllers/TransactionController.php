@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\Activity;
 use App\Models\BudgetPeriod;
+use App\Models\Pot;
 use App\Models\Transaction;
 use App\Support\View;
 
@@ -18,6 +19,7 @@ final class TransactionController
             'periods' => BudgetPeriod::all(),
             'period' => $period,
             'transactions' => $period ? Transaction::forPeriod((int) $period['id']) : [],
+            'pots' => Pot::all(),
             'editing' => $editId ? Transaction::find($editId) : null,
         ]);
     }
@@ -30,16 +32,19 @@ final class TransactionController
         $description = trim($_POST['description'] ?? '');
         $amount = (float) str_replace(',', '.', $_POST['amount'] ?? '0');
         $settled = !empty($_POST['is_settled']);
+        $potId = (int) ($_POST['pot_id'] ?? 0) ?: null;
+        $pot = $potId ? Pot::find($potId) : null;
+        $potSuffix = $pot ? " (potje: {$pot['name']})" : '';
 
         if ($description === '' || $date === '' || $periodId === 0) {
             View::flash('Vul een datum en omschrijving in.', 'error');
         } elseif ($id > 0) {
-            Transaction::update($id, $date, $description, $amount, $settled);
-            Activity::log('kasstroom', 'Mutatie bijgewerkt: ' . $description, $amount);
+            Transaction::update($id, $date, $description, $amount, $settled, $potId);
+            Activity::log('kasstroom', 'Mutatie bijgewerkt: ' . $description . $potSuffix, $amount);
             View::flash('Transactie opgeslagen.');
         } else {
-            Transaction::create($periodId, $date, $description, $amount, $settled);
-            Activity::log('kasstroom', 'Mutatie toegevoegd: ' . $description, $amount);
+            Transaction::create($periodId, $date, $description, $amount, $settled, $potId);
+            Activity::log('kasstroom', 'Mutatie toegevoegd: ' . $description . $potSuffix, $amount);
             View::flash('Transactie toegevoegd.');
         }
 
@@ -55,7 +60,9 @@ final class TransactionController
         $txn = Transaction::find($id);
         Transaction::delete($id);
         if ($txn) {
-            Activity::log('kasstroom', 'Mutatie verwijderd: ' . $txn['description'], (float) $txn['amount']);
+            $pot = $txn['pot_id'] ? Pot::find((int) $txn['pot_id']) : null;
+            $potSuffix = $pot ? " (potje: {$pot['name']})" : '';
+            Activity::log('kasstroom', 'Mutatie verwijderd: ' . $txn['description'] . $potSuffix, (float) $txn['amount']);
         }
         View::flash('Transactie verwijderd.');
 
