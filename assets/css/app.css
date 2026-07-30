@@ -523,6 +523,35 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     margin-bottom: 12px;
 }
 
+/* Saldokaart op het dashboard: twee rijen in bank-app-stijl (label +
+   bedrag), i.p.v. één grote titel met getal eronder. */
+.balance-card { padding: 18px 18px 14px; }
+
+.balance-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+.balance-row:last-of-type { border-bottom: none; }
+
+.balance-label {
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.balance-amount {
+    font-weight: 700;
+    font-size: 26px;
+    white-space: nowrap;
+}
+.balance-amount.positive { color: var(--green); }
+.balance-amount.negative { color: var(--red); }
+
+.balance-card p { margin-bottom: 0; }
+
 .text-muted { color: var(--text-muted); }
 .mt-0 { margin-top: 0; }
 
