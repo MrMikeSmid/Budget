@@ -216,6 +216,22 @@ tr:last-child td { border-bottom: none; }
 .badge.next { background: #e0e7ff; color: #3730a3; }
 .badge.neutral { background: var(--border); color: var(--text-muted); }
 
+.progress-bar {
+    width: 100%;
+    max-width: 220px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--border);
+    overflow: hidden;
+    margin-top: 6px;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 999px;
+}
+
 @media (prefers-color-scheme: dark) {
     .badge.paid, .badge.received { background: #14351f; color: #4ade80; }
     .badge.open { background: #3a2a08; color: #fbbf24; }

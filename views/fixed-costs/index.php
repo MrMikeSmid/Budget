@@ -14,4 +14,5 @@ View::render('partials/line-items', [
     'deletePage' => 'vaste-lasten-delete',
     'statusSuggestions' => ['Betaald', 'Open', 'Volgende maand'],
     'outstandingLabel' => 'Nog openstaand',
+    'showRecurrenceOptions' => true,
 ], null);
