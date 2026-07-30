@@ -523,14 +523,14 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     margin-bottom: 12px;
 }
 
-/* Saldokaart op het dashboard: bank-app-stijl rekeningkaartje. Label +
-   hoofdbedrag op de bovenste regel, tweede bedrag + toelichting eronder. */
+/* Saldokaart op het dashboard: bank-app-stijl rekeningkaartje. Twee
+   rijen (label + bedrag), beide in hetzelfde lettertype en dezelfde grootte. */
 .balance-card { padding: 18px; }
 
 .balance-grid {
     display: grid;
     grid-template-columns: 1fr auto;
-    row-gap: 6px;
+    row-gap: 10px;
     column-gap: 12px;
     align-items: baseline;
 }
@@ -548,13 +548,6 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
 }
 .balance-amount.positive { color: var(--green); }
 .balance-amount.negative { color: var(--red); }
-
-.balance-sub-amount,
-.balance-sub-label {
-    font-size: 13px;
-    color: var(--text-muted);
-}
-.balance-sub-label { text-align: right; white-space: nowrap; }
 
 .balance-card p { margin: 12px 0 0; }
 
