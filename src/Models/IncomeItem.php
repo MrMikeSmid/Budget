@@ -24,4 +24,18 @@ final class IncomeItem extends LineItem
 
         return (float) $stmt->fetchColumn();
     }
+
+    /**
+     * Daadwerkelijk ontvangen: werkelijk bedrag van regels met status "ontvangen".
+     */
+    public static function receivedTotal(int $periodId): float
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT COALESCE(SUM(actual), 0) FROM income_items
+             WHERE period_id = :period_id AND status LIKE 'Ontvangen%'"
+        );
+        $stmt->execute(['period_id' => $periodId]);
+
+        return (float) $stmt->fetchColumn();
+    }
 }
