@@ -56,6 +56,22 @@ final class FixedCost extends LineItem
     }
 
     /**
+     * Daadwerkelijk betaald: bedrag van regels met status "betaald". Werkelijk
+     * bedrag telt als dat is ingevuld, anders valt dit terug op het begrote
+     * bedrag (zelfde patroon als IncomeItem::receivedTotal()).
+     */
+    public static function paidTotal(int $periodId): float
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT COALESCE(SUM(COALESCE(actual, budgeted)), 0) FROM fixed_costs
+             WHERE period_id = :period_id AND status LIKE 'Betaald%'"
+        );
+        $stmt->execute(['period_id' => $periodId]);
+
+        return (float) $stmt->fetchColumn();
+    }
+
+    /**
      * Volledige create met de extra terugkeer-/leningvelden. Overschrijft
      * LineItem::create, die alleen de basisvelden kent.
      */

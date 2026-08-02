@@ -160,15 +160,6 @@ nav.bottom-nav a:hover .label { color: var(--text); }
     margin-bottom: 16px;
 }
 
-/* Altijd twee kolommen van 50%, ook op bredere schermen (in
-   tegenstelling tot .grid-stats, die daar naar 4 kolommen gaat). */
-.grid-halves {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 16px;
-}
-
 .stat {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -192,6 +183,11 @@ nav.bottom-nav a:hover .label { color: var(--text); }
 .value.positive { color: var(--green); }
 .value.negative { color: var(--red); }
 
+/* Algemene val voor .positive/.negative buiten de specifiekere varianten
+   hierboven (o.a. gebruikt op td.num-cellen in tabellen). */
+.positive { color: var(--green); }
+.negative { color: var(--red); }
+
 table {
     width: 100%;
     border-collapse: collapse;
@@ -210,6 +206,22 @@ th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform
 td.num, th.num { text-align: right; white-space: nowrap; }
 
 tr:last-child td { border-bottom: none; }
+
+/* Eenvoudige label/bedrag-tabel (bijv. "Totaal kapitaal" op het
+   overzicht): geen lijntjes tussen de regels, wel een duidelijke,
+   vetgedrukte totaalregel met wat lucht erboven. */
+.detail-table td {
+    padding: 8px 0;
+    border-bottom: none;
+    font-size: 15px;
+}
+
+.detail-table tfoot td {
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    margin-top: 8px;
+    font-weight: 700;
+}
 
 .badge {
     display: inline-block;

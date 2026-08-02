@@ -4,9 +4,7 @@ namespace App\Controllers;
 
 use App\Models\BudgetPeriod;
 use App\Models\FixedCost;
-use App\Models\IncomeItem;
 use App\Models\Pot;
-use App\Models\Transaction;
 use App\Support\View;
 
 final class DashboardController
@@ -15,32 +13,43 @@ final class DashboardController
     {
         $period = BudgetPeriod::resolveFromRequest();
 
-        $incomeTotals = ['budgeted' => 0, 'actual' => 0];
-        $fixedTotals = ['budgeted' => 0, 'actual' => 0];
-        $fixedOutstanding = 0.0;
-        $transactions = [];
         $balance = null;
-        $balanceAfterFixedCosts = null;
+        $leefpotjesTotal = 0.0;
+        $spaarpotjesTotal = 0.0;
+        $totalKapitaal = null;
+        $paidActual = 0.0;
+        $openBudgeted = 0.0;
+        $totalPayments = 0.0;
 
         if ($period) {
-            $incomeTotals = IncomeItem::totals((int) $period['id']);
-            $fixedTotals = FixedCost::totals((int) $period['id']);
-            $fixedOutstanding = FixedCost::outstanding((int) $period['id']);
-            $transactions = Transaction::forPeriod((int) $period['id']);
             $balance = BudgetPeriod::endingBalance((int) $period['id']);
-            $balanceAfterFixedCosts = IncomeItem::receivedTotal((int) $period['id']) - (float) $fixedTotals['budgeted'];
+
+            $pots = Pot::allForPeriod((int) $period['id']);
+            $leefpotjesTotal = array_sum(array_map(
+                static fn ($p) => (float) $p['resolved_amount'],
+                array_filter($pots, static fn ($p) => ($p['type'] ?? 'leefpotje') === 'leefpotje')
+            ));
+            $spaarpotjesTotal = array_sum(array_map(
+                static fn ($p) => (float) $p['resolved_amount'],
+                array_filter($pots, static fn ($p) => ($p['type'] ?? 'leefpotje') === 'spaarpotje')
+            ));
+            $totalKapitaal = $balance + $leefpotjesTotal + $spaarpotjesTotal;
+
+            $paidActual = FixedCost::paidTotal((int) $period['id']);
+            $openBudgeted = FixedCost::outstanding((int) $period['id']);
+            $totalPayments = $paidActual + $openBudgeted;
         }
 
         View::render('dashboard/index', [
             'periods' => BudgetPeriod::all(),
             'period' => $period,
-            'incomeTotals' => $incomeTotals,
-            'fixedTotals' => $fixedTotals,
-            'fixedOutstanding' => $fixedOutstanding,
             'balance' => $balance,
-            'balanceAfterFixedCosts' => $balanceAfterFixedCosts,
-            'recentTransactions' => array_slice(array_reverse($transactions), 0, 5),
-            'pots' => $period ? Pot::allForPeriod((int) $period['id']) : Pot::all(),
+            'leefpotjesTotal' => $leefpotjesTotal,
+            'spaarpotjesTotal' => $spaarpotjesTotal,
+            'totalKapitaal' => $totalKapitaal,
+            'paidActual' => $paidActual,
+            'openBudgeted' => $openBudgeted,
+            'totalPayments' => $totalPayments,
         ]);
     }
 }
