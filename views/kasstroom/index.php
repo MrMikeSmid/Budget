@@ -14,6 +14,9 @@ use App\Support\View;
 <?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => 'kasstroom'], null); ?>
 
 <?php if ($period): ?>
+    <button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Mutatie toevoegen">+</button>
+
+    <div class="form-panel" id="add-form-panel" <?= $editing ? '' : 'hidden' ?>>
     <div class="card">
         <div class="tab-switch" role="tablist">
             <button type="button" class="tab-btn active" data-tab-target="panel-uitgave">💸 Uitgave</button>
@@ -108,6 +111,7 @@ use App\Support\View;
                 <button type="submit" class="btn">Overboeken</button>
             </form>
         </div>
+    </div>
     </div>
 
     <div class="card">

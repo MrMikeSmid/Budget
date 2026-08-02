@@ -6,40 +6,44 @@ use App\Support\View;
 /** @var array $periods */
 /** @var array|null $editing */
 ?>
-<div class="card">
-    <h2 class="mt-0"><?= $editing ? 'Periode bewerken' : 'Nieuwe periode' ?></h2>
-    <form class="inline-form" method="post" action="<?= View::e(View::url('periods-save')) ?>">
-        <?= Csrf::field() ?>
-        <input type="hidden" name="id" value="<?= (int) ($editing['id'] ?? 0) ?>">
-        <div class="field">
-            <label for="name">Naam</label>
-            <input type="text" id="name" name="name" required value="<?= View::e($editing['name'] ?? '') ?>" placeholder="Bijv. Juli - augustus 2026">
-        </div>
-        <div class="field-row">
+<button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Periode toevoegen">+</button>
+
+<div class="form-panel" id="add-form-panel" <?= $editing ? '' : 'hidden' ?>>
+    <div class="card">
+        <h2 class="mt-0"><?= $editing ? 'Periode bewerken' : 'Nieuwe periode' ?></h2>
+        <form class="inline-form" method="post" action="<?= View::e(View::url('periods-save')) ?>">
+            <?= Csrf::field() ?>
+            <input type="hidden" name="id" value="<?= (int) ($editing['id'] ?? 0) ?>">
             <div class="field">
-                <label for="start_date">Startdatum</label>
-                <input type="date" id="start_date" name="start_date" required value="<?= View::e($editing['start_date'] ?? '') ?>">
+                <label for="name">Naam</label>
+                <input type="text" id="name" name="name" required value="<?= View::e($editing['name'] ?? '') ?>" placeholder="Bijv. Juli - augustus 2026">
             </div>
-            <div class="field">
-                <label for="end_date">Einddatum</label>
-                <input type="date" id="end_date" name="end_date" required value="<?= View::e($editing['end_date'] ?? '') ?>">
+            <div class="field-row">
+                <div class="field">
+                    <label for="start_date">Startdatum</label>
+                    <input type="date" id="start_date" name="start_date" required value="<?= View::e($editing['start_date'] ?? '') ?>">
+                </div>
+                <div class="field">
+                    <label for="end_date">Einddatum</label>
+                    <input type="date" id="end_date" name="end_date" required value="<?= View::e($editing['end_date'] ?? '') ?>">
+                </div>
             </div>
-        </div>
-        <div class="checkbox-field">
-            <input type="checkbox" id="is_active" name="is_active" <?= !empty($editing['is_active']) ? 'checked' : '' ?>>
-            <label for="is_active">Actieve periode</label>
-        </div>
-        <?php if (!$editing && !empty($periods)): ?>
             <div class="checkbox-field">
-                <input type="checkbox" id="copy_recurring" name="copy_recurring" checked>
-                <label for="copy_recurring">Terugkerende inkomsten &amp; vaste lasten overnemen uit de vorige periode</label>
+                <input type="checkbox" id="is_active" name="is_active" <?= !empty($editing['is_active']) ? 'checked' : '' ?>>
+                <label for="is_active">Actieve periode</label>
             </div>
-        <?php endif; ?>
-        <button type="submit" class="btn"><?= $editing ? 'Opslaan' : 'Toevoegen' ?></button>
-        <?php if ($editing): ?>
-            <a class="btn secondary" href="<?= View::e(View::url('periods')) ?>">Annuleren</a>
-        <?php endif; ?>
-    </form>
+            <?php if (!$editing && !empty($periods)): ?>
+                <div class="checkbox-field">
+                    <input type="checkbox" id="copy_recurring" name="copy_recurring" checked>
+                    <label for="copy_recurring">Terugkerende inkomsten &amp; vaste lasten overnemen uit de vorige periode</label>
+                </div>
+            <?php endif; ?>
+            <button type="submit" class="btn"><?= $editing ? 'Opslaan' : 'Toevoegen' ?></button>
+            <?php if ($editing): ?>
+                <a class="btn secondary" href="<?= View::e(View::url('periods')) ?>">Annuleren</a>
+            <?php endif; ?>
+        </form>
+    </div>
 </div>
 
 <div class="card">
