@@ -160,6 +160,15 @@ nav.bottom-nav a:hover .label { color: var(--text); }
     margin-bottom: 16px;
 }
 
+/* Altijd twee kolommen van 50%, ook op bredere schermen (in
+   tegenstelling tot .grid-stats, die daar naar 4 kolommen gaat). */
+.grid-halves {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
 .stat {
     background: var(--surface);
     border: 1px solid var(--border);
