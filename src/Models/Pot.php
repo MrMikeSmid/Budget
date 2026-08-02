@@ -8,8 +8,21 @@ final class Pot
 {
     public const TYPES = ['leefpotje' => 'Leefpotje', 'spaarpotje' => 'Spaarpotje'];
 
+    /**
+     * De "actuele stand": potjes zoals ze in de actieve periode bestaan.
+     * Gebruik allForPeriod() met een expliciete periode-id als je wilt
+     * weten welke potjes er in een andere (bijv. nog niet actieve)
+     * periode bestonden of bestaan.
+     */
     public static function all(): array
     {
+        $active = BudgetPeriod::active();
+        if ($active) {
+            return self::allForPeriod((int) $active['id']);
+        }
+
+        // Nog geen enkele periode aangemaakt: geen periode om aan te toetsen,
+        // dus gewoon alles tonen wat niet (zacht) verwijderd is.
         $stmt = Database::connection()->query(
             'SELECT p.*, bp.name AS linked_period_name
              FROM pots p
@@ -17,8 +30,47 @@ final class Pot
              WHERE p.deleted_at IS NULL
              ORDER BY p.sort_order, p.id'
         );
-        $rows = $stmt->fetchAll();
 
+        return self::decorateRows($stmt->fetchAll());
+    }
+
+    /**
+     * Potjes zoals ze in een specifieke periode bestonden: een potje telt
+     * mee als het (nog) niet is verwijderd, of pas verwijderd is in een
+     * latere periode dan $periodId — en als het al bestond, d.w.z.
+     * aangemaakt in $periodId zelf of een eerdere periode. Zo blijft een
+     * potje dat je in een nog niet actieve, toekomstige periode aanmaakt
+     * of verwijdert, in de huidige en eerdere periodes ongewijzigd staan.
+     * Potjes die al verwijderd waren vóórdat deze koppeling bestond
+     * (deleted_period_id onbekend) blijven overal verborgen, zoals voorheen.
+     */
+    public static function allForPeriod(int $periodId): array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT p.*, bp.name AS linked_period_name
+             FROM pots p
+             LEFT JOIN budget_periods bp ON bp.id = p.linked_period_id
+             LEFT JOIN budget_periods cp ON cp.id = p.created_period_id
+             LEFT JOIN budget_periods dp ON dp.id = p.deleted_period_id
+             JOIN budget_periods target ON target.id = :period_id
+             WHERE (p.created_period_id IS NULL OR cp.start_date <= target.start_date)
+               AND (
+                     p.deleted_at IS NULL
+                     OR (p.deleted_period_id IS NOT NULL AND dp.start_date > target.start_date)
+                   )
+             ORDER BY p.sort_order, p.id'
+        );
+        $stmt->execute(['period_id' => $periodId]);
+
+        return self::decorateRows($stmt->fetchAll());
+    }
+
+    /**
+     * Voegt de afgeleide velden (base_amount/resolved_amount) toe aan een
+     * set potjerijen, gedeeld door all() en allForPeriod().
+     */
+    private static function decorateRows(array $rows): array
+    {
         foreach ($rows as &$row) {
             $base = $row['linked_period_id']
                 ? BudgetPeriod::endingBalance((int) $row['linked_period_id'])
@@ -125,15 +177,21 @@ final class Pot
         return $rows;
     }
 
-    public static function create(string $name, string $icon, ?float $amount, string $note, ?int $linkedPeriodId, string $type = 'leefpotje'): int
+    /**
+     * $createdPeriodId is de periode die je had geselecteerd toen je dit
+     * potje aanmaakte (niet per se de actieve periode) — vanaf die periode
+     * (en elke latere) bestaat het potje; null betekent "heeft altijd
+     * bestaan" (o.a. voor potjes van vóór deze koppeling).
+     */
+    public static function create(string $name, string $icon, ?float $amount, string $note, ?int $linkedPeriodId, string $type = 'leefpotje', ?int $createdPeriodId = null): int
     {
         $pdo = Database::connection();
 
         $sortOrder = (int) $pdo->query('SELECT COALESCE(MAX(sort_order), 0) + 1 FROM pots')->fetchColumn();
 
         $stmt = $pdo->prepare(
-            'INSERT INTO pots (name, icon, amount, note, linked_period_id, type, sort_order)
-             VALUES (:name, :icon, :amount, :note, :linked_period_id, :type, :sort_order)'
+            'INSERT INTO pots (name, icon, amount, note, linked_period_id, type, sort_order, created_period_id)
+             VALUES (:name, :icon, :amount, :note, :linked_period_id, :type, :sort_order, :created_period_id)'
         );
         $stmt->execute([
             'name' => $name,
@@ -143,6 +201,7 @@ final class Pot
             'linked_period_id' => $linkedPeriodId ?: null,
             'type' => self::normalizeType($type),
             'sort_order' => $sortOrder,
+            'created_period_id' => $createdPeriodId,
         ]);
 
         return (int) $pdo->lastInsertId();
@@ -171,13 +230,19 @@ final class Pot
 
     /**
      * Zacht verwijderen: het potje verdwijnt uit actieve lijsten en
-     * keuzemenu's (zie all()), maar de rij — en daarmee de geschiedenis
-     * van al zijn mutaties en hun effect op het saldo van (afgesloten)
-     * periodes — blijft intact.
+     * keuzemenu's, maar de rij — en daarmee de geschiedenis van al zijn
+     * mutaties en hun effect op het saldo van (afgesloten) periodes —
+     * blijft intact. $deletedPeriodId is de periode die je had
+     * geselecteerd toen je verwijderde: het potje verdwijnt vanaf die
+     * periode (inclusief) en blijft in elke periode ervóór gewoon bestaan
+     * (zie allForPeriod()). Zonder periode (null) verdwijnt het potje
+     * overal, zoals voorheen.
      */
-    public static function delete(int $id): void
+    public static function delete(int $id, ?int $deletedPeriodId = null): void
     {
-        $stmt = Database::connection()->prepare("UPDATE pots SET deleted_at = datetime('now') WHERE id = :id");
-        $stmt->execute(['id' => $id]);
+        $stmt = Database::connection()->prepare(
+            "UPDATE pots SET deleted_at = datetime('now'), deleted_period_id = :deleted_period_id WHERE id = :id"
+        );
+        $stmt->execute(['id' => $id, 'deleted_period_id' => $deletedPeriodId]);
     }
 }

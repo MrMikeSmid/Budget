@@ -40,7 +40,7 @@ final class DashboardController
             'balance' => $balance,
             'balanceAfterFixedCosts' => $balanceAfterFixedCosts,
             'recentTransactions' => array_slice(array_reverse($transactions), 0, 5),
-            'pots' => Pot::all(),
+            'pots' => $period ? Pot::allForPeriod((int) $period['id']) : Pot::all(),
         ]);
     }
 }

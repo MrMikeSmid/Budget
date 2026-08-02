@@ -6,19 +6,26 @@ use App\Support\View;
 
 /** @var array $pots */
 /** @var array $periods */
+/** @var array|null $period */
 /** @var array|null $editing */
 
 $leefpotjes = array_filter($pots, static fn ($p) => ($p['type'] ?? 'leefpotje') === 'leefpotje');
 $spaarpotjes = array_filter($pots, static fn ($p) => ($p['type'] ?? 'leefpotje') === 'spaarpotje');
 ?>
+<?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => 'potjes'], null); ?>
+
 <button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Potje toevoegen">+</button>
 
 <div class="form-panel" id="add-form-panel" <?= $editing ? '' : 'hidden' ?>>
     <div class="card">
         <h2 class="mt-0"><?= $editing ? 'Potje bewerken' : 'Nieuw potje' ?></h2>
+        <?php if (!$editing && $period): ?>
+            <p class="text-muted">Dit potje bestaat vanaf periode "<?= View::e($period['name']) ?>" — in eerdere periodes blijft het onzichtbaar.</p>
+        <?php endif; ?>
         <form class="inline-form" method="post" action="<?= View::e(View::url('potjes-save')) ?>">
             <?= Csrf::field() ?>
             <input type="hidden" name="id" value="<?= (int) ($editing['id'] ?? 0) ?>">
+            <input type="hidden" name="period_id" value="<?= (int) ($period['id'] ?? 0) ?>">
             <div class="field-row">
                 <div class="field" style="flex:0 0 90px;">
                     <label for="icon">Icoon</label>
@@ -58,7 +65,7 @@ $spaarpotjes = array_filter($pots, static fn ($p) => ($p['type'] ?? 'leefpotje')
             </div>
             <button type="submit" class="btn"><?= $editing ? 'Opslaan' : 'Toevoegen' ?></button>
             <?php if ($editing): ?>
-                <a class="btn secondary" href="<?= View::e(View::url('potjes')) ?>">Annuleren</a>
+                <a class="btn secondary" href="<?= View::e(View::url('potjes', $period ? ['period' => $period['id']] : [])) ?>">Annuleren</a>
             <?php endif; ?>
         </form>
     </div>
@@ -74,7 +81,7 @@ $spaarpotjes = array_filter($pots, static fn ($p) => ($p['type'] ?? 'leefpotje')
     <?php else: ?>
         <div class="pots-grid">
             <?php foreach ($leefpotjes as $pot): ?>
-                <?php View::render('partials/pot-card', ['pot' => $pot], null); ?>
+                <?php View::render('partials/pot-card', ['pot' => $pot, 'period' => $period], null); ?>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
@@ -90,7 +97,7 @@ $spaarpotjes = array_filter($pots, static fn ($p) => ($p['type'] ?? 'leefpotje')
     <?php else: ?>
         <div class="pots-grid">
             <?php foreach ($spaarpotjes as $pot): ?>
-                <?php View::render('partials/pot-card', ['pot' => $pot], null); ?>
+                <?php View::render('partials/pot-card', ['pot' => $pot, 'period' => $period], null); ?>
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
