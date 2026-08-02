@@ -34,12 +34,12 @@ use App\Support\View;
                 <input type="text" id="description" name="description" required value="<?= View::e($editing['description'] ?? '') ?>">
             </div>
             <div class="field">
-                <label for="pot_id">Potje (optioneel)</label>
+                <label for="pot_id">Potje (optioneel — uitgave/inkomst die van dit potje af/bij gaat, niet van het losse saldo)</label>
                 <select id="pot_id" name="pot_id">
                     <option value="">Geen koppeling</option>
                     <?php foreach ($pots as $p): ?>
                         <option value="<?= (int) $p['id'] ?>" <?= !empty($editing['pot_id']) && (int) $editing['pot_id'] === (int) $p['id'] ? 'selected' : '' ?>>
-                            <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?>
+                            <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?> (<?= View::money((float) $p['resolved_amount']) ?>)
                         </option>
                     <?php endforeach; ?>
                 </select>
@@ -52,6 +52,54 @@ use App\Support\View;
             <?php if ($editing): ?>
                 <a class="btn secondary" href="<?= View::e(View::url('kasstroom', ['period' => $period['id']])) ?>">Annuleren</a>
             <?php endif; ?>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2 class="mt-0">Overboeken</h2>
+        <p class="text-muted">Geld verplaatsen tussen het losse saldo en een potje, of tussen twee potjes. Dit is geen uitgave: er verdwijnt niets uit het systeem, het geld verhuist alleen.</p>
+        <form class="inline-form" method="post" action="<?= View::e(View::url('potje-overboeking-save')) ?>">
+            <?= Csrf::field() ?>
+            <input type="hidden" name="period_id" value="<?= (int) $period['id'] ?>">
+            <div class="field-row">
+                <div class="field">
+                    <label for="from_pot_id">Van</label>
+                    <select id="from_pot_id" name="from_pot_id">
+                        <option value="">Los saldo</option>
+                        <?php foreach ($pots as $p): ?>
+                            <option value="<?= (int) $p['id'] ?>">
+                                <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?> (<?= View::money((float) $p['resolved_amount']) ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="to_pot_id">Naar</label>
+                    <select id="to_pot_id" name="to_pot_id">
+                        <option value="">Los saldo</option>
+                        <?php foreach ($pots as $p): ?>
+                            <option value="<?= (int) $p['id'] ?>">
+                                <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?> (<?= View::money((float) $p['resolved_amount']) ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="transfer_date">Datum</label>
+                    <input type="date" id="transfer_date" name="txn_date" required value="<?= date('Y-m-d') ?>">
+                </div>
+                <div class="field">
+                    <label for="transfer_amount">Bedrag</label>
+                    <input type="number" step="0.01" min="0.01" id="transfer_amount" name="amount" required>
+                </div>
+            </div>
+            <div class="field">
+                <label for="transfer_description">Omschrijving (optioneel)</label>
+                <input type="text" id="transfer_description" name="description">
+            </div>
+            <button type="submit" class="btn">Overboeken</button>
         </form>
     </div>
 

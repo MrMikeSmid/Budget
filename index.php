@@ -96,6 +96,7 @@ $router->post('potjes-delete', authed([PotController::class, 'delete']));
 $router->get('potje', authed([PotTransactionController::class, 'index']));
 $router->post('potje-transactie-save', authed([PotTransactionController::class, 'save']));
 $router->post('potje-transactie-delete', authed([PotTransactionController::class, 'delete']));
+$router->post('potje-overboeking-save', authed([PotTransactionController::class, 'transfer']));
 
 // Leningen/schulden
 $router->get('leningen', authed([LoanController::class, 'index']));
