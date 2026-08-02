@@ -197,14 +197,15 @@ abstract class LineItem
     }
 
     /**
-     * Kopieert terugkerende regels naar een nieuwe periode, met inachtneming
-     * van de frequentie (maandelijks/kwartaal/halfjaarlijks/jaarlijks): zoekt
-     * niet alleen in de vorige periode, maar over de hele geschiedenis — een
+     * Kopieert terugkerende regels naar een periode, met inachtneming van de
+     * frequentie (maandelijks/kwartaal/halfjaarlijks/jaarlijks): zoekt niet
+     * alleen in de vorige periode, maar over de hele geschiedenis — een
      * jaarlijkse regel kan voor het laatst maanden geleden voorgekomen zijn.
      * Werkelijk bedrag en status worden leeggemaakt (nieuwe periode, nog niets
-     * betaald/ontvangen); terugkerend blijft aan staan.
+     * betaald/ontvangen); terugkerend blijft aan staan. Idempotent: een groep
+     * die in $toPeriodId al een voorkomen heeft, wordt overgeslagen.
      */
-    public static function copyRecurring(int $fromPeriodId, int $toPeriodId): void
+    public static function copyRecurring(int $toPeriodId): void
     {
         $newPeriod = BudgetPeriod::find($toPeriodId);
         if (!$newPeriod) {
@@ -214,18 +215,38 @@ abstract class LineItem
         $pdo = Database::connection();
         $table = static::table();
 
-        // Eén rij per terugkerende reeks: de meest recente voorkomen, ongeacht periode.
+        // Eén rij per terugkerende reeks: de meest recente voorkomen vóór of
+        // op de doelperiode. Beperkt tot bp.start_date <= doelperiode, want
+        // fillFuturePeriods() kan periodes niet per se in chronologische
+        // volgorde (opnieuw) langslopen — zonder deze grens zou een reeks die
+        // al verder in de toekomst een voorkomen heeft, per ongeluk dat latere
+        // voorkomen als uitgangspunt nemen voor een eerdere doelperiode.
         $stmt = $pdo->prepare(
             "SELECT COALESCE(li.recurrence_group_id, li.id) AS group_key, MAX(bp.start_date) AS latest_start
              FROM {$table} li
              JOIN budget_periods bp ON bp.id = li.period_id
-             WHERE li.is_recurring = 1
+             WHERE li.is_recurring = 1 AND bp.start_date <= :target_start
              GROUP BY group_key"
         );
+        $stmt->bindValue('target_start', $newPeriod['start_date']);
         $stmt->execute();
         $groups = $stmt->fetchAll();
 
         foreach ($groups as $group) {
+            // Losse, expliciete aanwezigheidscheck (i.p.v. afleiden uit "is de
+            // meest recente voorkomen toevallig de doelperiode"): anders mist
+            // deze check een voorkomen dat al in de doelperiode zit terwijl er
+            // ook al een latere periode gevuld is.
+            $existsStmt = $pdo->prepare(
+                "SELECT 1 FROM {$table} WHERE COALESCE(recurrence_group_id, id) = :group_key AND period_id = :period_id LIMIT 1"
+            );
+            $existsStmt->bindValue('group_key', (int) $group['group_key'], \PDO::PARAM_INT);
+            $existsStmt->bindValue('period_id', $toPeriodId, \PDO::PARAM_INT);
+            $existsStmt->execute();
+            if ($existsStmt->fetchColumn()) {
+                continue; // al aanwezig in de doelperiode
+            }
+
             $stmt = $pdo->prepare(
                 "SELECT li.*, bp.start_date AS occurrence_start_date
                  FROM {$table} li
@@ -241,8 +262,8 @@ abstract class LineItem
             $stmt->execute();
             $item = $stmt->fetch();
 
-            if (!$item || (int) $item['period_id'] === $toPeriodId) {
-                continue; // al aanwezig in de doelperiode
+            if (!$item) {
+                continue;
             }
 
             if (!self::isDueForPeriod($item, $newPeriod)) {
@@ -263,6 +284,31 @@ abstract class LineItem
                 $item['recurrence_date'] ?: null,
                 $groupId
             );
+        }
+    }
+
+    /**
+     * Vult alle al bestaande, latere periodes aan met terugkerende regels
+     * die daar nog ontbreken. Nodig omdat er vooruit gepland wordt: een
+     * nieuwe (of net terugkerend gemaakte) regel in $fromPeriodId moet ook
+     * verschijnen in periodes die al bestonden vóórdat deze regel er was —
+     * niet pas zodra er weer een nieuwe periode aangemaakt wordt.
+     */
+    public static function fillFuturePeriods(int $fromPeriodId): void
+    {
+        $fromPeriod = BudgetPeriod::find($fromPeriodId);
+        if (!$fromPeriod) {
+            return;
+        }
+
+        $futurePeriods = array_values(array_filter(
+            BudgetPeriod::all(),
+            static fn (array $p): bool => $p['start_date'] > $fromPeriod['start_date']
+        ));
+        usort($futurePeriods, static fn (array $a, array $b): int => $a['start_date'] <=> $b['start_date']);
+
+        foreach ($futurePeriods as $period) {
+            static::copyRecurring((int) $period['id']);
         }
     }
 

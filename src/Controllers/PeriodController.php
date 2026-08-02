@@ -51,11 +51,8 @@ final class PeriodController
         }
 
         if ($isNew && $copyRecurring) {
-            $previous = BudgetPeriod::previousBefore($id, $start);
-            if ($previous) {
-                IncomeItem::copyRecurring((int) $previous['id'], $id);
-                FixedCost::copyRecurring((int) $previous['id'], $id);
-            }
+            IncomeItem::copyRecurring($id);
+            FixedCost::copyRecurring($id);
         }
 
         View::flash('Periode opgeslagen.');

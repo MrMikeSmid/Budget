@@ -134,13 +134,13 @@ final class FixedCost extends LineItem
     }
 
     /**
-     * Kopieert terugkerende vaste lasten naar een nieuwe periode. In
-     * tegenstelling tot de generieke LineItem-versie zoekt dit niet alleen in
-     * de vorige periode, maar over de hele geschiedenis: een jaarlijkse last
-     * die twee periodes geleden voor het laatst voorkwam, moet nu nog steeds
-     * gevonden worden.
+     * Kopieert terugkerende vaste lasten naar een periode. Zoekt niet alleen
+     * in de vorige periode, maar over de hele geschiedenis: een jaarlijkse
+     * last die twee periodes geleden voor het laatst voorkwam, moet nu nog
+     * steeds gevonden worden. Idempotent: een groep die in $toPeriodId al
+     * een voorkomen heeft, wordt overgeslagen.
      */
-    public static function copyRecurring(int $fromPeriodId, int $toPeriodId): void
+    public static function copyRecurring(int $toPeriodId): void
     {
         $newPeriod = BudgetPeriod::find($toPeriodId);
         if (!$newPeriod) {
@@ -149,16 +149,33 @@ final class FixedCost extends LineItem
 
         $pdo = Database::connection();
 
-        // Eén rij per terugkerende reeks: de meest recente voorkomen, ongeacht periode.
-        $groups = $pdo->query(
+        // Eén rij per terugkerende reeks: de meest recente voorkomen vóór of
+        // op de doelperiode (zie LineItem::copyRecurring() voor waarom deze
+        // grens nodig is bij het (opnieuw) niet-chronologisch vullen van
+        // periodes via fillFuturePeriods()).
+        $stmt = $pdo->prepare(
             "SELECT COALESCE(fc.recurrence_group_id, fc.id) AS group_key, MAX(bp.start_date) AS latest_start
              FROM fixed_costs fc
              JOIN budget_periods bp ON bp.id = fc.period_id
-             WHERE fc.is_recurring = 1
+             WHERE fc.is_recurring = 1 AND bp.start_date <= :target_start
              GROUP BY group_key"
-        )->fetchAll();
+        );
+        $stmt->bindValue('target_start', $newPeriod['start_date']);
+        $stmt->execute();
+        $groups = $stmt->fetchAll();
 
         foreach ($groups as $group) {
+            // Losse, expliciete aanwezigheidscheck, zie LineItem::copyRecurring().
+            $existsStmt = $pdo->prepare(
+                'SELECT 1 FROM fixed_costs WHERE COALESCE(recurrence_group_id, id) = :group_key AND period_id = :period_id LIMIT 1'
+            );
+            $existsStmt->bindValue('group_key', (int) $group['group_key'], \PDO::PARAM_INT);
+            $existsStmt->bindValue('period_id', $toPeriodId, \PDO::PARAM_INT);
+            $existsStmt->execute();
+            if ($existsStmt->fetchColumn()) {
+                continue; // al aanwezig in de doelperiode
+            }
+
             $stmt = $pdo->prepare(
                 "SELECT fc.*, bp.start_date AS occurrence_start_date
                  FROM fixed_costs fc
@@ -174,8 +191,8 @@ final class FixedCost extends LineItem
             $stmt->execute();
             $item = $stmt->fetch();
 
-            if (!$item || (int) $item['period_id'] === $toPeriodId) {
-                continue; // al aanwezig in de doelperiode
+            if (!$item) {
+                continue;
             }
 
             if (!self::isDueForPeriod($item, $newPeriod)) {

@@ -68,6 +68,12 @@ final class IncomeController extends LineItemController
             View::flash('Regel toegevoegd.');
         }
 
+        // Er wordt vooruit gepland: een (net) terugkerende regel moet ook
+        // verschijnen in periodes die al bestonden vóórdat deze regel er was.
+        if ($isRecurring) {
+            IncomeItem::fillFuturePeriods($periodId);
+        }
+
         header('Location: ' . View::url('inkomsten', ['period' => $periodId]));
         exit;
     }
