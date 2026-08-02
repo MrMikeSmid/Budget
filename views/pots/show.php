@@ -4,6 +4,7 @@ use App\Support\Csrf;
 use App\Support\View;
 
 /** @var array $pot */
+/** @var array|null $period */
 /** @var array $ledger */
 /** @var array|null $editing */
 ?>
@@ -27,6 +28,7 @@ use App\Support\View;
         <?= Csrf::field() ?>
         <input type="hidden" name="id" value="<?= (int) ($editing['id'] ?? 0) ?>">
         <input type="hidden" name="pot_id" value="<?= (int) $pot['id'] ?>">
+        <input type="hidden" name="period_id" value="<?= (int) ($period['id'] ?? 0) ?>">
         <div class="field-row">
             <div class="field">
                 <label for="txn_date">Datum</label>
@@ -41,6 +43,9 @@ use App\Support\View;
             <label for="description">Omschrijving</label>
             <input type="text" id="description" name="description" required value="<?= View::e($editing['description'] ?? '') ?>">
         </div>
+        <?php if (!$editing && $period): ?>
+            <p class="text-muted">Een storting (+) gaat van het saldo van periode "<?= View::e($period['name']) ?>" af, een opname (-) komt er weer bij.</p>
+        <?php endif; ?>
         <button type="submit" class="btn"><?= $editing ? 'Opslaan' : 'Toevoegen' ?></button>
         <?php if ($editing): ?>
             <a class="btn secondary" href="<?= View::e(View::url('potje', ['id' => $pot['id']])) ?>">Annuleren</a>

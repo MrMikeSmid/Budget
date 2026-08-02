@@ -138,13 +138,14 @@ final class BudgetPeriod
                 COALESCE((SELECT SUM(actual) FROM income_items WHERE period_id = p.id), 0) AS income_actual,
                 COALESCE((SELECT SUM(budgeted) FROM fixed_costs WHERE period_id = p.id), 0) AS fixed_budgeted,
                 COALESCE((SELECT SUM(actual) FROM fixed_costs WHERE period_id = p.id), 0) AS fixed_actual,
-                COALESCE((SELECT SUM(amount) FROM transactions WHERE period_id = p.id), 0) AS transactions_sum
+                COALESCE((SELECT SUM(amount) FROM transactions WHERE period_id = p.id), 0) AS transactions_sum,
+                COALESCE((SELECT SUM(amount) FROM pot_transactions WHERE period_id = p.id), 0) AS pot_transactions_sum
              FROM budget_periods p
              ORDER BY p.start_date ASC"
         )->fetchAll();
 
         foreach ($rows as &$row) {
-            $row['ending_balance'] = (float) $row['income_actual'] - (float) $row['fixed_actual'] + (float) $row['transactions_sum'];
+            $row['ending_balance'] = (float) $row['income_actual'] - (float) $row['fixed_actual'] + (float) $row['transactions_sum'] - (float) $row['pot_transactions_sum'];
         }
 
         return $rows;
@@ -152,7 +153,9 @@ final class BudgetPeriod
 
     /**
      * Verwacht saldo kasstroom van deze periode: ontvangen inkomsten min
-     * betaalde vaste lasten, plus de som van alle kasstroommutaties.
+     * betaalde vaste lasten, plus de som van alle kasstroommutaties, min
+     * wat er in deze periode in potjes is gestort (en plus wat eruit is
+     * opgenomen) — dat geld staat immers niet meer los op het saldo.
      */
     public static function endingBalance(int $id): float
     {
@@ -163,6 +166,10 @@ final class BudgetPeriod
         $stmt->execute(['id' => $id]);
         $sum = (float) $stmt->fetchColumn();
 
-        return $incomeActual - $fixedActual + $sum;
+        $stmt = Database::connection()->prepare('SELECT COALESCE(SUM(amount), 0) FROM pot_transactions WHERE period_id = :id');
+        $stmt->execute(['id' => $id]);
+        $potSum = (float) $stmt->fetchColumn();
+
+        return $incomeActual - $fixedActual + $sum - $potSum;
     }
 }

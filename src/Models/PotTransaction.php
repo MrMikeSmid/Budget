@@ -15,17 +15,18 @@ final class PotTransaction
         return $row ?: null;
     }
 
-    public static function create(int $potId, ?int $userId, string $date, string $description, float $amount): int
+    public static function create(int $potId, ?int $userId, ?int $periodId, string $date, string $description, float $amount): int
     {
         $pdo = Database::connection();
 
         $stmt = $pdo->prepare(
-            'INSERT INTO pot_transactions (pot_id, user_id, txn_date, description, amount)
-             VALUES (:pot_id, :user_id, :date, :description, :amount)'
+            'INSERT INTO pot_transactions (pot_id, user_id, period_id, txn_date, description, amount)
+             VALUES (:pot_id, :user_id, :period_id, :date, :description, :amount)'
         );
         $stmt->execute([
             'pot_id' => $potId,
             'user_id' => $userId,
+            'period_id' => $periodId,
             'date' => $date,
             'description' => $description,
             'amount' => $amount,

@@ -9,8 +9,9 @@ final class Transaction
     /**
      * Alle transacties van een periode, elk met lopend saldo. Start niet
      * vanaf een handmatige beginstand, maar vanaf de ontvangen inkomsten
-     * min de betaalde vaste lasten: zo eindigt de laatste rij op het
-     * "verwachte saldo kasstroom" van de periode.
+     * min de betaalde vaste lasten en min wat er deze periode al in
+     * potjes is gestort/opgenomen: zo eindigt de laatste rij op hetzelfde
+     * "verwachte saldo kasstroom" als BudgetPeriod::endingBalance().
      */
     public static function forPeriod(int $periodId): array
     {
@@ -23,7 +24,11 @@ final class Transaction
         $stmt->execute(['period_id' => $periodId]);
         $rows = $stmt->fetchAll();
 
-        $running = (float) IncomeItem::totals($periodId)['actual'] - (float) FixedCost::totals($periodId)['actual'];
+        $stmt = Database::connection()->prepare('SELECT COALESCE(SUM(amount), 0) FROM pot_transactions WHERE period_id = :period_id');
+        $stmt->execute(['period_id' => $periodId]);
+        $potSum = (float) $stmt->fetchColumn();
+
+        $running = (float) IncomeItem::totals($periodId)['actual'] - (float) FixedCost::totals($periodId)['actual'] - $potSum;
         foreach ($rows as &$row) {
             $running += (float) $row['amount'];
             $row['balance'] = $running;
