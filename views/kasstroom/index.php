@@ -14,7 +14,8 @@ use App\Support\View;
 
 <?php if ($period): ?>
     <div class="card">
-        <h2 class="mt-0"><?= $editing ? 'Mutatie bewerken' : 'Mutatie toevoegen' ?></h2>
+        <h2 class="mt-0"><?= $editing ? 'Uitgave bewerken' : 'Uitgave toevoegen' ?></h2>
+        <p class="text-muted">Alleen voor uitgaven: het bedrag gaat af van het losse saldo, of — als je een potje als bron kiest — van dat potje. Geld terugboeken of tussen potjes verplaatsen doe je bij "Overboeken", nieuw geld voeg je toe bij Inkomen.</p>
         <form class="inline-form" method="post" action="<?= View::e(View::url('kasstroom-save')) ?>">
             <?= Csrf::field() ?>
             <input type="hidden" name="id" value="<?= (int) ($editing['id'] ?? 0) ?>">
@@ -25,8 +26,8 @@ use App\Support\View;
                     <input type="date" id="txn_date" name="txn_date" required value="<?= View::e($editing['txn_date'] ?? date('Y-m-d')) ?>">
                 </div>
                 <div class="field">
-                    <label for="amount">Mutatie (+ of -)</label>
-                    <input type="number" step="0.01" id="amount" name="amount" required value="<?= View::e((string) ($editing['amount'] ?? '')) ?>">
+                    <label for="amount">Bedrag</label>
+                    <input type="number" step="0.01" min="0.01" id="amount" name="amount" required value="<?= View::e($editing ? (string) abs((float) $editing['amount']) : '') ?>">
                 </div>
             </div>
             <div class="field">
@@ -34,9 +35,9 @@ use App\Support\View;
                 <input type="text" id="description" name="description" required value="<?= View::e($editing['description'] ?? '') ?>">
             </div>
             <div class="field">
-                <label for="pot_id">Potje (optioneel — uitgave/inkomst die van dit potje af/bij gaat, niet van het losse saldo)</label>
+                <label for="pot_id">Bron</label>
                 <select id="pot_id" name="pot_id">
-                    <option value="">Geen koppeling</option>
+                    <option value="">Los saldo</option>
                     <?php foreach ($pots as $p): ?>
                         <option value="<?= (int) $p['id'] ?>" <?= !empty($editing['pot_id']) && (int) $editing['pot_id'] === (int) $p['id'] ? 'selected' : '' ?>>
                             <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?> (<?= View::money((float) $p['resolved_amount']) ?>)

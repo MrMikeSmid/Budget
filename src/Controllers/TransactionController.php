@@ -25,13 +25,19 @@ final class TransactionController
         ]);
     }
 
+    /**
+     * De kasstroom-mutatie is uitsluitend voor uitgaven: het bedrag wordt
+     * altijd als negatief opgeslagen, ongeacht hoe het ingevuld is. Geld
+     * terugboeken of tussen potjes verplaatsen gaat via "Overboeken", en
+     * echt nieuw geld voeg je toe bij Inkomen.
+     */
     public static function save(): void
     {
         $id = (int) ($_POST['id'] ?? 0);
         $periodId = (int) ($_POST['period_id'] ?? 0);
         $date = $_POST['txn_date'] ?? '';
         $description = trim($_POST['description'] ?? '');
-        $amount = (float) str_replace(',', '.', $_POST['amount'] ?? '0');
+        $amount = -abs((float) str_replace(',', '.', $_POST['amount'] ?? '0'));
         $settled = !empty($_POST['is_settled']);
         $potId = (int) ($_POST['pot_id'] ?? 0) ?: null;
         $pot = $potId ? Pot::find($potId) : null;
@@ -41,11 +47,11 @@ final class TransactionController
             View::flash('Vul een datum en omschrijving in.', 'error');
         } elseif ($id > 0) {
             Transaction::update($id, $date, $description, $amount, $settled, $potId);
-            Activity::log('kasstroom', 'Mutatie bijgewerkt: ' . $description . $potSuffix, $amount);
+            Activity::log('kasstroom', 'Uitgave bijgewerkt: ' . $description . $potSuffix, $amount);
             View::flash('Transactie opgeslagen.');
         } else {
             Transaction::create($periodId, $date, $description, $amount, $settled, $potId);
-            Activity::log('kasstroom', 'Mutatie toegevoegd: ' . $description . $potSuffix, $amount);
+            Activity::log('kasstroom', 'Uitgave toegevoegd: ' . $description . $potSuffix, $amount);
             View::flash('Transactie toegevoegd.');
         }
 
