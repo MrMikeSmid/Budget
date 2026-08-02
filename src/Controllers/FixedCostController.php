@@ -72,6 +72,12 @@ final class FixedCostController extends LineItemController
             View::flash('Regel toegevoegd.');
         }
 
+        // Er wordt vooruit gepland: een (net) terugkerende last moet ook
+        // verschijnen in periodes die al bestonden vóórdat deze last er was.
+        if ($isRecurring) {
+            FixedCost::fillFuturePeriods($periodId);
+        }
+
         header('Location: ' . View::url('vaste-lasten', ['period' => $periodId]));
         exit;
     }
