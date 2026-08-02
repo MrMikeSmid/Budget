@@ -86,6 +86,16 @@ beschermt aan. Wil je later toch instellingen overschrijven, kopieer dan
 `config/config.example.php` naar `config/config.php` op de server en pas de
 waarden aan — dat bestand overleeft daarna elke volgende deploy.
 
+## PWA
+
+De app is installeerbaar als Progressive Web App: `manifest.webmanifest`
+levert naam, thema-kleur en iconen (`assets/icons/`), en `service-worker.js`
+cachet alleen de statische shell (CSS, iconen) zodat die snel laadt en er een
+`offline.html`-pagina getoond wordt als een navigatie zonder netwerk faalt.
+Paginadata wordt bewust nooit gecached — die is sessie- en CSRF-gebonden en
+moet altijd vers van de server komen. Werkt op elke submap, net als de rest
+van de app (zie hieronder), omdat alle paden relatief zijn.
+
 ## Verplaatsen naar een andere map
 
 De app gebruikt overal relatieve links (`index.php?page=...`) in plaats van
