@@ -11,7 +11,9 @@ final class Transaction
      * vanaf een handmatige beginstand, maar vanaf de ontvangen inkomsten
      * min de betaalde vaste lasten en min wat er deze periode al in
      * potjes is gestort/opgenomen: zo eindigt de laatste rij op hetzelfde
-     * "verwachte saldo kasstroom" als BudgetPeriod::endingBalance().
+     * "verwachte saldo kasstroom" als BudgetPeriod::endingBalance(). Een
+     * mutatie die aan een potje gekoppeld is, verandert het lopende saldo
+     * niet — dat geld komt/gaat immers al bij het potje zelf vandaan.
      */
     public static function forPeriod(int $periodId): array
     {
@@ -30,7 +32,9 @@ final class Transaction
 
         $running = (float) IncomeItem::totals($periodId)['actual'] - (float) FixedCost::totals($periodId)['actual'] - $potSum;
         foreach ($rows as &$row) {
-            $running += (float) $row['amount'];
+            if (empty($row['pot_id'])) {
+                $running += (float) $row['amount'];
+            }
             $row['balance'] = $running;
         }
 

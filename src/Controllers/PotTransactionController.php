@@ -77,4 +77,52 @@ final class PotTransactionController
         header('Location: ' . View::url('potje', ['id' => $potId]));
         exit;
     }
+
+    /**
+     * Overboeking tussen los saldo en een potje, of tussen twee potjes.
+     * "Los saldo" wordt gemodelleerd als het ontbreken van een potje aan
+     * die kant: alleen de kant(en) met een potje krijgen een
+     * pot_transactions-rij, zodat het bestaande saldomechanisme (dat
+     * pot_transactions per periode van/bij het saldo optelt) de rest doet.
+     */
+    public static function transfer(): void
+    {
+        $periodId = (int) ($_POST['period_id'] ?? 0) ?: null;
+        $date = $_POST['txn_date'] ?? '';
+        $fromPotId = (int) ($_POST['from_pot_id'] ?? 0) ?: null;
+        $toPotId = (int) ($_POST['to_pot_id'] ?? 0) ?: null;
+        $amount = abs((float) str_replace(',', '.', $_POST['amount'] ?? '0'));
+        $description = trim($_POST['description'] ?? '');
+
+        $fromPot = $fromPotId ? Pot::find($fromPotId) : null;
+        $toPot = $toPotId ? Pot::find($toPotId) : null;
+
+        $invalid = $date === '' || $amount <= 0
+            || (!$fromPot && !$toPot)
+            || ($fromPotId && $toPotId && $fromPotId === $toPotId);
+
+        if ($invalid) {
+            View::flash('Kies een geldige overboeking (bedrag, datum en een andere bron/bestemming).', 'error');
+            header('Location: ' . View::url('kasstroom', ['period' => $periodId]));
+            exit;
+        }
+
+        $user = Auth::user();
+        $fromLabel = $fromPot ? $fromPot['name'] : 'saldo';
+        $toLabel = $toPot ? $toPot['name'] : 'saldo';
+        $label = $description !== '' ? $description : "Overboeking: {$fromLabel} \u{2192} {$toLabel}";
+
+        if ($fromPot) {
+            PotTransaction::create($fromPot['id'], $user['id'] ?? null, $periodId, $date, $label, -$amount);
+            Activity::log('potjes', "Overboeking vanuit potje '{$fromPot['name']}' naar {$toLabel}: {$label}", -$amount);
+        }
+        if ($toPot) {
+            PotTransaction::create($toPot['id'], $user['id'] ?? null, $periodId, $date, $label, $amount);
+            Activity::log('potjes', "Overboeking naar potje '{$toPot['name']}' vanuit {$fromLabel}: {$label}", $amount);
+        }
+
+        View::flash('Overboeking uitgevoerd.');
+        header('Location: ' . View::url('kasstroom', ['period' => $periodId]));
+        exit;
+    }
 }
