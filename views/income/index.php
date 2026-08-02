@@ -14,4 +14,5 @@ View::render('partials/line-items', [
     'deletePage' => 'inkomsten-delete',
     'statusSuggestions' => ['Ontvangen', 'Nog te ontvangen'],
     'outstandingLabel' => 'Nog te ontvangen',
+    'showRecurrenceOptions' => true,
 ], null);
