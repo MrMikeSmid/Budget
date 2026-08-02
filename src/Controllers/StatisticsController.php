@@ -16,16 +16,40 @@ final class StatisticsController
             $range = 'maand';
         }
 
-        $periods = BudgetPeriod::allWithTotals();
-        $buckets = Statistics::group($periods, $range);
-        $totals = Statistics::grandTotals($periods);
-        $pots = Pot::all();
+        $allPeriods = BudgetPeriod::allWithTotals();
+
+        $selectedPeriod = null;
+        $requiredCount = null;
+
+        if ($range === 'maand') {
+            $chosen = BudgetPeriod::resolveFromRequest();
+            $selectedPeriod = $chosen ? self::findById($allPeriods, (int) $chosen['id']) : null;
+            $buckets = $selectedPeriod ? [$selectedPeriod] : [];
+        } else {
+            $requiredCount = Statistics::RANGE_PERIOD_COUNTS[$range];
+            $buckets = Statistics::lastCreated($allPeriods, $requiredCount);
+        }
 
         View::render('statistics/index', [
             'range' => $range,
+            'periods' => $allPeriods,
+            'selectedPeriod' => $selectedPeriod,
             'buckets' => $buckets,
-            'totals' => $totals,
-            'pots' => $pots,
+            'totals' => Statistics::grandTotals($buckets),
+            'requiredCount' => $requiredCount,
+            'availableCount' => count($allPeriods),
+            'pots' => Pot::all(),
         ]);
+    }
+
+    private static function findById(array $periods, int $id): ?array
+    {
+        foreach ($periods as $p) {
+            if ((int) $p['id'] === $id) {
+                return $p;
+            }
+        }
+
+        return null;
     }
 }

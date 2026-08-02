@@ -3,70 +3,31 @@
 namespace App\Support;
 
 /**
- * Groepeert periodes (met hun totalen) tot maand/kwartaal/jaar-buckets
- * en berekent totaaloverzichten. Puur rekenwerk, geen database-toegang.
+ * Selecteert welke periodes bij een gekozen tijdrange horen en berekent
+ * totaaloverzichten. Puur rekenwerk, geen database-toegang.
+ *
+ * "Maand" toont één zelf gekozen periode; "kwartaal"/"jaar" tonen de
+ * laatst aangemaakte 3 resp. 12 periodes — niet per se kalenderkwartalen/
+ * -jaren, want een periode hoeft geen kalendermaand te zijn.
  */
 final class Statistics
 {
     public const RANGES = ['maand', 'kwartaal', 'jaar'];
+    public const RANGE_PERIOD_COUNTS = ['kwartaal' => 3, 'jaar' => 12];
 
     /**
+     * De laatste $count periodes op volgorde van aanmaken (hoogste id
+     * eerst), teruggegeven in chronologische volgorde (oudste eerst) zodat
+     * grafiek/tabel netjes van links naar rechts oplopen.
+     *
      * @param array $periods output van BudgetPeriod::allWithTotals()
      */
-    public static function group(array $periods, string $range): array
+    public static function lastCreated(array $periods, int $count): array
     {
-        if ($range === 'maand') {
-            return array_map(static function (array $p) {
-                return [
-                    'label' => $p['name'],
-                    'income_budgeted' => (float) $p['income_budgeted'],
-                    'income_actual' => (float) $p['income_actual'],
-                    'fixed_budgeted' => (float) $p['fixed_budgeted'],
-                    'fixed_actual' => (float) $p['fixed_actual'],
-                    'ending_balance' => (float) $p['ending_balance'],
-                    'period_count' => 1,
-                ];
-            }, $periods);
-        }
+        $sorted = $periods;
+        usort($sorted, static fn (array $a, array $b): int => (int) $b['id'] <=> (int) $a['id']);
 
-        $buckets = [];
-
-        foreach ($periods as $p) {
-            $date = strtotime((string) $p['start_date']);
-            $year = (int) date('Y', $date);
-
-            if ($range === 'jaar') {
-                $key = (string) $year;
-                $label = (string) $year;
-            } else {
-                $quarter = (int) ceil((int) date('n', $date) / 3);
-                $key = $year . '-Q' . $quarter;
-                $label = 'Q' . $quarter . ' ' . $year;
-            }
-
-            if (!isset($buckets[$key])) {
-                $buckets[$key] = [
-                    'label' => $label,
-                    'income_budgeted' => 0.0,
-                    'income_actual' => 0.0,
-                    'fixed_budgeted' => 0.0,
-                    'fixed_actual' => 0.0,
-                    'ending_balance' => 0.0,
-                    'period_count' => 0,
-                ];
-            }
-
-            $buckets[$key]['income_budgeted'] += (float) $p['income_budgeted'];
-            $buckets[$key]['income_actual'] += (float) $p['income_actual'];
-            $buckets[$key]['fixed_budgeted'] += (float) $p['fixed_budgeted'];
-            $buckets[$key]['fixed_actual'] += (float) $p['fixed_actual'];
-            $buckets[$key]['ending_balance'] = (float) $p['ending_balance']; // laatste periode in de bucket
-            $buckets[$key]['period_count']++;
-        }
-
-        ksort($buckets);
-
-        return array_values($buckets);
+        return array_reverse(array_slice($sorted, 0, $count));
     }
 
     /**
