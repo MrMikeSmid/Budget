@@ -15,13 +15,19 @@ final class PotTransaction
         return $row ?: null;
     }
 
-    public static function create(int $potId, ?int $userId, ?int $periodId, string $date, string $description, float $amount): int
+    /**
+     * $transferPotId wordt alleen gezet bij een overboeking tussen twee
+     * potjes: dan bevat het de id van het andere potje in die overboeking,
+     * zodat deze rij (die het losse saldo per saldo niet raakt) apart
+     * herkenbaar is van een gewone storting/opname op/van het losse saldo.
+     */
+    public static function create(int $potId, ?int $userId, ?int $periodId, string $date, string $description, float $amount, ?int $transferPotId = null): int
     {
         $pdo = Database::connection();
 
         $stmt = $pdo->prepare(
-            'INSERT INTO pot_transactions (pot_id, user_id, period_id, txn_date, description, amount)
-             VALUES (:pot_id, :user_id, :period_id, :date, :description, :amount)'
+            'INSERT INTO pot_transactions (pot_id, user_id, period_id, txn_date, description, amount, transfer_pot_id)
+             VALUES (:pot_id, :user_id, :period_id, :date, :description, :amount, :transfer_pot_id)'
         );
         $stmt->execute([
             'pot_id' => $potId,
@@ -30,6 +36,7 @@ final class PotTransaction
             'date' => $date,
             'description' => $description,
             'amount' => $amount,
+            'transfer_pot_id' => $transferPotId,
         ]);
 
         return (int) $pdo->lastInsertId();

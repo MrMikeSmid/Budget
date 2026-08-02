@@ -244,6 +244,10 @@ form.inline-form {
     gap: 10px;
 }
 
+form.filter-bar {
+    margin-bottom: 16px;
+}
+
 label {
     font-size: 13px;
     font-weight: 600;

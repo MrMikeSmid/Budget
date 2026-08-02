@@ -6,6 +6,7 @@ use App\Support\View;
 /** @var array $periods */
 /** @var array|null $period */
 /** @var array $transactions */
+/** @var array $filters */
 /** @var float|null $expectedBalance */
 /** @var array $pots */
 /** @var array|null $editing */
@@ -114,8 +115,52 @@ use App\Support\View;
             <h2 class="mt-0">Saldo</h2>
             <div class="value <?= $expectedBalance !== null && $expectedBalance < 0 ? 'negative' : 'positive' ?>"><?= View::money($expectedBalance) ?></div>
         </div>
+
+        <form class="inline-form filter-bar" method="get" action="index.php">
+            <input type="hidden" name="page" value="kasstroom">
+            <input type="hidden" name="period" value="<?= (int) $period['id'] ?>">
+            <div class="field-row">
+                <div class="field">
+                    <label for="filter_type">Type</label>
+                    <select id="filter_type" name="type" onchange="this.form.submit()">
+                        <option value="alle" <?= $filters['type'] === 'alle' ? 'selected' : '' ?>>Alles</option>
+                        <option value="uitgaven" <?= $filters['type'] === 'uitgaven' ? 'selected' : '' ?>>Uitgaven</option>
+                        <option value="overboekingen" <?= $filters['type'] === 'overboekingen' ? 'selected' : '' ?>>Overboekingen</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="filter_pot">Potje</label>
+                    <select id="filter_pot" name="pot_id" onchange="this.form.submit()">
+                        <option value="">Alle potjes</option>
+                        <?php foreach ($pots as $p): ?>
+                            <option value="<?= (int) $p['id'] ?>" <?= (string) $filters['pot_id'] === (string) $p['id'] ? 'selected' : '' ?>>
+                                <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="filter_sort">Sorteren op</label>
+                    <select id="filter_sort" name="sort" onchange="this.form.submit()">
+                        <option value="datum" <?= $filters['sort'] === 'datum' ? 'selected' : '' ?>>Datum</option>
+                        <option value="bedrag" <?= $filters['sort'] === 'bedrag' ? 'selected' : '' ?>>Bedrag</option>
+                        <option value="omschrijving" <?= $filters['sort'] === 'omschrijving' ? 'selected' : '' ?>>Omschrijving</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="filter_dir">Richting</label>
+                    <select id="filter_dir" name="dir" onchange="this.form.submit()">
+                        <option value="asc" <?= $filters['dir'] === 'asc' ? 'selected' : '' ?>>Oplopend</option>
+                        <option value="desc" <?= $filters['dir'] === 'desc' ? 'selected' : '' ?>>Aflopend</option>
+                    </select>
+                </div>
+            </div>
+        </form>
+
         <?php if (empty($transactions)): ?>
-            <p class="text-muted">Nog geen mutaties voor deze periode.</p>
+            <p class="text-muted">Geen mutaties voor deze periode (of dit filter).</p>
         <?php else: ?>
             <div class="table-scroll">
                 <table>
@@ -131,26 +176,44 @@ use App\Support\View;
                     </thead>
                     <tbody>
                     <?php foreach ($transactions as $t): ?>
-                        <tr style="<?= $t['is_settled'] ? 'opacity:.65;' : '' ?>">
+                        <?php $isTransfer = $t['source'] === 'overboeking'; ?>
+                        <tr style="<?= !empty($t['is_settled']) ? 'opacity:.65;' : '' ?>">
                             <td><?= View::e($t['txn_date']) ?></td>
                             <td>
                                 <?= View::e($t['description']) ?>
-                                <?php if ($t['is_settled']): ?> <span class="badge paid">verwerkt</span><?php endif; ?>
+                                <?php if ($isTransfer): ?> <span class="badge neutral">🔁 overboeking</span><?php endif; ?>
+                                <?php if (!empty($t['is_settled'])): ?> <span class="badge paid">verwerkt</span><?php endif; ?>
                                 <?php if ($t['pot_name']): ?> <span class="badge neutral"><?= View::e($t['pot_icon'] ?: '💶') ?> <?= View::e($t['pot_name']) ?></span><?php endif; ?>
                             </td>
                             <td class="num <?= $t['amount'] < 0 ? 'negative' : 'positive' ?>"><?= View::money((float) $t['amount']) ?></td>
                             <td class="num"><?= View::money((float) $t['balance']) ?></td>
-                            <td>
-                                <a class="btn small secondary" href="<?= View::e(View::url('kasstroom', ['period' => $period['id'], 'edit' => $t['id']])) ?>">Bewerken</a>
-                            </td>
-                            <td>
-                                <form method="post" action="<?= View::e(View::url('kasstroom-delete')) ?>" onsubmit="return confirm('Mutatie verwijderen?');">
-                                    <?= Csrf::field() ?>
-                                    <input type="hidden" name="id" value="<?= (int) $t['id'] ?>">
-                                    <input type="hidden" name="period_id" value="<?= (int) $period['id'] ?>">
-                                    <button type="submit" class="btn small danger">Verwijderen</button>
-                                </form>
-                            </td>
+                            <?php if ($isTransfer): ?>
+                                <td>
+                                    <a class="btn small secondary" href="<?= View::e(View::url('potje', ['id' => $t['pot_id'], 'edit' => $t['id']])) ?>">Bewerken</a>
+                                </td>
+                                <td>
+                                    <form method="post" action="<?= View::e(View::url('potje-transactie-delete')) ?>" onsubmit="return confirm('Mutatie verwijderen?');">
+                                        <?= Csrf::field() ?>
+                                        <input type="hidden" name="id" value="<?= (int) $t['id'] ?>">
+                                        <input type="hidden" name="pot_id" value="<?= (int) $t['pot_id'] ?>">
+                                        <input type="hidden" name="period_id" value="<?= (int) $period['id'] ?>">
+                                        <input type="hidden" name="return" value="kasstroom">
+                                        <button type="submit" class="btn small danger">Verwijderen</button>
+                                    </form>
+                                </td>
+                            <?php else: ?>
+                                <td>
+                                    <a class="btn small secondary" href="<?= View::e(View::url('kasstroom', ['period' => $period['id'], 'edit' => $t['id']])) ?>">Bewerken</a>
+                                </td>
+                                <td>
+                                    <form method="post" action="<?= View::e(View::url('kasstroom-delete')) ?>" onsubmit="return confirm('Mutatie verwijderen?');">
+                                        <?= Csrf::field() ?>
+                                        <input type="hidden" name="id" value="<?= (int) $t['id'] ?>">
+                                        <input type="hidden" name="period_id" value="<?= (int) $period['id'] ?>">
+                                        <button type="submit" class="btn small danger">Verwijderen</button>
+                                    </form>
+                                </td>
+                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
