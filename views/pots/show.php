@@ -4,9 +4,7 @@ use App\Support\Csrf;
 use App\Support\View;
 
 /** @var array $pot */
-/** @var array|null $period */
 /** @var array $ledger */
-/** @var array|null $editing */
 ?>
 <p><a href="<?= View::e(View::url('potjes')) ?>">&larr; Alle potjes</a></p>
 
@@ -23,34 +21,8 @@ use App\Support\View;
 </div>
 
 <div class="card">
-    <h2 class="mt-0"><?= $editing ? 'Transactie bewerken' : 'Transactie toevoegen' ?></h2>
-    <form class="inline-form" method="post" action="<?= View::e(View::url('potje-transactie-save')) ?>">
-        <?= Csrf::field() ?>
-        <input type="hidden" name="id" value="<?= (int) ($editing['id'] ?? 0) ?>">
-        <input type="hidden" name="pot_id" value="<?= (int) $pot['id'] ?>">
-        <input type="hidden" name="period_id" value="<?= (int) ($period['id'] ?? 0) ?>">
-        <div class="field-row">
-            <div class="field">
-                <label for="txn_date">Datum</label>
-                <input type="date" id="txn_date" name="txn_date" required value="<?= View::e($editing['txn_date'] ?? date('Y-m-d')) ?>">
-            </div>
-            <div class="field">
-                <label for="amount">Bedrag (+ / -)</label>
-                <input type="number" step="0.01" id="amount" name="amount" required value="<?= View::e((string) ($editing['amount'] ?? '')) ?>">
-            </div>
-        </div>
-        <div class="field">
-            <label for="description">Omschrijving</label>
-            <input type="text" id="description" name="description" required value="<?= View::e($editing['description'] ?? '') ?>">
-        </div>
-        <?php if (!$editing && $period): ?>
-            <p class="text-muted">Een storting (+) gaat van het saldo van periode "<?= View::e($period['name']) ?>" af, een opname (-) komt er weer bij.</p>
-        <?php endif; ?>
-        <button type="submit" class="btn"><?= $editing ? 'Opslaan' : 'Toevoegen' ?></button>
-        <?php if ($editing): ?>
-            <a class="btn secondary" href="<?= View::e(View::url('potje', ['id' => $pot['id']])) ?>">Annuleren</a>
-        <?php endif; ?>
-    </form>
+    <p class="text-muted">Geld in of uit dit potje boeken doe je op de kasstroompagina, via "Uitgave" (met dit potje als bron) of "Overboeken".</p>
+    <a class="btn small secondary" href="<?= View::e(View::url('kasstroom')) ?>">Naar kasstroom</a>
 </div>
 
 <div class="card">
@@ -102,9 +74,7 @@ use App\Support\View;
                                 </form>
                             </td>
                         <?php else: ?>
-                            <td>
-                                <a class="btn small secondary" href="<?= View::e(View::url('potje', ['id' => $pot['id'], 'edit' => $t['id']])) ?>">Bewerken</a>
-                            </td>
+                            <td></td>
                             <td>
                                 <form method="post" action="<?= View::e(View::url('potje-transactie-delete')) ?>" onsubmit="return confirm('Transactie verwijderen?');">
                                     <?= Csrf::field() ?>

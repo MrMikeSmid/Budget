@@ -92,9 +92,9 @@ $router->get('potjes', authed([PotController::class, 'index']));
 $router->post('potjes-save', authed([PotController::class, 'save']));
 $router->post('potjes-delete', authed([PotController::class, 'delete']));
 
-// Potje-detail: transacties (stortingen/opnames) op een potje
+// Potje-detail: alleen bekijken van de ledger; mutaties worden bij
+// kasstroom toegevoegd (Uitgave/Overboeken) en kunnen hier verwijderd worden.
 $router->get('potje', authed([PotTransactionController::class, 'index']));
-$router->post('potje-transactie-save', authed([PotTransactionController::class, 'save']));
 $router->post('potje-transactie-delete', authed([PotTransactionController::class, 'delete']));
 $router->post('potje-overboeking-save', authed([PotTransactionController::class, 'transfer']));
 

@@ -188,9 +188,7 @@ use App\Support\View;
                             <td class="num <?= $t['amount'] < 0 ? 'negative' : 'positive' ?>"><?= View::money((float) $t['amount']) ?></td>
                             <td class="num"><?= View::money((float) $t['balance']) ?></td>
                             <?php if ($isTransfer): ?>
-                                <td>
-                                    <a class="btn small secondary" href="<?= View::e(View::url('potje', ['id' => $t['pot_id'], 'edit' => $t['id']])) ?>">Bewerken</a>
-                                </td>
+                                <td></td>
                                 <td>
                                     <form method="post" action="<?= View::e(View::url('potje-transactie-delete')) ?>" onsubmit="return confirm('Mutatie verwijderen?');">
                                         <?= Csrf::field() ?>
