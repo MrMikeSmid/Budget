@@ -516,6 +516,34 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     color: #fff;
 }
 
+.tab-switch {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.tab-btn {
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.tab-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.tab-panel[hidden] {
+    display: none;
+}
+
 .section-header {
     display: flex;
     align-items: center;
