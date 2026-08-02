@@ -6,24 +6,28 @@ use App\Support\View;
 /** @var array $users */
 /** @var array $currentUser */
 ?>
-<div class="card">
-    <h2 class="mt-0">Nieuw account</h2>
-    <form class="inline-form" method="post" action="<?= View::e(View::url('accounts-save')) ?>">
-        <?= Csrf::field() ?>
-        <div class="field">
-            <label for="name">Naam</label>
-            <input type="text" id="name" name="name" required>
-        </div>
-        <div class="field">
-            <label for="email">E-mailadres</label>
-            <input type="email" id="email" name="email" required>
-        </div>
-        <div class="field">
-            <label for="password">Wachtwoord</label>
-            <input type="password" id="password" name="password" minlength="8" required>
-        </div>
-        <button type="submit" class="btn">Account aanmaken</button>
-    </form>
+<button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Account toevoegen">+</button>
+
+<div class="form-panel" id="add-form-panel" hidden>
+    <div class="card">
+        <h2 class="mt-0">Nieuw account</h2>
+        <form class="inline-form" method="post" action="<?= View::e(View::url('accounts-save')) ?>">
+            <?= Csrf::field() ?>
+            <div class="field">
+                <label for="name">Naam</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="field">
+                <label for="email">E-mailadres</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="field">
+                <label for="password">Wachtwoord</label>
+                <input type="password" id="password" name="password" minlength="8" required>
+            </div>
+            <button type="submit" class="btn">Account aanmaken</button>
+        </form>
+    </div>
 </div>
 
 <div class="card">

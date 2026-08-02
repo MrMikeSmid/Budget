@@ -19,3 +19,24 @@ document.querySelectorAll('.tab-switch').forEach((tabSwitch) => {
         });
     });
 });
+
+document.querySelectorAll('.fab-button[data-toggle-target]').forEach((button) => {
+    const panel = document.getElementById(button.dataset.toggleTarget);
+    if (!panel) {
+        return;
+    }
+
+    const sync = () => {
+        button.textContent = panel.hidden ? '+' : '×';
+        button.setAttribute('aria-expanded', panel.hidden ? 'false' : 'true');
+    };
+    sync();
+
+    button.addEventListener('click', () => {
+        panel.hidden = !panel.hidden;
+        sync();
+        if (!panel.hidden) {
+            panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
+});
