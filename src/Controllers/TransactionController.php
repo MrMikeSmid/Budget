@@ -15,10 +15,18 @@ final class TransactionController
         $period = BudgetPeriod::resolveFromRequest();
         $editId = isset($_GET['edit']) ? (int) $_GET['edit'] : null;
 
+        $filters = [
+            'type' => $_GET['type'] ?? 'alle',
+            'pot_id' => $_GET['pot_id'] ?? '',
+            'sort' => $_GET['sort'] ?? 'datum',
+            'dir' => $_GET['dir'] ?? 'asc',
+        ];
+
         View::render('kasstroom/index', [
             'periods' => BudgetPeriod::all(),
             'period' => $period,
-            'transactions' => $period ? Transaction::forPeriod((int) $period['id']) : [],
+            'transactions' => $period ? Transaction::forPeriodUnified((int) $period['id'], $filters) : [],
+            'filters' => $filters,
             'expectedBalance' => $period ? BudgetPeriod::endingBalance((int) $period['id']) : null,
             'pots' => Pot::all(),
             'editing' => $editId ? Transaction::find($editId) : null,

@@ -64,6 +64,8 @@ final class PotTransactionController
     {
         $id = (int) ($_POST['id'] ?? 0);
         $potId = (int) ($_POST['pot_id'] ?? 0);
+        $periodId = (int) ($_POST['period_id'] ?? 0) ?: null;
+        $returnTo = $_POST['return'] ?? 'potje';
 
         $txn = PotTransaction::find($id);
         $pot = Pot::find($potId);
@@ -74,7 +76,11 @@ final class PotTransactionController
         }
 
         View::flash('Transactie verwijderd.');
-        header('Location: ' . View::url('potje', ['id' => $potId]));
+        if ($returnTo === 'kasstroom') {
+            header('Location: ' . View::url('kasstroom', ['period' => $periodId]));
+        } else {
+            header('Location: ' . View::url('potje', ['id' => $potId]));
+        }
         exit;
     }
 
@@ -111,13 +117,16 @@ final class PotTransactionController
         $fromLabel = $fromPot ? $fromPot['name'] : 'saldo';
         $toLabel = $toPot ? $toPot['name'] : 'saldo';
         $label = $description !== '' ? $description : "Overboeking: {$fromLabel} \u{2192} {$toLabel}";
-
+        // Bij potje-naar-potje krijgt elke kant de id van de andere kant als
+        // transfer_pot_id: dat markeert de rij als "raakt los saldo niet",
+        // zodat de kasstroomlijst hem overslaat (i.p.v. hem als storting/
+        // opname op los saldo te tonen, wat hij niet is).
         if ($fromPot) {
-            PotTransaction::create($fromPot['id'], $user['id'] ?? null, $periodId, $date, $label, -$amount);
+            PotTransaction::create($fromPot['id'], $user['id'] ?? null, $periodId, $date, $label, -$amount, $toPot['id'] ?? null);
             Activity::log('potjes', "Overboeking vanuit potje '{$fromPot['name']}' naar {$toLabel}: {$label}", -$amount);
         }
         if ($toPot) {
-            PotTransaction::create($toPot['id'], $user['id'] ?? null, $periodId, $date, $label, $amount);
+            PotTransaction::create($toPot['id'], $user['id'] ?? null, $periodId, $date, $label, $amount, $fromPot['id'] ?? null);
             Activity::log('potjes', "Overboeking naar potje '{$toPot['name']}' vanuit {$fromLabel}: {$label}", $amount);
         }
 

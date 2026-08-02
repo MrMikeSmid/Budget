@@ -41,6 +41,87 @@ final class Transaction
         return $rows;
     }
 
+    private const SORT_COLUMNS = ['datum' => 'txn_date', 'bedrag' => 'amount', 'omschrijving' => 'description'];
+
+    /**
+     * Kasstroommutaties én overboekingen (stortingen/opnames/overboekingen
+     * op potjes die het losse saldo raken — potje-naar-potje overboekingen
+     * niet, die zie je alleen in de betrokken potjes zelf) samengevoegd tot
+     * één lijst voor de kasstroompagina, met lopend saldo.
+     *
+     * Het lopend saldo wordt altijd chronologisch opgebouwd (net als
+     * BudgetPeriod::endingBalance()), ook als de rijen daarna anders
+     * gesorteerd of gefilterd worden voor de weergave — zo blijft "saldo
+     * na deze mutatie" per rij kloppen, ook al staat de rij niet meer op
+     * chronologische volgorde.
+     *
+     * @param array{type?: string, pot_id?: int|string|null, sort?: string, dir?: string} $filters
+     */
+    public static function forPeriodUnified(int $periodId, array $filters = []): array
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT t.id, 'kasstroom' AS source, t.txn_date, t.description, t.amount, t.is_settled, t.pot_id,
+                    p.name AS pot_name, p.icon AS pot_icon
+             FROM transactions t
+             LEFT JOIN pots p ON p.id = t.pot_id
+             WHERE t.period_id = :period_id"
+        );
+        $stmt->execute(['period_id' => $periodId]);
+        $rows = $stmt->fetchAll();
+
+        $stmt = Database::connection()->prepare(
+            "SELECT pt.id, 'overboeking' AS source, pt.txn_date, pt.description, -pt.amount AS amount, 0 AS is_settled, pt.pot_id,
+                    p.name AS pot_name, p.icon AS pot_icon
+             FROM pot_transactions pt
+             JOIN pots p ON p.id = pt.pot_id
+             WHERE pt.period_id = :period_id AND pt.transfer_pot_id IS NULL"
+        );
+        $stmt->execute(['period_id' => $periodId]);
+        $rows = array_merge($rows, $stmt->fetchAll());
+
+        usort($rows, static function (array $a, array $b): int {
+            return [$a['txn_date'], $a['id']] <=> [$b['txn_date'], $b['id']];
+        });
+
+        $running = (float) IncomeItem::totals($periodId)['actual'] - (float) FixedCost::totals($periodId)['actual'];
+        foreach ($rows as &$row) {
+            if ($row['source'] === 'overboeking' || empty($row['pot_id'])) {
+                $running += (float) $row['amount'];
+            }
+            $row['balance'] = $running;
+        }
+        unset($row);
+
+        $type = $filters['type'] ?? 'alle';
+        $potId = isset($filters['pot_id']) && $filters['pot_id'] !== '' ? (int) $filters['pot_id'] : null;
+        $rows = array_values(array_filter($rows, static function (array $row) use ($type, $potId): bool {
+            if ($potId !== null && (int) $row['pot_id'] !== $potId) {
+                return false;
+            }
+            if ($type === 'uitgaven' && $row['source'] !== 'kasstroom') {
+                return false;
+            }
+            if ($type === 'overboekingen' && $row['source'] !== 'overboeking') {
+                return false;
+            }
+
+            return true;
+        }));
+
+        $sortColumn = self::SORT_COLUMNS[$filters['sort'] ?? 'datum'] ?? 'txn_date';
+        $dir = ($filters['dir'] ?? 'asc') === 'desc' ? -1 : 1;
+        usort($rows, static function (array $a, array $b) use ($sortColumn, $dir): int {
+            $cmp = $a[$sortColumn] <=> $b[$sortColumn];
+            if ($cmp === 0) {
+                $cmp = $a['id'] <=> $b['id'];
+            }
+
+            return $cmp * $dir;
+        });
+
+        return $rows;
+    }
+
     public static function find(int $id): ?array
     {
         $stmt = Database::connection()->prepare('SELECT * FROM transactions WHERE id = :id');
