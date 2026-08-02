@@ -4,6 +4,8 @@ use App\Support\Csrf;
 use App\Support\View;
 
 /** @var array $pot */
+/** @var array|null $period */
+$period = $period ?? null;
 ?>
 <div class="pot-card">
     <div class="pot-card-info">
@@ -22,9 +24,10 @@ use App\Support\View;
         <div class="row-actions">
             <a class="btn small" href="<?= View::e(View::url('potje', ['id' => $pot['id']])) ?>">Transacties</a>
             <a class="btn small secondary" href="<?= View::e(View::url('potjes', ['edit' => $pot['id']])) ?>">Bewerken</a>
-            <form method="post" action="<?= View::e(View::url('potjes-delete')) ?>" onsubmit="return confirm('Potje verwijderen? Het verdwijnt uit je actieve potjes, maar de geschiedenis en de saldi van eerdere periodes blijven ongewijzigd.');">
+            <form method="post" action="<?= View::e(View::url('potjes-delete')) ?>" onsubmit="return confirm('Potje verwijderen? Het verdwijnt vanaf de huidig gekozen periode, maar blijft in eerdere periodes gewoon bestaan.');">
                 <?= Csrf::field() ?>
                 <input type="hidden" name="id" value="<?= (int) $pot['id'] ?>">
+                <input type="hidden" name="period_id" value="<?= (int) ($period['id'] ?? 0) ?>">
                 <button type="submit" class="btn small danger">Verwijderen</button>
             </form>
         </div>
