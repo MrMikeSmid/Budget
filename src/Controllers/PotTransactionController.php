@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\Activity;
+use App\Models\BudgetPeriod;
 use App\Models\Pot;
 use App\Models\PotTransaction;
 use App\Support\Auth;
@@ -25,6 +26,7 @@ final class PotTransactionController
 
         View::render('pots/show', [
             'pot' => $pot,
+            'period' => BudgetPeriod::resolveFromRequest(),
             'ledger' => Pot::ledger($id, (float) $pot['base_amount']),
             'editing' => $editId ? PotTransaction::find($editId) : null,
         ]);
@@ -34,6 +36,7 @@ final class PotTransactionController
     {
         $id = (int) ($_POST['id'] ?? 0);
         $potId = (int) ($_POST['pot_id'] ?? 0);
+        $periodId = (int) ($_POST['period_id'] ?? 0) ?: null;
         $date = $_POST['txn_date'] ?? '';
         $description = trim($_POST['description'] ?? '');
         $amount = (float) str_replace(',', '.', $_POST['amount'] ?? '0');
@@ -48,7 +51,7 @@ final class PotTransactionController
             View::flash('Transactie opgeslagen.');
         } else {
             $user = Auth::user();
-            PotTransaction::create($potId, $user['id'] ?? null, $date, $description, $amount);
+            PotTransaction::create($potId, $user['id'] ?? null, $periodId, $date, $description, $amount);
             Activity::log('potjes', "Mutatie in potje '{$pot['name']}': {$description}", $amount);
             View::flash('Transactie toegevoegd.');
         }
