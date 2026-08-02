@@ -14,6 +14,7 @@ final class Pot
             'SELECT p.*, bp.name AS linked_period_name
              FROM pots p
              LEFT JOIN budget_periods bp ON bp.id = p.linked_period_id
+             WHERE p.deleted_at IS NULL
              ORDER BY p.sort_order, p.id'
         );
         $rows = $stmt->fetchAll();
@@ -168,9 +169,15 @@ final class Pot
         return array_key_exists($type, self::TYPES) ? $type : 'leefpotje';
     }
 
+    /**
+     * Zacht verwijderen: het potje verdwijnt uit actieve lijsten en
+     * keuzemenu's (zie all()), maar de rij — en daarmee de geschiedenis
+     * van al zijn mutaties en hun effect op het saldo van (afgesloten)
+     * periodes — blijft intact.
+     */
     public static function delete(int $id): void
     {
-        $stmt = Database::connection()->prepare('DELETE FROM pots WHERE id = :id');
+        $stmt = Database::connection()->prepare("UPDATE pots SET deleted_at = datetime('now') WHERE id = :id");
         $stmt->execute(['id' => $id]);
     }
 }

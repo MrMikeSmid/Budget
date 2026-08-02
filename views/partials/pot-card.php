@@ -22,7 +22,7 @@ use App\Support\View;
         <div class="row-actions">
             <a class="btn small" href="<?= View::e(View::url('potje', ['id' => $pot['id']])) ?>">Transacties</a>
             <a class="btn small secondary" href="<?= View::e(View::url('potjes', ['edit' => $pot['id']])) ?>">Bewerken</a>
-            <form method="post" action="<?= View::e(View::url('potjes-delete')) ?>" onsubmit="return confirm('Potje verwijderen?');">
+            <form method="post" action="<?= View::e(View::url('potjes-delete')) ?>" onsubmit="return confirm('Potje verwijderen? Het verdwijnt uit je actieve potjes, maar de geschiedenis en de saldi van eerdere periodes blijven ongewijzigd.');">
                 <?= Csrf::field() ?>
                 <input type="hidden" name="id" value="<?= (int) $pot['id'] ?>">
                 <button type="submit" class="btn small danger">Verwijderen</button>
