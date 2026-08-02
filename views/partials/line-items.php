@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\FixedCost;
+use App\Models\LineItem;
 use App\Support\Csrf;
 use App\Support\View;
 
@@ -66,7 +66,7 @@ $showRecurrenceOptions = $showRecurrenceOptions ?? false;
                             <div class="field">
                                 <label for="recurrence_interval">Frequentie</label>
                                 <select id="recurrence_interval" name="recurrence_interval" onchange="document.getElementById('recurrence-mode-wrap').style.display = this.value === 'maandelijks' ? 'none' : 'block';">
-                                    <?php foreach (FixedCost::INTERVALS as $key => $label): ?>
+                                    <?php foreach (LineItem::INTERVALS as $key => $label): ?>
                                         <option value="<?= View::e($key) ?>" <?= ($editing['recurrence_interval'] ?? 'maandelijks') === $key ? 'selected' : '' ?>><?= View::e($label) ?></option>
                                     <?php endforeach; ?>
                                 </select>
@@ -74,7 +74,7 @@ $showRecurrenceOptions = $showRecurrenceOptions ?? false;
                             <div class="field" id="recurrence-mode-wrap" style="<?= ($editing['recurrence_interval'] ?? 'maandelijks') === 'maandelijks' ? 'display:none;' : '' ?>">
                                 <label for="recurrence_mode">Komt terug</label>
                                 <select id="recurrence_mode" name="recurrence_mode" onchange="document.getElementById('recurrence-date-field').style.display = this.value === 'datum' ? 'block' : 'none';">
-                                    <?php foreach (FixedCost::MODES as $key => $label): ?>
+                                    <?php foreach (LineItem::MODES as $key => $label): ?>
                                         <option value="<?= View::e($key) ?>" <?= ($editing['recurrence_mode'] ?? 'periode') === $key ? 'selected' : '' ?>><?= View::e($label) ?></option>
                                     <?php endforeach; ?>
                                 </select>
@@ -126,7 +126,7 @@ $showRecurrenceOptions = $showRecurrenceOptions ?? false;
                         <tr>
                             <td>
                                 <?= View::e($item['description']) ?>
-                                <?php if (!empty($item['is_recurring'])): ?> <span title="Terugkerend (<?= View::e(FixedCost::INTERVALS[$item['recurrence_interval'] ?? 'maandelijks'] ?? 'Maandelijks') ?>)" class="text-muted">&#8635;</span><?php endif; ?>
+                                <?php if (!empty($item['is_recurring'])): ?> <span title="Terugkerend (<?= View::e(LineItem::INTERVALS[$item['recurrence_interval'] ?? 'maandelijks'] ?? 'Maandelijks') ?>)" class="text-muted">&#8635;</span><?php endif; ?>
                                 <?php if (!empty($item['loan_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een lening">Lening</span><?php endif; ?>
                             </td>
                             <td class="num"><?= View::money((float) $item['budgeted']) ?></td>
