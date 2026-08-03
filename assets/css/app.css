@@ -643,6 +643,32 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
 .text-muted { color: var(--text-muted); }
 .mt-0 { margin-top: 0; }
 
+/* Hero-saldokaart bovenaan het dashboard: volle breedte (breekt uit de
+   padding van main.content, geen witruimte boven/links/rechts), net als
+   het saldoblok bovenin een bank-app. */
+.hero-balance {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: #fff;
+    text-align: center;
+    padding: 28px 20px 32px;
+    margin: -16px -16px 20px;
+}
+
+.hero-balance-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: rgba(255, 255, 255, .8);
+}
+
+.hero-balance-amount {
+    font-size: 40px;
+    font-weight: 800;
+    margin-top: 6px;
+    line-height: 1.15;
+}
+
 /* Desktop: bredere layout, zijnav i.p.v. bottom-nav */
 @media (min-width: 900px) {
     :root { --nav-height: 0px; }
@@ -694,5 +720,10 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
 
     .grid-stats {
         grid-template-columns: repeat(4, 1fr);
+    }
+
+    .hero-balance {
+        margin: -28px -32px 20px;
+        border-radius: 0 0 var(--radius) var(--radius);
     }
 }
