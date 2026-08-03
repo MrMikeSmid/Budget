@@ -66,7 +66,7 @@ use App\Support\View;
             <table>
                 <thead>
                 <tr>
-                    <th>Naam</th>
+                    <th class="nowrap">Naam</th>
                     <th class="num">Totaal</th>
                     <th class="num">Afgelost</th>
                     <th class="num">Nog open</th>
@@ -82,7 +82,7 @@ use App\Support\View;
                     $isPaidOff = $loan['remaining_amount'] <= 0.005;
                     ?>
                     <tr>
-                        <td>
+                        <td class="nowrap">
                             <?= View::e($loan['name']) ?>
                             <?php if ($isPaidOff): ?><span class="badge paid">Afgelost</span><?php endif; ?>
                             <div class="progress-bar"><div class="progress-bar-fill" style="width: <?= $progress ?>%"></div></div>

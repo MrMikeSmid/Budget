@@ -53,12 +53,12 @@ use App\Support\View;
     <?php else: ?>
         <div class="table-scroll">
             <table>
-                <thead><tr><th>Naam</th><th>Periode</th><th></th><th></th></tr></thead>
+                <thead><tr><th class="nowrap">Naam</th><th class="nowrap">Periode</th><th></th><th></th></tr></thead>
                 <tbody>
                 <?php foreach ($periods as $p): ?>
                     <tr>
-                        <td><?= View::e($p['name']) ?> <?php if ($p['is_active']): ?><span class="badge paid">actief</span><?php endif; ?></td>
-                        <td><?= View::e($p['start_date']) ?> t/m <?= View::e($p['end_date']) ?></td>
+                        <td class="nowrap"><?= View::e($p['name']) ?> <?php if ($p['is_active']): ?><span class="badge paid">actief</span><?php endif; ?></td>
+                        <td class="nowrap"><?= View::e($p['start_date']) ?> t/m <?= View::e($p['end_date']) ?></td>
                         <td>
                             <a class="btn small secondary" href="<?= View::e(View::url('periods', ['edit' => $p['id']])) ?>">Bewerken</a>
                         </td>
