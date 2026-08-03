@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\BudgetPeriod;
 use App\Models\FixedCost;
+use App\Models\IncomeItem;
 use App\Models\Pot;
 use App\Support\View;
 
@@ -20,6 +21,10 @@ final class DashboardController
         $paidActual = 0.0;
         $openBudgeted = 0.0;
         $totalPayments = 0.0;
+        $incomeBudgeted = 0.0;
+        $incomeActual = 0.0;
+        $incomeOutstanding = 0.0;
+        $incomeTotal = 0.0;
 
         if ($period) {
             $balance = BudgetPeriod::endingBalance((int) $period['id']);
@@ -38,6 +43,11 @@ final class DashboardController
             $paidActual = FixedCost::paidTotal((int) $period['id']);
             $openBudgeted = FixedCost::outstanding((int) $period['id']);
             $totalPayments = $paidActual + $openBudgeted;
+
+            $incomeBudgeted = (float) IncomeItem::totals((int) $period['id'])['budgeted'];
+            $incomeActual = IncomeItem::receivedTotal((int) $period['id']);
+            $incomeOutstanding = IncomeItem::outstanding((int) $period['id']);
+            $incomeTotal = $incomeActual + $incomeOutstanding;
         }
 
         View::render('dashboard/index', [
@@ -50,6 +60,10 @@ final class DashboardController
             'paidActual' => $paidActual,
             'openBudgeted' => $openBudgeted,
             'totalPayments' => $totalPayments,
+            'incomeBudgeted' => $incomeBudgeted,
+            'incomeActual' => $incomeActual,
+            'incomeOutstanding' => $incomeOutstanding,
+            'incomeTotal' => $incomeTotal,
         ]);
     }
 }

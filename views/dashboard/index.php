@@ -11,6 +11,10 @@ use App\Support\View;
 /** @var float $paidActual */
 /** @var float $openBudgeted */
 /** @var float $totalPayments */
+/** @var float $incomeBudgeted */
+/** @var float $incomeActual */
+/** @var float $incomeOutstanding */
+/** @var float $incomeTotal */
 ?>
 <?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => 'dashboard'], null); ?>
 
@@ -36,6 +40,32 @@ use App\Support\View;
             <tr>
                 <td>Totaal kapitaal</td>
                 <td class="num <?= $totalKapitaal !== null && $totalKapitaal < 0 ? 'negative' : 'positive' ?>"><?= View::money($totalKapitaal) ?></td>
+            </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2>Inkomsten</h2>
+    <div class="card">
+        <table class="detail-table">
+            <tbody>
+            <tr>
+                <td>Begrote inkomen</td>
+                <td class="num positive"><?= View::money($incomeBudgeted) ?></td>
+            </tr>
+            <tr>
+                <td>Werkelijke inkomen</td>
+                <td class="num positive"><?= View::money($incomeActual) ?></td>
+            </tr>
+            <tr>
+                <td>Nog te ontvangen</td>
+                <td class="num positive"><?= View::money($incomeOutstanding) ?></td>
+            </tr>
+            </tbody>
+            <tfoot>
+            <tr>
+                <td>Totale inkomen</td>
+                <td class="num positive"><?= View::money($incomeTotal) ?></td>
             </tr>
             </tfoot>
         </table>
