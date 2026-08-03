@@ -130,7 +130,7 @@ $potTotal = array_sum($leefpotjeSlices) + array_sum($spaarpotjeSlices);
             <table>
                 <thead>
                 <tr>
-                    <th>Periode</th>
+                    <th class="nowrap">Periode</th>
                     <th class="num">Inkomsten begroot</th>
                     <th class="num">Inkomsten werkelijk</th>
                     <th class="num">Lasten begroot</th>
@@ -142,7 +142,7 @@ $potTotal = array_sum($leefpotjeSlices) + array_sum($spaarpotjeSlices);
                 <?php foreach ($buckets as $b): ?>
                     <?php $net = (float) $b['income_actual'] - (float) $b['fixed_actual']; ?>
                     <tr>
-                        <td><?= View::e($b['name']) ?></td>
+                        <td class="nowrap"><?= View::e($b['name']) ?></td>
                         <td class="num"><?= View::money((float) $b['income_budgeted']) ?></td>
                         <td class="num"><?= View::money((float) $b['income_actual']) ?></td>
                         <td class="num"><?= View::money((float) $b['fixed_budgeted']) ?></td>
@@ -153,7 +153,7 @@ $potTotal = array_sum($leefpotjeSlices) + array_sum($spaarpotjeSlices);
                 </tbody>
                 <tfoot>
                 <tr style="font-weight:700;">
-                    <td>Totaal (<?= (int) $totals['period_count'] ?> periodes)</td>
+                    <td class="nowrap">Totaal (<?= (int) $totals['period_count'] ?> periodes)</td>
                     <td class="num"><?= View::money($totals['income_budgeted']) ?></td>
                     <td class="num"><?= View::money($totals['income_actual']) ?></td>
                     <td class="num"><?= View::money($totals['fixed_budgeted']) ?></td>

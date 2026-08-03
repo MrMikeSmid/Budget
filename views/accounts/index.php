@@ -34,11 +34,11 @@ use App\Support\View;
     <h2 class="mt-0">Accounts</h2>
     <div class="table-scroll">
         <table>
-            <thead><tr><th>Naam</th><th>E-mail</th><th></th></tr></thead>
+            <thead><tr><th class="nowrap">Naam</th><th>E-mail</th><th></th></tr></thead>
             <tbody>
             <?php foreach ($users as $u): ?>
                 <tr>
-                    <td><?= View::e($u['name']) ?><?= (int) $u['id'] === (int) $currentUser['id'] ? ' (jij)' : '' ?></td>
+                    <td class="nowrap"><?= View::e($u['name']) ?><?= (int) $u['id'] === (int) $currentUser['id'] ? ' (jij)' : '' ?></td>
                     <td><?= View::e($u['email']) ?></td>
                     <td>
                         <?php if ((int) $u['id'] !== (int) $currentUser['id']): ?>

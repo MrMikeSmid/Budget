@@ -205,6 +205,11 @@ th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform
 
 td.num, th.num { text-align: right; white-space: nowrap; }
 
+/* Naam/omschrijving-kolommen in scrollbare tabellen: liever de kolom laten
+   meegroeien (de tabel scrolt toch al horizontaal) dan de tekst over twee
+   regels laten breken. */
+td.nowrap, th.nowrap { white-space: nowrap; }
+
 tr:last-child td { border-bottom: none; }
 
 /* Eenvoudige label/bedrag-tabel (bijv. "Totaal kapitaal" op het

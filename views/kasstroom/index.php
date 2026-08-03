@@ -170,8 +170,8 @@ use App\Support\View;
                 <table>
                     <thead>
                     <tr>
-                        <th>Datum</th>
-                        <th>Omschrijving</th>
+                        <th class="nowrap">Datum</th>
+                        <th class="nowrap">Omschrijving</th>
                         <th class="num">Mutatie</th>
                         <th class="num">Saldo</th>
                         <th></th>
@@ -182,8 +182,8 @@ use App\Support\View;
                     <?php foreach ($transactions as $t): ?>
                         <?php $isTransfer = $t['source'] === 'overboeking'; ?>
                         <tr style="<?= !empty($t['is_settled']) ? 'opacity:.65;' : '' ?>">
-                            <td><?= View::e($t['txn_date']) ?></td>
-                            <td>
+                            <td class="nowrap"><?= View::e($t['txn_date']) ?></td>
+                            <td class="nowrap">
                                 <?= View::e($t['description']) ?>
                                 <?php if ($isTransfer): ?> <span class="badge neutral">🔁 overboeking</span><?php endif; ?>
                                 <?php if (!empty($t['is_settled'])): ?> <span class="badge paid">verwerkt</span><?php endif; ?>

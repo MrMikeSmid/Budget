@@ -37,9 +37,9 @@ use App\Support\View;
             <table>
                 <thead>
                 <tr>
-                    <th>Datum</th>
-                    <th>Omschrijving</th>
-                    <th>Bron</th>
+                    <th class="nowrap">Datum</th>
+                    <th class="nowrap">Omschrijving</th>
+                    <th class="nowrap">Bron</th>
                     <th class="num">Bedrag</th>
                     <th class="num">Saldo</th>
                     <th></th>
@@ -50,9 +50,9 @@ use App\Support\View;
                 <?php foreach ($ledger as $t): ?>
                     <?php $isKasstroom = $t['source'] === 'kasstroom'; ?>
                     <tr>
-                        <td><?= View::e($t['txn_date']) ?></td>
-                        <td><?= View::e($t['description']) ?></td>
-                        <td>
+                        <td class="nowrap"><?= View::e($t['txn_date']) ?></td>
+                        <td class="nowrap"><?= View::e($t['description']) ?></td>
+                        <td class="nowrap">
                             <?php if ($isKasstroom): ?>
                                 <a href="<?= View::e(View::url('kasstroom', ['period' => $t['period_id']])) ?>">💳 <?= View::e($t['period_name'] ?? 'Kasstroom') ?></a>
                             <?php else: ?>
