@@ -69,6 +69,23 @@ final class BudgetPeriod
         return $row ?: null;
     }
 
+    /**
+     * Vindt een bestaande periode met exact dezelfde start- en einddatum.
+     * Gebruikt om te voorkomen dat een dubbele formulierverzending (bijv.
+     * dubbeltikken op "Toevoegen" op een trage verbinding) dezelfde periode
+     * twee keer aanmaakt, elk met hun eigen kopie van terugkerende regels.
+     */
+    public static function findByDates(string $startDate, string $endDate): ?array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT * FROM budget_periods WHERE start_date = :start AND end_date = :end LIMIT 1'
+        );
+        $stmt->execute(['start' => $startDate, 'end' => $endDate]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
+    }
+
     public static function create(string $name, string $startDate, string $endDate): int
     {
         $pdo = Database::connection();

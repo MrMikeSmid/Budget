@@ -38,8 +38,17 @@ final class PeriodController
         $isNew = $id === 0;
 
         if ($isNew) {
-            $id = BudgetPeriod::create($name, $start, $end);
-            Activity::log('periods', 'Periode aangemaakt: ' . $name);
+            // Voorkomt dat een dubbele formulierverzending (bijv. dubbeltikken
+            // op "Toevoegen") dezelfde periode twee keer aanmaakt, elk met hun
+            // eigen kopie van terugkerende inkomsten/vaste lasten.
+            $duplicate = BudgetPeriod::findByDates($start, $end);
+            if ($duplicate) {
+                $id = (int) $duplicate['id'];
+                $isNew = false;
+            } else {
+                $id = BudgetPeriod::create($name, $start, $end);
+                Activity::log('periods', 'Periode aangemaakt: ' . $name);
+            }
         } else {
             BudgetPeriod::update($id, $name, $start, $end);
             Activity::log('periods', 'Periode bijgewerkt: ' . $name);
