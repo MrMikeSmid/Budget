@@ -42,13 +42,24 @@ final class FixedCost extends LineItem
     }
 
     /**
-     * Nog openstaand: begroot van regels met status die begint met "Open".
+     * Nog openstaand: het volledige begrote bedrag van regels met status
+     * "Open", plus — bij status "Betaald" — het verschil tussen begroot en
+     * werkelijk als er minder is betaald dan begroot (een gedeeltelijke
+     * betaling laat dus het restant nog als openstaand zien, in plaats van
+     * de hele regel als afgehandeld te beschouwen zodra de status op
+     * "Betaald" staat).
      */
     public static function outstanding(int $periodId): float
     {
         $stmt = Database::connection()->prepare(
-            "SELECT COALESCE(SUM(budgeted), 0) FROM fixed_costs
-             WHERE period_id = :period_id AND status LIKE 'Open%'"
+            "SELECT COALESCE(SUM(
+                CASE
+                    WHEN status LIKE 'Open%' THEN budgeted
+                    WHEN status LIKE 'Betaald%' THEN MAX(budgeted - COALESCE(actual, budgeted), 0)
+                    ELSE 0
+                END
+             ), 0) FROM fixed_costs
+             WHERE period_id = :period_id"
         );
         $stmt->execute(['period_id' => $periodId]);
 
