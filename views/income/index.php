@@ -9,6 +9,7 @@ View::render('partials/line-items', [
     'totals' => $totals,
     'outstanding' => $outstanding,
     'editing' => $editing,
+    'openForm' => $openForm,
     'listPage' => 'inkomsten',
     'savePage' => 'inkomsten-save',
     'deletePage' => 'inkomsten-delete',

@@ -30,6 +30,8 @@ final class TransactionController
             'expectedBalance' => $period ? BudgetPeriod::endingBalance((int) $period['id']) : null,
             'pots' => $period ? Pot::allForPeriod((int) $period['id']) : Pot::all(),
             'editing' => $editId ? Transaction::find($editId) : null,
+            'openForm' => $editId !== null || !empty($_GET['open']),
+            'activeTab' => ($_GET['tab'] ?? '') === 'overboeken' ? 'overboeken' : 'uitgave',
         ]);
     }
 

@@ -38,6 +38,7 @@ abstract class LineItemController
             'totals' => $period ? $model::totals((int) $period['id']) : ['budgeted' => 0, 'actual' => 0],
             'outstanding' => $period ? $model::outstanding((int) $period['id']) : 0,
             'editing' => $editId ? $model::find($editId) : null,
+            'openForm' => !empty($_GET['open']),
         ]);
     }
 
