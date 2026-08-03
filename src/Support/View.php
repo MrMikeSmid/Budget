@@ -62,8 +62,10 @@ final class View
     }
 
     /**
-     * Line-art navigatie-iconen (Feather/Lucide-stijl: uniforme stroke, geen vulling).
+     * Line-art iconen (Feather/Lucide-stijl: uniforme stroke, geen vulling).
      * Vaste set, geen user input, dus veilig om als raw SVG te echoen.
+     * Gebruikt voor zowel de navigatie als losse acties (bijv. de
+     * snelkoppelingen op het dashboard).
      */
     public static function navIcon(string $key): string
     {
@@ -74,6 +76,8 @@ final class View
             'vaste-lasten' => '<rect x="5" y="3" width="14" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/>',
             'potjes' => '<path d="M4.5 13.5c0-3.6 3.1-6 6.9-6 2 0 3.6.5 4.8 1.4.7-.6 1.7-.9 2.6-.7-.1.9-.5 1.7-1.1 2.2.6.9.9 1.9.9 3.1 0 3.4-3.2 6-7.2 6s-7-2.6-7-6Z"/><circle cx="9" cy="12.5" r=".9" fill="currentColor" stroke="none"/><path d="M9.5 19.5v1.5M15 19.3v1.5"/>',
             'instellingen' => '<line x1="4" y1="6" x2="20" y2="6"/><circle cx="14" cy="6" r="2"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="8" cy="12" r="2"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2"/>',
+            'uitgave' => '<path d="M12 5v13"/><path d="m6 13 6 6 6-6"/>',
+            'overboeking' => '<path d="M6 8h13l-3.5-3.5"/><path d="M18 16H5l3.5 3.5"/>',
         ];
 
         $inner = $icons[$key] ?? '<circle cx="12" cy="12" r="8"/>';

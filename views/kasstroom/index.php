@@ -10,20 +10,22 @@ use App\Support\View;
 /** @var float|null $expectedBalance */
 /** @var array $pots */
 /** @var array|null $editing */
+/** @var bool $openForm */
+/** @var string $activeTab */
 ?>
 <?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => 'kasstroom'], null); ?>
 
 <?php if ($period): ?>
     <button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Mutatie toevoegen">+</button>
 
-    <div class="form-panel" id="add-form-panel" <?= $editing ? '' : 'hidden' ?>>
+    <div class="form-panel" id="add-form-panel" <?= ($editing || $openForm) ? '' : 'hidden' ?>>
     <div class="card">
         <div class="tab-switch" role="tablist">
-            <button type="button" class="tab-btn active" data-tab-target="panel-uitgave">💸 Uitgave</button>
-            <button type="button" class="tab-btn" data-tab-target="panel-overboeken">🔁 Overboeken</button>
+            <button type="button" class="tab-btn <?= $activeTab === 'uitgave' ? 'active' : '' ?>" data-tab-target="panel-uitgave">💸 Uitgave</button>
+            <button type="button" class="tab-btn <?= $activeTab === 'overboeken' ? 'active' : '' ?>" data-tab-target="panel-overboeken">🔁 Overboeken</button>
         </div>
 
-        <div class="tab-panel" id="panel-uitgave">
+        <div class="tab-panel" id="panel-uitgave" <?= $activeTab === 'uitgave' ? '' : 'hidden' ?>>
             <p class="text-muted">Alleen voor uitgaven: het bedrag gaat af van het losse saldo, of — als je een potje als bron kiest — van dat potje. Nieuw geld voeg je toe bij Inkomen.</p>
             <form class="inline-form" method="post" action="<?= View::e(View::url('kasstroom-save')) ?>">
                 <?= Csrf::field() ?>
@@ -65,7 +67,7 @@ use App\Support\View;
             </form>
         </div>
 
-        <div class="tab-panel" id="panel-overboeken" hidden>
+        <div class="tab-panel" id="panel-overboeken" <?= $activeTab === 'overboeken' ? '' : 'hidden' ?>>
             <p class="text-muted">Geld verplaatsen tussen het losse saldo en een potje, of tussen twee potjes. Dit is geen uitgave: er verdwijnt niets uit het systeem, het geld verhuist alleen.</p>
             <form class="inline-form" method="post" action="<?= View::e(View::url('potje-overboeking-save')) ?>">
                 <?= Csrf::field() ?>

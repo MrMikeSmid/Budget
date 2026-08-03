@@ -650,8 +650,8 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: #fff;
     text-align: center;
-    padding: 28px 20px 32px;
-    margin: -16px -16px 20px;
+    padding: 28px 20px 56px;
+    margin: -16px -16px 0;
 }
 
 .hero-balance-label {
@@ -668,6 +668,46 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     margin-top: 6px;
     line-height: 1.15;
 }
+
+/* Zwevende actiekaart die half over de hero-balance heen steekt, net als
+   het snelkoppelingenblok bovenin een bank-app. */
+.quick-actions {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .16);
+    margin: -40px 0 20px;
+    padding: 14px 6px 10px;
+    position: relative;
+    z-index: 1;
+}
+
+.quick-action {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+}
+.quick-action:hover { text-decoration: none; }
+
+.quick-action-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.quick-action-icon .icon { width: 20px; height: 20px; }
+.quick-action:hover .quick-action-icon { background: var(--border); }
 
 /* Desktop: bredere layout, zijnav i.p.v. bottom-nav */
 @media (min-width: 900px) {

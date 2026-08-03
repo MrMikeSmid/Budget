@@ -21,6 +21,21 @@ use App\Support\View;
         <div class="hero-balance-label">Uw saldo</div>
         <div class="hero-balance-amount"><?= View::money($balance) ?></div>
     </div>
+
+    <div class="quick-actions">
+        <a class="quick-action" href="<?= View::e(View::url('kasstroom', ['period' => $period['id'], 'open' => 1, 'tab' => 'uitgave'])) ?>">
+            <span class="quick-action-icon"><?= View::navIcon('uitgave') ?></span>
+            Uitgaven
+        </a>
+        <a class="quick-action" href="<?= View::e(View::url('kasstroom', ['period' => $period['id'], 'open' => 1, 'tab' => 'overboeken'])) ?>">
+            <span class="quick-action-icon"><?= View::navIcon('overboeking') ?></span>
+            Overboeking
+        </a>
+        <a class="quick-action" href="<?= View::e(View::url('inkomsten', ['period' => $period['id'], 'open' => 1])) ?>">
+            <span class="quick-action-icon"><?= View::navIcon('inkomsten') ?></span>
+            Inkomsten
+        </a>
+    </div>
 <?php endif; ?>
 
 <?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => 'dashboard'], null); ?>

@@ -16,15 +16,17 @@ use App\Support\View;
 /** @var string[] $statusSuggestions */
 /** @var string $outstandingLabel */
 /** @var bool $showRecurrenceOptions */
+/** @var bool $openForm */
 
 $showRecurrenceOptions = $showRecurrenceOptions ?? false;
+$openForm = $openForm ?? false;
 ?>
 <?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => $listPage], null); ?>
 
 <?php if ($period): ?>
     <button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Regel toevoegen">+</button>
 
-    <div class="form-panel" id="add-form-panel" <?= $editing ? '' : 'hidden' ?>>
+    <div class="form-panel" id="add-form-panel" <?= ($editing || $openForm) ? '' : 'hidden' ?>>
         <div class="card">
             <h2 class="mt-0"><?= $editing ? 'Regel bewerken' : 'Regel toevoegen' ?></h2>
             <form class="inline-form" method="post" action="<?= View::e(View::url($savePage)) ?>">
