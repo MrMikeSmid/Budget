@@ -20,6 +20,14 @@ document.querySelectorAll('.tab-switch').forEach((tabSwitch) => {
     });
 });
 
+document.querySelectorAll('form').forEach((form) => {
+    form.addEventListener('submit', () => {
+        form.querySelectorAll('button[type="submit"]').forEach((button) => {
+            button.disabled = true;
+        });
+    });
+});
+
 document.querySelectorAll('.fab-button[data-toggle-target]').forEach((button) => {
     const panel = document.getElementById(button.dataset.toggleTarget);
     if (!panel) {
