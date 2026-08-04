@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\IncomeItem;
 use App\Support\View;
 
 View::render('partials/line-items', [
@@ -17,7 +18,8 @@ View::render('partials/line-items', [
     'outstandingLabel' => 'Nog te ontvangen',
     'showRecurrenceOptions' => true,
     'showHero' => true,
-    'heroLabel' => 'Nog te ontvangen',
+    'heroLabel' => 'Werkelijk ontvangen',
+    'heroValue' => $period ? IncomeItem::receivedTotal((int) $period['id']) : 0.0,
     'quickActionIcon' => 'inkomsten',
     'quickActionLabel' => 'Inkomst toevoegen',
 ], null);
