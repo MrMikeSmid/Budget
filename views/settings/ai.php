@@ -5,6 +5,7 @@ use App\Support\View;
 
 /** @var bool $hasApiKey */
 /** @var string $systemPrompt */
+/** @var string $model */
 ?>
 <p><a href="<?= View::e(View::url('instellingen')) ?>">&larr; Instellingen</a></p>
 
@@ -26,6 +27,11 @@ use App\Support\View;
             <?php if ($hasApiKey): ?>
                 <p class="text-muted" style="font-size:12px; margin:4px 0 0;">Er staat al een key opgeslagen. Vul alleen iets in als je 'm wilt vervangen.</p>
             <?php endif; ?>
+        </div>
+        <div class="field">
+            <label for="gemini_model">Model</label>
+            <input type="text" id="gemini_model" name="gemini_model" value="<?= View::e($model) ?>">
+            <p class="text-muted" style="font-size:12px; margin:4px 0 0;">Google hernoemt modelnamen wel eens — krijg je een "HTTP 404"-foutmelding bij het advies, dan is dit waarschijnlijk de oorzaak. Kijk op <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank" rel="noopener">de modellenlijst</a> voor een geldige naam (bijv. "gemini-2.5-flash" of "gemini-flash-latest").</p>
         </div>
         <div class="field">
             <label for="system_prompt">Systeemprompt</label>

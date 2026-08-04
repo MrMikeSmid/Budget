@@ -11,7 +11,7 @@ use App\Models\AiSettings;
  */
 final class GeminiService
 {
-    private const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+    private const ENDPOINT_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
     private const TIMEOUT_SECONDS = 20;
 
     /**
@@ -26,6 +26,7 @@ final class GeminiService
             return ['ok' => false, 'error' => 'Vul eerst je Gemini API key in bij Instellingen.'];
         }
 
+        $model = !empty($settings['gemini_model']) ? $settings['gemini_model'] : AiSettings::DEFAULT_MODEL;
         $systemPrompt = $settings['system_prompt'] !== '' ? $settings['system_prompt'] : AiSettings::defaultPrompt();
 
         $payload = [
@@ -37,7 +38,7 @@ final class GeminiService
             ],
         ];
 
-        $ch = curl_init(self::ENDPOINT);
+        $ch = curl_init(self::ENDPOINT_BASE . rawurlencode($model) . ':generateContent');
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
@@ -62,16 +63,8 @@ final class GeminiService
             return ['ok' => false, 'error' => 'Kon geen verbinding maken met Gemini: ' . $curlError];
         }
 
-        if ($statusCode === 429) {
-            return ['ok' => false, 'error' => 'Gemini geeft aan dat de gebruikslimiet is bereikt (429). Probeer het straks nog eens.'];
-        }
-
-        if ($statusCode === 400 || $statusCode === 401 || $statusCode === 403) {
-            return ['ok' => false, 'error' => 'Gemini wees het verzoek af (HTTP ' . $statusCode . ') — controleer of de API key bij Instellingen nog klopt.'];
-        }
-
         if ($statusCode < 200 || $statusCode >= 300) {
-            return ['ok' => false, 'error' => 'Gemini gaf een onverwachte fout terug (HTTP ' . $statusCode . ').'];
+            return ['ok' => false, 'error' => self::errorMessageFor($statusCode, $response, $model)];
         }
 
         $data = json_decode((string) $response, true);
@@ -82,5 +75,33 @@ final class GeminiService
         }
 
         return ['ok' => true, 'text' => trim($text)];
+    }
+
+    /**
+     * Google stuurt in de responsebody meestal een concrete reden mee
+     * ("error.message") — die tonen we erbij, zodat een fout hier direct te
+     * begrijpen is i.p.v. alleen een kale HTTP-status.
+     */
+    private static function errorMessageFor(int $statusCode, ?string $response, string $model): string
+    {
+        $data = json_decode((string) $response, true);
+        $detail = $data['error']['message'] ?? null;
+
+        if ($statusCode === 429) {
+            return 'Gemini geeft aan dat de gebruikslimiet is bereikt (429). Probeer het straks nog eens.'
+                . ($detail ? ' (' . $detail . ')' : '');
+        }
+
+        if ($statusCode === 404) {
+            return "Gemini vindt het model \"{$model}\" niet (HTTP 404) — waarschijnlijk is de modelnaam verouderd. Pas 'm aan bij Instellingen → AI-advies."
+                . ($detail ? ' (' . $detail . ')' : '');
+        }
+
+        if ($statusCode === 400 || $statusCode === 401 || $statusCode === 403) {
+            return 'Gemini wees het verzoek af (HTTP ' . $statusCode . ') — controleer of de API key bij Instellingen nog klopt.'
+                . ($detail ? ' (' . $detail . ')' : '');
+        }
+
+        return 'Gemini gaf een onverwachte fout terug (HTTP ' . $statusCode . ').' . ($detail ? ' (' . $detail . ')' : '');
     }
 }

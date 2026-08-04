@@ -15,6 +15,7 @@ final class AiSettingsController
         View::render('settings/ai', [
             'hasApiKey' => !empty($settings['gemini_api_key']),
             'systemPrompt' => $settings['system_prompt'],
+            'model' => $settings['gemini_model'] ?? AiSettings::DEFAULT_MODEL,
         ]);
     }
 
@@ -22,8 +23,9 @@ final class AiSettingsController
     {
         $apiKey = trim($_POST['gemini_api_key'] ?? '');
         $systemPrompt = trim($_POST['system_prompt'] ?? '');
+        $model = trim($_POST['gemini_model'] ?? '');
 
-        AiSettings::save($apiKey !== '' ? $apiKey : null, $systemPrompt);
+        AiSettings::save($apiKey !== '' ? $apiKey : null, $systemPrompt, $model);
         // Nooit de key zelf loggen — alleen dát er iets gewijzigd is.
         Activity::log('instellingen', 'AI-instellingen (Gemini) bijgewerkt');
         View::flash('AI-instellingen opgeslagen.');
