@@ -5,12 +5,14 @@ namespace App\Models;
 use App\Support\Database;
 
 /**
- * Eén gedeelde rij (id=1) met de Gemini API key en de systeemprompt voor het
- * AI-advies — net als de rest van de instellingen in deze app niet per
- * gebruiker, maar voor het hele huishouden.
+ * Eén gedeelde rij (id=1) met de Gemini API key, systeemprompt en modelnaam
+ * voor het AI-advies — net als de rest van de instellingen in deze app niet
+ * per gebruiker, maar voor het hele huishouden.
  */
 final class AiSettings
 {
+    public const DEFAULT_MODEL = 'gemini-2.5-flash';
+
     public static function defaultPrompt(): string
     {
         return 'Je bent een persoonlijke financieel adviseur. Op basis van de onderstaande financiële gegevens van de gebruiker, geef kort en concreet advies (max 150 woorden) over uitgavenpatronen, spaarmogelijkheden en eventuele aandachtspunten. Wees vriendelijk maar direct, en vermijd algemene open deuren.';
@@ -20,7 +22,7 @@ final class AiSettings
     {
         $row = Database::connection()->query('SELECT * FROM ai_settings WHERE id = 1')->fetch();
 
-        return $row ?: ['gemini_api_key' => null, 'system_prompt' => self::defaultPrompt()];
+        return $row ?: ['gemini_api_key' => null, 'system_prompt' => self::defaultPrompt(), 'gemini_model' => self::DEFAULT_MODEL];
     }
 
     public static function hasApiKey(): bool
@@ -33,17 +35,18 @@ final class AiSettings
      * instellingenformulier toont de key namelijk nooit terug, dus een leeg
      * veld betekent "niet gewijzigd", niet "verwijderen".
      */
-    public static function save(?string $apiKey, string $systemPrompt): void
+    public static function save(?string $apiKey, string $systemPrompt, string $model): void
     {
         $current = self::get();
         $keyToStore = ($apiKey !== null && $apiKey !== '') ? $apiKey : ($current['gemini_api_key'] ?? null);
 
         $stmt = Database::connection()->prepare(
-            "UPDATE ai_settings SET gemini_api_key = :key, system_prompt = :prompt, updated_at = datetime('now') WHERE id = 1"
+            "UPDATE ai_settings SET gemini_api_key = :key, system_prompt = :prompt, gemini_model = :model, updated_at = datetime('now') WHERE id = 1"
         );
         $stmt->execute([
             'key' => $keyToStore,
             'prompt' => $systemPrompt !== '' ? $systemPrompt : self::defaultPrompt(),
+            'model' => $model !== '' ? $model : self::DEFAULT_MODEL,
         ]);
     }
 }
