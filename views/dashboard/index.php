@@ -38,8 +38,6 @@ use App\Support\View;
     </div>
 <?php endif; ?>
 
-<?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => 'dashboard'], null); ?>
-
 <?php if ($period): ?>
     <div class="card">
         <div class="tab-switch" role="tablist">

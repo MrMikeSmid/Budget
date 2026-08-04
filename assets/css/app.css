@@ -79,17 +79,25 @@ header.topbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
 }
 
 header.topbar h1 {
     font-size: 18px;
     margin: 0;
     font-weight: 700;
+    flex: none;
 }
 
-header.topbar .logout-link {
-    font-size: 14px;
-    color: var(--text-muted);
+/* Compacte periodekiezer in de header: geen kaartachtige marges, en
+   krimpt liever dan de titel van het scherm te duwen. */
+header.topbar .period-switcher-compact {
+    margin-bottom: 0;
+    min-width: 0;
+}
+
+header.topbar .period-switcher-compact select {
+    max-width: 100%;
 }
 
 main.content {
@@ -604,6 +612,18 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     background: var(--primary-dark);
 }
 
+/* "+"-knop die op een hero-balance landt (bijv. Vaste lasten): trekt
+   omhoog de blauwe kop in, en krijgt een witte achtergrond zodat hij
+   daar zichtbaar blijft i.p.v. blauw-op-blauw te verdwijnen. */
+.fab-button.on-hero {
+    margin-top: -56px;
+    background: #fff;
+    color: var(--primary);
+}
+.fab-button.on-hero:hover {
+    background: var(--bg);
+}
+
 .form-panel[hidden] {
     display: none;
 }
@@ -676,6 +696,24 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     font-weight: 800;
     margin-top: 6px;
     line-height: 1.15;
+}
+
+/* Extra hoge hero (bijv. Vaste lasten): laat ruimte voor de "+"-knop en
+   het zwevende begroot/openstaand-blok die erover heen steken, zodat
+   het niet allemaal op een kluitje zit. */
+.hero-balance-tall {
+    padding-bottom: 84px;
+}
+
+/* Zwevend blok dat over de hero heen steekt, zelfde patroon als
+   .quick-actions op het dashboard. */
+.grid-stats-overlap {
+    margin-top: -8px;
+    position: relative;
+    z-index: 1;
+}
+.grid-stats-overlap .stat {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .12);
 }
 
 /* Zwevende actiekaart die half over de hero-balance heen steekt, net als

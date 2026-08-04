@@ -27,3 +27,8 @@ use App\Support\View;
     <p class="text-muted">Tijdlijn van de laatste mutaties: wie wat heeft toegevoegd, gewijzigd of verwijderd.</p>
     <a class="btn secondary" href="<?= View::e(View::url('activiteit')) ?>">Openen</a>
 </div>
+<div class="card">
+    <h2 class="mt-0">🚪 Uitloggen</h2>
+    <p class="text-muted">Log uit van je account op dit apparaat.</p>
+    <a class="btn secondary" href="<?= View::e(View::url('logout')) ?>">Uitloggen</a>
+</div>

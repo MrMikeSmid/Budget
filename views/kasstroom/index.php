@@ -24,8 +24,6 @@ use App\Support\View;
     </div>
 <?php endif; ?>
 
-<?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => 'kasstroom'], null); ?>
-
 <?php if ($period): ?>
     <button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Mutatie toevoegen">+</button>
 
@@ -355,5 +353,10 @@ use App\Support\View;
                 </table>
             </div>
         <?php endif; ?>
+    </div>
+<?php else: ?>
+    <div class="empty-state card">
+        <p>Er is nog geen budgetperiode aangemaakt.</p>
+        <a class="btn" href="<?= View::e(View::url('periods')) ?>">Periode aanmaken</a>
     </div>
 <?php endif; ?>
