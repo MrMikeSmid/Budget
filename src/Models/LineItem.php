@@ -36,6 +36,18 @@ abstract class LineItem
     /** Kolom op de transactions-tabel die naar deze regelsoort verwijst. */
     abstract protected static function transactionLinkColumn(): string;
 
+    /**
+     * Status waarmee een nieuw gekopieerde terugkerende regel start (zie
+     * copyRecurring()). Vaste lasten krijgen "Open" mee zodat meteen
+     * duidelijk is wat er nog betaald moet worden; inkomsten laten dit leeg
+     * omdat hun "nog te ontvangen"-telling een lege status al als "nog niet
+     * ontvangen" behandelt.
+     */
+    protected static function defaultRecurringStatus(): string
+    {
+        return '';
+    }
+
     public static function normalizeInterval(string $interval): string
     {
         return array_key_exists($interval, static::INTERVALS) ? $interval : 'maandelijks';
@@ -356,7 +368,7 @@ abstract class LineItem
                 (string) $item['description'],
                 (float) $item['budgeted'],
                 null,
-                '',
+                static::defaultRecurringStatus(),
                 true,
                 (string) $item['recurrence_interval'],
                 (string) $item['recurrence_mode'],

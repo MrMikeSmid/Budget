@@ -36,6 +36,11 @@ final class FixedCost extends LineItem
         return 'fixed_cost_id';
     }
 
+    protected static function defaultRecurringStatus(): string
+    {
+        return 'Open';
+    }
+
     public static function normalizeInterval(string $interval): string
     {
         return array_key_exists($interval, self::INTERVALS) ? $interval : 'maandelijks';
@@ -262,6 +267,20 @@ final class FixedCost extends LineItem
                 continue; // lening al volledig afgelost
             }
 
+            // Extra vangnet los van de group_key-check hierboven, zie
+            // LineItem::copyRecurring().
+            $dupStmt = $pdo->prepare(
+                'SELECT 1 FROM fixed_costs WHERE period_id = :period_id AND description = :description AND budgeted = :budgeted LIMIT 1'
+            );
+            $dupStmt->execute([
+                'period_id' => $toPeriodId,
+                'description' => $item['description'],
+                'budgeted' => $item['budgeted'],
+            ]);
+            if ($dupStmt->fetchColumn()) {
+                continue;
+            }
+
             $groupId = $item['recurrence_group_id'] ? (int) $item['recurrence_group_id'] : (int) $item['id'];
 
             self::createFull(
@@ -269,7 +288,7 @@ final class FixedCost extends LineItem
                 (string) $item['description'],
                 (float) $item['budgeted'],
                 null,
-                '',
+                self::defaultRecurringStatus(),
                 true,
                 (string) $item['recurrence_interval'],
                 (string) $item['recurrence_mode'],
