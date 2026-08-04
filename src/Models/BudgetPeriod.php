@@ -140,7 +140,7 @@ final class BudgetPeriod
                 COALESCE((SELECT SUM(actual) FROM income_items WHERE period_id = p.id), 0) AS income_actual,
                 COALESCE((SELECT SUM(budgeted) FROM fixed_costs WHERE period_id = p.id), 0) AS fixed_budgeted,
                 COALESCE((SELECT SUM(actual) FROM fixed_costs WHERE period_id = p.id), 0) AS fixed_actual,
-                COALESCE((SELECT SUM(amount) FROM transactions WHERE period_id = p.id AND pot_id IS NULL), 0) AS transactions_sum,
+                COALESCE((SELECT SUM(amount) FROM transactions WHERE period_id = p.id AND pot_id IS NULL AND fixed_cost_id IS NULL AND income_item_id IS NULL), 0) AS transactions_sum,
                 COALESCE((SELECT SUM(amount) FROM pot_transactions WHERE period_id = p.id), 0) AS pot_transactions_sum
              FROM budget_periods p
              ORDER BY p.start_date ASC"
@@ -157,16 +157,19 @@ final class BudgetPeriod
      * Verwacht saldo kasstroom van deze periode: ontvangen inkomsten min
      * betaalde vaste lasten, plus de som van de "losse" kasstroommutaties
      * (dus niet de mutaties die aan een potje gekoppeld zijn — dat geld is
-     * al bij het potje af/bijgeboekt en raakt het losse saldo niet meer),
-     * min wat er in deze periode in potjes is gestort (en plus wat eruit
-     * is opgenomen) — dat geld staat immers niet meer los op het saldo.
+     * al bij het potje af/bijgeboekt en raakt het losse saldo niet meer,
+     * en ook niet de mutaties die aan een last/inkomst gekoppeld zijn —
+     * dat geld is al verwerkt via het "werkelijk"-bedrag van die last/
+     * inkomst, anders telt dezelfde betaling dubbel), min wat er in deze
+     * periode in potjes is gestort (en plus wat eruit is opgenomen) — dat
+     * geld staat immers niet meer los op het saldo.
      */
     public static function endingBalance(int $id): float
     {
         $incomeActual = (float) IncomeItem::totals($id)['actual'];
         $fixedActual = (float) FixedCost::totals($id)['actual'];
 
-        $stmt = Database::connection()->prepare('SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE period_id = :id AND pot_id IS NULL');
+        $stmt = Database::connection()->prepare('SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE period_id = :id AND pot_id IS NULL AND fixed_cost_id IS NULL AND income_item_id IS NULL');
         $stmt->execute(['id' => $id]);
         $sum = (float) $stmt->fetchColumn();
 

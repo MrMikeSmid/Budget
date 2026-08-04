@@ -10,6 +10,7 @@ use App\Support\View;
 /** @var float|null $expectedBalance */
 /** @var array $pots */
 /** @var array|null $editing */
+/** @var array|null $editingOverboeking */
 /** @var bool $openForm */
 /** @var string $activeTab */
 ?>
@@ -65,10 +66,32 @@ use App\Support\View;
                     <a class="btn secondary" href="<?= View::e(View::url('kasstroom', ['period' => $period['id']])) ?>">Annuleren</a>
                 <?php endif; ?>
             </form>
+            <?php if ($editing): ?>
+                <form method="post" action="<?= View::e(View::url('kasstroom-delete')) ?>" onsubmit="return confirm('Mutatie verwijderen?');" style="margin-top:10px;">
+                    <?= Csrf::field() ?>
+                    <input type="hidden" name="id" value="<?= (int) $editing['id'] ?>">
+                    <input type="hidden" name="period_id" value="<?= (int) $period['id'] ?>">
+                    <button type="submit" class="btn small danger">Verwijderen</button>
+                </form>
+            <?php endif; ?>
         </div>
 
+        <?php
+            $overboekingFromPotId = null;
+            $overboekingToPotId = null;
+            if ($editingOverboeking) {
+                if ((float) $editingOverboeking['amount'] < 0) {
+                    $overboekingFromPotId = (int) $editingOverboeking['pot_id'];
+                } else {
+                    $overboekingToPotId = (int) $editingOverboeking['pot_id'];
+                }
+            }
+        ?>
         <div class="tab-panel" id="panel-overboeken" <?= $activeTab === 'overboeken' ? '' : 'hidden' ?>>
             <p class="text-muted">Geld verplaatsen tussen het losse saldo en een potje, of tussen twee potjes. Dit is geen uitgave: er verdwijnt niets uit het systeem, het geld verhuist alleen.</p>
+            <?php if ($editingOverboeking): ?>
+                <p class="text-muted">Overboekingen kunnen niet bewerkt worden — verwijder deze en voeg hem eventueel opnieuw toe.</p>
+            <?php endif; ?>
             <form class="inline-form" method="post" action="<?= View::e(View::url('potje-overboeking-save')) ?>">
                 <?= Csrf::field() ?>
                 <input type="hidden" name="period_id" value="<?= (int) $period['id'] ?>">
@@ -78,7 +101,7 @@ use App\Support\View;
                         <select id="from_pot_id" name="from_pot_id">
                             <option value="">Los saldo</option>
                             <?php foreach ($pots as $p): ?>
-                                <option value="<?= (int) $p['id'] ?>">
+                                <option value="<?= (int) $p['id'] ?>" <?= $overboekingFromPotId === (int) $p['id'] ? 'selected' : '' ?>>
                                     <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?> (<?= View::money((float) $p['resolved_amount']) ?>)
                                 </option>
                             <?php endforeach; ?>
@@ -89,7 +112,7 @@ use App\Support\View;
                         <select id="to_pot_id" name="to_pot_id">
                             <option value="">Los saldo</option>
                             <?php foreach ($pots as $p): ?>
-                                <option value="<?= (int) $p['id'] ?>">
+                                <option value="<?= (int) $p['id'] ?>" <?= $overboekingToPotId === (int) $p['id'] ? 'selected' : '' ?>>
                                     <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?> (<?= View::money((float) $p['resolved_amount']) ?>)
                                 </option>
                             <?php endforeach; ?>
@@ -99,19 +122,29 @@ use App\Support\View;
                 <div class="field-row">
                     <div class="field">
                         <label for="transfer_date">Datum</label>
-                        <input type="date" id="transfer_date" name="txn_date" required value="<?= date('Y-m-d') ?>">
+                        <input type="date" id="transfer_date" name="txn_date" required value="<?= View::e($editingOverboeking['txn_date'] ?? date('Y-m-d')) ?>">
                     </div>
                     <div class="field">
                         <label for="transfer_amount">Bedrag</label>
-                        <input type="number" step="0.01" min="0.01" id="transfer_amount" name="amount" required>
+                        <input type="number" step="0.01" min="0.01" id="transfer_amount" name="amount" required value="<?= $editingOverboeking ? View::e((string) abs((float) $editingOverboeking['amount'])) : '' ?>">
                     </div>
                 </div>
                 <div class="field">
                     <label for="transfer_description">Omschrijving (optioneel)</label>
-                    <input type="text" id="transfer_description" name="description">
+                    <input type="text" id="transfer_description" name="description" value="<?= View::e($editingOverboeking['description'] ?? '') ?>">
                 </div>
                 <button type="submit" class="btn">Overboeken</button>
             </form>
+            <?php if ($editingOverboeking): ?>
+                <form method="post" action="<?= View::e(View::url('potje-transactie-delete')) ?>" onsubmit="return confirm('Overboeking verwijderen?');" style="margin-top:10px;">
+                    <?= Csrf::field() ?>
+                    <input type="hidden" name="id" value="<?= (int) $editingOverboeking['id'] ?>">
+                    <input type="hidden" name="pot_id" value="<?= (int) $editingOverboeking['pot_id'] ?>">
+                    <input type="hidden" name="period_id" value="<?= (int) $period['id'] ?>">
+                    <input type="hidden" name="return" value="kasstroom">
+                    <button type="submit" class="btn small danger">Verwijderen</button>
+                </form>
+            <?php endif; ?>
         </div>
     </div>
     </div>
@@ -176,48 +209,34 @@ use App\Support\View;
                         <th class="nowrap">Omschrijving</th>
                         <th class="num">Mutatie</th>
                         <th class="num">Saldo</th>
-                        <th></th>
-                        <th></th>
                     </tr>
                     </thead>
                     <tbody>
                     <?php foreach ($transactions as $t): ?>
-                        <?php $isTransfer = $t['source'] === 'overboeking'; ?>
-                        <tr style="<?= !empty($t['is_settled']) ? 'opacity:.65;' : '' ?>">
+                        <?php
+                            $isTransfer = $t['source'] === 'overboeking';
+                            if ($isTransfer) {
+                                $rowHref = View::url('kasstroom', ['period' => $period['id'], 'open' => 1, 'tab' => 'overboeken', 'edit_overboeking' => $t['id']]);
+                            } elseif (!empty($t['fixed_cost_id'])) {
+                                $rowHref = View::url('vaste-lasten', ['period' => $period['id'], 'edit' => $t['fixed_cost_id']]);
+                            } elseif (!empty($t['income_item_id'])) {
+                                $rowHref = View::url('inkomsten', ['period' => $period['id'], 'edit' => $t['income_item_id']]);
+                            } else {
+                                $rowHref = View::url('kasstroom', ['period' => $period['id'], 'edit' => $t['id']]);
+                            }
+                        ?>
+                        <tr class="row-clickable" data-href="<?= View::e($rowHref) ?>" style="<?= !empty($t['is_settled']) ? 'opacity:.65;' : '' ?>">
                             <td class="nowrap"><?= View::e($t['txn_date']) ?></td>
                             <td class="nowrap">
                                 <?= View::e($t['description']) ?>
                                 <?php if ($isTransfer): ?> <span class="badge neutral">🔁 overboeking</span><?php endif; ?>
                                 <?php if (!empty($t['is_settled'])): ?> <span class="badge paid">verwerkt</span><?php endif; ?>
                                 <?php if ($t['pot_name']): ?> <span class="badge neutral"><?= View::e($t['pot_icon'] ?: '💶') ?> <?= View::e($t['pot_name']) ?></span><?php endif; ?>
+                                <?php if (!empty($t['fixed_cost_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een vaste last">Last</span><?php endif; ?>
+                                <?php if (!empty($t['income_item_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een inkomst">Inkomst</span><?php endif; ?>
                             </td>
                             <td class="num <?= $t['amount'] < 0 ? 'negative' : 'positive' ?>"><?= View::money((float) $t['amount']) ?></td>
                             <td class="num"><?= View::money((float) $t['balance']) ?></td>
-                            <?php if ($isTransfer): ?>
-                                <td></td>
-                                <td>
-                                    <form method="post" action="<?= View::e(View::url('potje-transactie-delete')) ?>" onsubmit="return confirm('Mutatie verwijderen?');">
-                                        <?= Csrf::field() ?>
-                                        <input type="hidden" name="id" value="<?= (int) $t['id'] ?>">
-                                        <input type="hidden" name="pot_id" value="<?= (int) $t['pot_id'] ?>">
-                                        <input type="hidden" name="period_id" value="<?= (int) $period['id'] ?>">
-                                        <input type="hidden" name="return" value="kasstroom">
-                                        <button type="submit" class="btn small danger">Verwijderen</button>
-                                    </form>
-                                </td>
-                            <?php else: ?>
-                                <td>
-                                    <a class="btn small secondary" href="<?= View::e(View::url('kasstroom', ['period' => $period['id'], 'edit' => $t['id']])) ?>">Bewerken</a>
-                                </td>
-                                <td>
-                                    <form method="post" action="<?= View::e(View::url('kasstroom-delete')) ?>" onsubmit="return confirm('Mutatie verwijderen?');">
-                                        <?= Csrf::field() ?>
-                                        <input type="hidden" name="id" value="<?= (int) $t['id'] ?>">
-                                        <input type="hidden" name="period_id" value="<?= (int) $period['id'] ?>">
-                                        <button type="submit" class="btn small danger">Verwijderen</button>
-                                    </form>
-                                </td>
-                            <?php endif; ?>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
