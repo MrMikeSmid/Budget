@@ -44,8 +44,11 @@ final class IncomeController extends LineItemController
         $periodId = (int) ($_POST['period_id'] ?? 0);
         $description = trim($_POST['description'] ?? '');
         $budgeted = (float) str_replace(',', '.', $_POST['budgeted'] ?? '0');
-        $actualRaw = trim($_POST['actual'] ?? '');
-        $actual = $actualRaw === '' ? null : (float) str_replace(',', '.', $actualRaw);
+        // "Werkelijk" wordt niet meer via dit formulier ingevuld — dat
+        // gebeurt via een kasstroommutatie (zie TransactionController).
+        // Bij bewerken blijft het bestaande bedrag dus gewoon staan.
+        $existing = $id > 0 ? IncomeItem::find($id) : null;
+        $actual = $existing && $existing['actual'] !== null ? (float) $existing['actual'] : null;
         $status = trim($_POST['status'] ?? '');
         $isRecurring = !empty($_POST['is_recurring']);
         $recurrenceInterval = IncomeItem::normalizeInterval((string) ($_POST['recurrence_interval'] ?? 'maandelijks'));

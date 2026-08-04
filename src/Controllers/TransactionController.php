@@ -103,9 +103,11 @@ final class TransactionController
             if (!empty($oldTxn['fixed_cost_id']) && (int) $oldTxn['fixed_cost_id'] !== $fixedCostId) {
                 FixedCost::syncActualFromTransactions((int) $oldTxn['fixed_cost_id']);
                 FixedCost::syncLoanPayment((int) $oldTxn['fixed_cost_id']);
+                FixedCost::revertStatusIfUnlinked((int) $oldTxn['fixed_cost_id'], 'Open');
             }
             if (!empty($oldTxn['income_item_id']) && (int) $oldTxn['income_item_id'] !== $incomeItemId) {
                 IncomeItem::syncActualFromTransactions((int) $oldTxn['income_item_id']);
+                IncomeItem::revertStatusIfUnlinked((int) $oldTxn['income_item_id'], 'Nog te ontvangen');
             }
         }
 
@@ -128,9 +130,11 @@ final class TransactionController
             if (!empty($txn['fixed_cost_id'])) {
                 FixedCost::syncActualFromTransactions((int) $txn['fixed_cost_id']);
                 FixedCost::syncLoanPayment((int) $txn['fixed_cost_id']);
+                FixedCost::revertStatusIfUnlinked((int) $txn['fixed_cost_id'], 'Open');
             }
             if (!empty($txn['income_item_id'])) {
                 IncomeItem::syncActualFromTransactions((int) $txn['income_item_id']);
+                IncomeItem::revertStatusIfUnlinked((int) $txn['income_item_id'], 'Nog te ontvangen');
             }
         }
         View::flash('Transactie verwijderd.');
