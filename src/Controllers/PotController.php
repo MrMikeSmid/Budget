@@ -11,15 +11,13 @@ final class PotController
 {
     public static function index(): void
     {
-        $editId = isset($_GET['edit']) ? (int) $_GET['edit'] : null;
         $period = BudgetPeriod::resolveFromRequest();
 
         View::render('pots/index', [
             'pots' => $period ? Pot::allForPeriod((int) $period['id']) : Pot::all(),
             'periods' => BudgetPeriod::all(),
             'period' => $period,
-            'editing' => $editId ? Pot::find($editId) : null,
-            'openForm' => $editId !== null || !empty($_GET['open']),
+            'openForm' => !empty($_GET['open']),
         ]);
     }
 
@@ -34,6 +32,10 @@ final class PotController
         $amountRaw = trim($_POST['amount'] ?? '');
         $amount = $amountRaw === '' ? null : (float) str_replace(',', '.', $amountRaw);
         $type = Pot::normalizeType((string) ($_POST['type'] ?? 'leefpotje'));
+        $returnTo = $_POST['return'] ?? '';
+        $redirect = $returnTo === 'potje' && $id > 0
+            ? View::url('potje', ['id' => $id])
+            : View::url('potjes', $periodId ? ['period' => $periodId] : []);
 
         if ($name === '') {
             View::flash('Vul een naam in.', 'error');
@@ -47,7 +49,7 @@ final class PotController
             View::flash('Potje toegevoegd.');
         }
 
-        header('Location: ' . View::url('potjes', $periodId ? ['period' => $periodId] : []));
+        header('Location: ' . $redirect);
         exit;
     }
 

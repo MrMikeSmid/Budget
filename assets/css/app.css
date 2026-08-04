@@ -713,6 +713,17 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
 }
 .quick-action:hover { text-decoration: none; }
 
+/* Sommige quick-actions zijn een <button> (bijv. om een form-panel te
+   tonen i.p.v. te navigeren) i.p.v. een <a> — reset de UA-buttonstijl
+   zodat hij er identiek uitziet. */
+button.quick-action {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    cursor: pointer;
+}
+
 .quick-action-icon {
     width: 44px;
     height: 44px;

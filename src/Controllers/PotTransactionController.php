@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\Activity;
+use App\Models\BudgetPeriod;
 use App\Models\Pot;
 use App\Models\PotTransaction;
 use App\Support\Auth;
@@ -24,6 +25,8 @@ final class PotTransactionController
         View::render('pots/show', [
             'pot' => $pot,
             'ledger' => Pot::ledger($id, (float) $pot['base_amount']),
+            'periods' => BudgetPeriod::all(),
+            'openForm' => !empty($_GET['open']),
         ]);
     }
 
