@@ -94,6 +94,14 @@ $openForm = $openForm ?? false;
                     <a class="btn secondary" href="<?= View::e(View::url($listPage, ['period' => $period['id']])) ?>">Annuleren</a>
                 <?php endif; ?>
             </form>
+            <?php if ($editing): ?>
+                <form method="post" action="<?= View::e(View::url($deletePage)) ?>" onsubmit="return confirm('Regel verwijderen?');" style="margin-top:10px;">
+                    <?= Csrf::field() ?>
+                    <input type="hidden" name="id" value="<?= (int) $editing['id'] ?>">
+                    <input type="hidden" name="period_id" value="<?= (int) $period['id'] ?>">
+                    <button type="submit" class="btn small danger">Verwijderen</button>
+                </form>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -119,12 +127,11 @@ $openForm = $openForm ?? false;
                         <th class="nowrap">Omschrijving</th>
                         <th class="num">Begroot</th>
                         <th class="num">Werkelijk</th>
-                        <th></th>
                     </tr>
                     </thead>
                     <tbody>
                     <?php foreach ($items as $item): ?>
-                        <tr>
+                        <tr class="row-clickable" data-href="<?= View::e(View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']])) ?>">
                             <td class="nowrap">
                                 <?= View::e($item['description']) ?>
                                 <?php if (!empty($item['is_recurring'])): ?> <span title="Terugkerend (<?= View::e(LineItem::INTERVALS[$item['recurrence_interval'] ?? 'maandelijks'] ?? 'Maandelijks') ?>)" class="text-muted">&#8635;</span><?php endif; ?>
@@ -137,17 +144,6 @@ $openForm = $openForm ?? false;
                             </td>
                             <td class="num"><?= View::money((float) $item['budgeted']) ?></td>
                             <td class="num"><?= $item['actual'] !== null ? View::money((float) $item['actual']) : '-' ?></td>
-                            <td>
-                                <div class="row-actions row-actions-nowrap">
-                                    <a class="btn small secondary" href="<?= View::e(View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']])) ?>">Bewerken</a>
-                                    <form method="post" action="<?= View::e(View::url($deletePage)) ?>" onsubmit="return confirm('Regel verwijderen?');">
-                                        <?= Csrf::field() ?>
-                                        <input type="hidden" name="id" value="<?= (int) $item['id'] ?>">
-                                        <input type="hidden" name="period_id" value="<?= (int) $period['id'] ?>">
-                                        <button type="submit" class="btn small danger">Verwijderen</button>
-                                    </form>
-                                </div>
-                            </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>

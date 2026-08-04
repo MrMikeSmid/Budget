@@ -28,6 +28,12 @@ document.querySelectorAll('form').forEach((form) => {
     });
 });
 
+document.querySelectorAll('tr[data-href]').forEach((row) => {
+    row.addEventListener('click', () => {
+        window.location.href = row.dataset.href;
+    });
+});
+
 document.querySelectorAll('.fab-button[data-toggle-target]').forEach((button) => {
     const panel = document.getElementById(button.dataset.toggleTarget);
     if (!panel) {
