@@ -7,7 +7,6 @@ use App\Models\FixedCost;
 use App\Models\IncomeItem;
 use App\Models\Loan;
 use App\Models\Pot;
-use App\Support\PaymentAdvisor;
 use App\Support\View;
 
 final class DashboardController
@@ -28,8 +27,6 @@ final class DashboardController
         $incomeOutstanding = 0.0;
         $incomeTotal = 0.0;
         $partialLoanPayments = [];
-        $paymentAdvice = null;
-        $incomeAdvice = null;
 
         if ($period) {
             $balance = BudgetPeriod::endingBalance((int) $period['id']);
@@ -55,10 +52,6 @@ final class DashboardController
             $incomeTotal = $incomeActual + $incomeOutstanding;
 
             $partialLoanPayments = Loan::partialPaymentsForPeriod((int) $period['id']);
-
-            $unpaidCosts = FixedCost::unpaidForPeriod((int) $period['id']);
-            $paymentAdvice = PaymentAdvisor::advise($balance, $unpaidCosts);
-            $incomeAdvice = PaymentAdvisor::adviseExpectedIncome($balance, $unpaidCosts, IncomeItem::unreceivedForPeriod((int) $period['id']));
         }
 
         View::render('dashboard/index', [
@@ -76,8 +69,6 @@ final class DashboardController
             'incomeOutstanding' => $incomeOutstanding,
             'incomeTotal' => $incomeTotal,
             'partialLoanPayments' => $partialLoanPayments,
-            'paymentAdvice' => $paymentAdvice,
-            'incomeAdvice' => $incomeAdvice,
         ]);
     }
 }

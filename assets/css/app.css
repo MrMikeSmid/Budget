@@ -324,22 +324,19 @@ tr:last-child td { border-bottom: none; }
     }
 }
 
-/* Betaaladvies onder de dashboardtabs: gewoon een witte kaart, net als de
+/* AI-advieskaart onder de dashboardtabs: gewoon een witte kaart, net als de
    rest — alleen de titel krijgt een accentkleur. */
 .advice-card h2 {
     font-size: 15px;
     color: var(--primary-dark);
-    margin-bottom: 10px;
 }
 
 .advice-card p {
     margin: 0;
 }
 
-.advice-card .advice-followup {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border);
+.advice-card .advice-error {
+    color: var(--red);
 }
 
 @media (prefers-color-scheme: dark) {
