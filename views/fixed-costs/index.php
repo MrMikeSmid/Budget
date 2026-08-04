@@ -17,4 +17,6 @@ View::render('partials/line-items', [
     'defaultStatus' => 'Open',
     'outstandingLabel' => 'Nog openstaand',
     'showRecurrenceOptions' => true,
+    'showHero' => true,
+    'heroLabel' => 'Nog openstaand',
 ], null);

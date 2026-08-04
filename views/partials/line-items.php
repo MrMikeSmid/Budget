@@ -18,15 +18,24 @@ use App\Support\View;
 /** @var bool $showRecurrenceOptions */
 /** @var bool $openForm */
 /** @var string $defaultStatus */
+/** @var bool $showHero */
+/** @var string $heroLabel */
 
 $showRecurrenceOptions = $showRecurrenceOptions ?? false;
 $openForm = $openForm ?? false;
 $defaultStatus = $defaultStatus ?? '';
+$showHero = $showHero ?? false;
+$heroLabel = $heroLabel ?? '';
 ?>
-<?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => $listPage], null); ?>
-
 <?php if ($period): ?>
-    <button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Regel toevoegen">+</button>
+    <?php if ($showHero): ?>
+        <div class="hero-balance hero-balance-tall">
+            <div class="hero-balance-label"><?= View::e($heroLabel) ?></div>
+            <div class="hero-balance-amount"><?= View::money($outstanding) ?></div>
+        </div>
+    <?php endif; ?>
+
+    <button type="button" class="fab-button<?= $showHero ? ' on-hero' : '' ?>" data-toggle-target="add-form-panel" aria-label="Regel toevoegen">+</button>
 
     <div class="form-panel" id="add-form-panel" <?= ($editing || $openForm) ? '' : 'hidden' ?>>
         <div class="card">
@@ -107,7 +116,7 @@ $defaultStatus = $defaultStatus ?? '';
         </div>
     </div>
 
-    <div class="grid-stats" style="grid-template-columns: 1fr 1fr;">
+    <div class="grid-stats<?= $showHero ? ' grid-stats-overlap' : '' ?>" style="grid-template-columns: 1fr 1fr;">
         <div class="stat">
             <div class="label">Totaal begroot</div>
             <div class="value"><?= View::money((float) $totals['budgeted']) ?></div>
@@ -158,5 +167,10 @@ $defaultStatus = $defaultStatus ?? '';
                 </table>
             </div>
         <?php endif; ?>
+    </div>
+<?php else: ?>
+    <div class="empty-state card">
+        <p>Er is nog geen budgetperiode aangemaakt.</p>
+        <a class="btn" href="<?= View::e(View::url('periods')) ?>">Periode aanmaken</a>
     </div>
 <?php endif; ?>

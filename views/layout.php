@@ -35,7 +35,9 @@ $navItems = [
     <div style="flex:1; display:flex; flex-direction:column;">
         <header class="topbar">
             <h1>Budgetapp</h1>
-            <a class="logout-link" href="<?= View::e(View::url('logout')) ?>">Uitloggen</a>
+            <?php if (isset($periods)): ?>
+                <?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period ?? null, 'page' => $currentPage, 'compact' => true], null); ?>
+            <?php endif; ?>
         </header>
         <main class="content">
             <?php if ($flash): ?>

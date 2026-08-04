@@ -5,14 +5,19 @@ use App\Support\View;
 /** @var array $periods */
 /** @var array|null $period */
 /** @var string $page */
+/** @var bool $compact */
+
+$compact = $compact ?? false;
 ?>
 <?php if (empty($periods)): ?>
-    <div class="empty-state card">
-        <p>Er is nog geen budgetperiode aangemaakt.</p>
-        <a class="btn" href="<?= View::e(View::url('periods')) ?>">Periode aanmaken</a>
-    </div>
+    <?php if (!$compact): ?>
+        <div class="empty-state card">
+            <p>Er is nog geen budgetperiode aangemaakt.</p>
+            <a class="btn" href="<?= View::e(View::url('periods')) ?>">Periode aanmaken</a>
+        </div>
+    <?php endif; ?>
 <?php else: ?>
-    <div class="period-switcher">
+    <div class="period-switcher<?= $compact ? ' period-switcher-compact' : '' ?>">
         <form method="get" action="index.php">
             <input type="hidden" name="page" value="<?= View::e($page) ?>">
             <select name="period" onchange="this.form.submit()">

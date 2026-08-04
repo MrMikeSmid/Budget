@@ -12,8 +12,6 @@ use App\Support\View;
 $leefpotjes = array_filter($pots, static fn ($p) => ($p['type'] ?? 'leefpotje') === 'leefpotje');
 $spaarpotjes = array_filter($pots, static fn ($p) => ($p['type'] ?? 'leefpotje') === 'spaarpotje');
 ?>
-<?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => 'potjes'], null); ?>
-
 <button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Potje toevoegen">+</button>
 
 <div class="form-panel" id="add-form-panel" <?= $editing ? '' : 'hidden' ?>>
