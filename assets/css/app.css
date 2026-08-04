@@ -336,6 +336,12 @@ tr:last-child td { border-bottom: none; }
     margin: 0;
 }
 
+.advice-card .advice-followup {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+}
+
 @media (prefers-color-scheme: dark) {
     .advice-card h2 {
         color: #93c5fd;

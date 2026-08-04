@@ -17,6 +17,7 @@ use App\Support\View;
 /** @var float $incomeTotal */
 /** @var array $partialLoanPayments */
 /** @var string|null $paymentAdvice */
+/** @var string|null $incomeAdvice */
 ?>
 <?php if ($period): ?>
     <div class="hero-balance">
@@ -140,6 +141,9 @@ use App\Support\View;
         <div class="card advice-card">
             <h2 class="mt-0">💡 Advies</h2>
             <p><?= View::e($paymentAdvice) ?></p>
+            <?php if ($incomeAdvice): ?>
+                <p class="advice-followup"><?= View::e($incomeAdvice) ?></p>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
 <?php else: ?>
