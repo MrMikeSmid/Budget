@@ -324,6 +324,32 @@ tr:last-child td { border-bottom: none; }
     }
 }
 
+/* Betaaladvies onder de dashboardtabs: informatief (blauw), niet
+   waarschuwend zoals .attention-card. */
+.advice-card {
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+}
+
+.advice-card h2 {
+    font-size: 15px;
+    color: var(--primary-dark);
+}
+
+.advice-card p {
+    margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+    .advice-card {
+        background: #182338;
+        border-color: #223353;
+    }
+    .advice-card h2 {
+        color: #93c5fd;
+    }
+}
+
 form.inline-form {
     display: flex;
     flex-direction: column;
