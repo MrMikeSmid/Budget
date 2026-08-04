@@ -332,6 +332,23 @@ abstract class LineItem
                 continue;
             }
 
+            // Extra vangnet los van de group_key-check hierboven: als er door
+            // eerdere (inmiddels opgeloste) dubbele-periode-bugs twee losse
+            // terugkerende reeksen met dezelfde omschrijving/bedrag bestaan,
+            // voorkomt dit dat ze allebei naar dezelfde nieuwe periode
+            // gekopieerd worden.
+            $dupStmt = $pdo->prepare(
+                "SELECT 1 FROM {$table} WHERE period_id = :period_id AND description = :description AND budgeted = :budgeted LIMIT 1"
+            );
+            $dupStmt->execute([
+                'period_id' => $toPeriodId,
+                'description' => $item['description'],
+                'budgeted' => $item['budgeted'],
+            ]);
+            if ($dupStmt->fetchColumn()) {
+                continue;
+            }
+
             $groupId = $item['recurrence_group_id'] ? (int) $item['recurrence_group_id'] : (int) $item['id'];
 
             static::createFull(
