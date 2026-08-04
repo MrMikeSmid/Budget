@@ -72,14 +72,20 @@ document.querySelectorAll('tr[data-href]').forEach((row) => {
     });
 });
 
-document.querySelectorAll('.fab-button[data-toggle-target]').forEach((button) => {
+// Generieke toggle-knop: klappen een target-element open/dicht. De
+// ronde "+"-FAB (add-form-panel) wisselt daarbij ook zijn "+"/"×"-teken;
+// overige knoppen (bijv. "Filteren") laten hun eigen tekst met rust.
+document.querySelectorAll('[data-toggle-target]').forEach((button) => {
     const panel = document.getElementById(button.dataset.toggleTarget);
     if (!panel) {
         return;
     }
 
+    const isFab = button.classList.contains('fab-button');
     const sync = () => {
-        button.textContent = panel.hidden ? '+' : '×';
+        if (isFab) {
+            button.textContent = panel.hidden ? '+' : '×';
+        }
         button.setAttribute('aria-expanded', panel.hidden ? 'false' : 'true');
     };
     sync();
