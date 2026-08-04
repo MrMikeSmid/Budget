@@ -97,6 +97,24 @@ abstract class LineItem
         $stmt->execute(['actual' => $sum, 'id' => $id]);
     }
 
+    /**
+     * Zet de status terug als deze regel geen enkele gekoppelde
+     * kasstroommutatie meer heeft (bijv. na het verwijderen of ontkoppelen
+     * van de laatste mutatie) — anders blijft "Betaald"/"Ontvangen" ten
+     * onrechte staan terwijl er niets meer tegenover staat. Blijft de
+     * regel via een andere mutatie nog gekoppeld (gedeeltelijke
+     * betalingen), dan gebeurt er niets.
+     */
+    public static function revertStatusIfUnlinked(int $id, string $unlinkedStatus): void
+    {
+        if (static::linkedTransactionId($id) !== null) {
+            return;
+        }
+
+        $stmt = Database::connection()->prepare('UPDATE ' . static::table() . ' SET status = :status WHERE id = :id');
+        $stmt->execute(['status' => $unlinkedStatus, 'id' => $id]);
+    }
+
     public static function find(int $id): ?array
     {
         $stmt = Database::connection()->prepare('SELECT * FROM ' . static::table() . ' WHERE id = :id');

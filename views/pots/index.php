@@ -1,13 +1,11 @@
 <?php
 
-use App\Models\Pot;
 use App\Support\Csrf;
 use App\Support\View;
 
 /** @var array $pots */
 /** @var array $periods */
 /** @var array|null $period */
-/** @var array|null $editing */
 /** @var bool $openForm */
 
 $openForm = $openForm ?? false;
@@ -31,57 +29,18 @@ $totalPotjes = array_sum(array_column($leefpotjes, 'resolved_amount')) + array_s
     <button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Potje toevoegen">+</button>
 <?php endif; ?>
 
-<div class="form-panel" id="add-form-panel" <?= ($editing || $openForm) ? '' : 'hidden' ?>>
+<div class="form-panel" id="add-form-panel" <?= $openForm ? '' : 'hidden' ?>>
     <div class="card">
-        <h2 class="mt-0"><?= $editing ? 'Potje bewerken' : 'Nieuw potje' ?></h2>
-        <?php if (!$editing && $period): ?>
+        <h2 class="mt-0">Nieuw potje</h2>
+        <?php if ($period): ?>
             <p class="text-muted">Dit potje bestaat vanaf periode "<?= View::e($period['name']) ?>" — in eerdere periodes blijft het onzichtbaar.</p>
         <?php endif; ?>
         <form class="inline-form" method="post" action="<?= View::e(View::url('potjes-save')) ?>">
             <?= Csrf::field() ?>
-            <input type="hidden" name="id" value="<?= (int) ($editing['id'] ?? 0) ?>">
+            <input type="hidden" name="id" value="0">
             <input type="hidden" name="period_id" value="<?= (int) ($period['id'] ?? 0) ?>">
-            <div class="field-row">
-                <div class="field" style="flex:0 0 90px;">
-                    <label for="icon">Icoon</label>
-                    <input type="text" id="icon" name="icon" maxlength="4" value="<?= View::e($editing['icon'] ?? '💶') ?>">
-                </div>
-                <div class="field">
-                    <label for="name">Naam</label>
-                    <input type="text" id="name" name="name" required value="<?= View::e($editing['name'] ?? '') ?>">
-                </div>
-            </div>
-            <div class="field">
-                <label for="type">Soort potje</label>
-                <select id="type" name="type">
-                    <?php foreach (Pot::TYPES as $key => $label): ?>
-                        <option value="<?= View::e($key) ?>" <?= ($editing['type'] ?? 'leefpotje') === $key ? 'selected' : '' ?>><?= View::e($label) ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="field">
-                <label for="linked_period_id">Koppelen aan periode (optioneel)</label>
-                <select id="linked_period_id" name="linked_period_id" onchange="document.getElementById('amount-field').style.display = this.value ? 'none' : 'block';">
-                    <option value="">Geen koppeling — handmatig bedrag</option>
-                    <?php foreach ($periods as $p): ?>
-                        <option value="<?= (int) $p['id'] ?>" <?= !empty($editing['linked_period_id']) && (int) $editing['linked_period_id'] === (int) $p['id'] ? 'selected' : '' ?>>
-                            <?= View::e($p['name']) ?> (eindsaldo kasstroom)
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="field" id="amount-field" style="<?= !empty($editing['linked_period_id']) ? 'display:none;' : '' ?>">
-                <label for="amount">Huidige stand</label>
-                <input type="number" step="0.01" id="amount" name="amount" value="<?= View::e($editing['amount'] ?? '0') ?>">
-            </div>
-            <div class="field">
-                <label for="note">Opmerking</label>
-                <input type="text" id="note" name="note" value="<?= View::e($editing['note'] ?? '') ?>">
-            </div>
-            <button type="submit" class="btn"><?= $editing ? 'Opslaan' : 'Toevoegen' ?></button>
-            <?php if ($editing): ?>
-                <a class="btn secondary" href="<?= View::e(View::url('potjes', $period ? ['period' => $period['id']] : [])) ?>">Annuleren</a>
-            <?php endif; ?>
+            <?php View::render('partials/pot-form', ['periods' => $periods, 'editing' => null], null); ?>
+            <button type="submit" class="btn">Toevoegen</button>
         </form>
     </div>
 </div>
@@ -94,10 +53,25 @@ $totalPotjes = array_sum(array_column($leefpotjes, 'resolved_amount')) + array_s
     <?php if (empty($leefpotjes)): ?>
         <p class="text-muted">Nog geen leefpotjes aangemaakt.</p>
     <?php else: ?>
-        <div class="pots-grid">
-            <?php foreach ($leefpotjes as $pot): ?>
-                <?php View::render('partials/pot-card', ['pot' => $pot, 'period' => $period], null); ?>
-            <?php endforeach; ?>
+        <div class="table-scroll">
+            <table>
+                <tbody>
+                <?php foreach ($leefpotjes as $pot): ?>
+                    <tr class="row-clickable" data-href="<?= View::e(View::url('potje', ['id' => $pot['id']])) ?>">
+                        <td>
+                            <span class="pot-icon"><?= View::e($pot['icon'] ?: '💶') ?></span>
+                            <?= View::e($pot['name']) ?>
+                            <?php if ($pot['linked_period_name']): ?>
+                                <div class="pot-note">Gekoppeld: <?= View::e($pot['linked_period_name']) ?></div>
+                            <?php elseif ($pot['note']): ?>
+                                <div class="pot-note"><?= View::e($pot['note']) ?></div>
+                            <?php endif; ?>
+                        </td>
+                        <td class="num"><?= View::money((float) $pot['resolved_amount']) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
     <?php endif; ?>
 </div>
@@ -110,10 +84,25 @@ $totalPotjes = array_sum(array_column($leefpotjes, 'resolved_amount')) + array_s
     <?php if (empty($spaarpotjes)): ?>
         <p class="text-muted">Nog geen spaarpotjes aangemaakt.</p>
     <?php else: ?>
-        <div class="pots-grid">
-            <?php foreach ($spaarpotjes as $pot): ?>
-                <?php View::render('partials/pot-card', ['pot' => $pot, 'period' => $period], null); ?>
-            <?php endforeach; ?>
+        <div class="table-scroll">
+            <table>
+                <tbody>
+                <?php foreach ($spaarpotjes as $pot): ?>
+                    <tr class="row-clickable" data-href="<?= View::e(View::url('potje', ['id' => $pot['id']])) ?>">
+                        <td>
+                            <span class="pot-icon"><?= View::e($pot['icon'] ?: '💶') ?></span>
+                            <?= View::e($pot['name']) ?>
+                            <?php if ($pot['linked_period_name']): ?>
+                                <div class="pot-note">Gekoppeld: <?= View::e($pot['linked_period_name']) ?></div>
+                            <?php elseif ($pot['note']): ?>
+                                <div class="pot-note"><?= View::e($pot['note']) ?></div>
+                            <?php endif; ?>
+                        </td>
+                        <td class="num"><?= View::money((float) $pot['resolved_amount']) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
     <?php endif; ?>
 </div>

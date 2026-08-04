@@ -61,15 +61,9 @@ $quickActionLabel = $quickActionLabel ?? 'Regel toevoegen';
                     <label for="description">Omschrijving</label>
                     <input type="text" id="description" name="description" required value="<?= View::e($editing['description'] ?? '') ?>">
                 </div>
-                <div class="field-row">
-                    <div class="field">
-                        <label for="budgeted">Begroot</label>
-                        <input type="number" step="0.01" id="budgeted" name="budgeted" value="<?= View::e((string) ($editing['budgeted'] ?? '0')) ?>">
-                    </div>
-                    <div class="field">
-                        <label for="actual">Werkelijk</label>
-                        <input type="number" step="0.01" id="actual" name="actual" value="<?= View::e($editing['actual'] ?? null) ?>">
-                    </div>
+                <div class="field">
+                    <label for="budgeted">Begroot</label>
+                    <input type="number" step="0.01" id="budgeted" name="budgeted" value="<?= View::e((string) ($editing['budgeted'] ?? '0')) ?>">
                 </div>
                 <div class="field">
                     <label for="status">Status</label>
