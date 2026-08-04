@@ -18,15 +18,24 @@ use App\Support\View;
 /** @var string $activeTab */
 ?>
 <?php if ($period): ?>
-    <div class="hero-balance hero-balance-tall">
+    <div class="hero-balance">
         <div class="hero-balance-label">Saldo</div>
         <div class="hero-balance-amount"><?= View::money($expectedBalance) ?></div>
+    </div>
+
+    <div class="quick-actions">
+        <a class="quick-action" href="<?= View::e(View::url('kasstroom', ['period' => $period['id'], 'open' => 1, 'tab' => 'uitgave'])) ?>">
+            <span class="quick-action-icon"><?= View::navIcon('uitgave') ?></span>
+            Uitgave
+        </a>
+        <a class="quick-action" href="<?= View::e(View::url('kasstroom', ['period' => $period['id'], 'open' => 1, 'tab' => 'overboeken'])) ?>">
+            <span class="quick-action-icon"><?= View::navIcon('overboeking') ?></span>
+            Overboeking
+        </a>
     </div>
 <?php endif; ?>
 
 <?php if ($period): ?>
-    <button type="button" class="fab-button on-hero" data-toggle-target="add-form-panel" aria-label="Mutatie toevoegen">+</button>
-
     <div class="form-panel" id="add-form-panel" <?= ($editing || $openForm) ? '' : 'hidden' ?>>
     <div class="card">
         <div class="tab-switch" role="tablist">
@@ -259,7 +268,7 @@ use App\Support\View;
     <?php
         $filtersActive = $filters['type'] !== 'alle' || $filters['pot_id'] !== '' || $filters['sort'] !== 'datum' || $filters['dir'] !== 'asc';
     ?>
-    <div class="card card-overlap">
+    <div class="card">
         <div class="section-header">
             <h2 class="mt-0">Mutaties</h2>
             <button type="button" class="btn small secondary" data-toggle-target="filter-panel">Filteren</button>

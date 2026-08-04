@@ -18,4 +18,6 @@ View::render('partials/line-items', [
     'showRecurrenceOptions' => true,
     'showHero' => true,
     'heroLabel' => 'Nog te ontvangen',
+    'quickActionIcon' => 'inkomsten',
+    'quickActionLabel' => 'Inkomst toevoegen',
 ], null);

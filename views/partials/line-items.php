@@ -20,22 +20,33 @@ use App\Support\View;
 /** @var string $defaultStatus */
 /** @var bool $showHero */
 /** @var string $heroLabel */
+/** @var string $quickActionIcon */
+/** @var string $quickActionLabel */
 
 $showRecurrenceOptions = $showRecurrenceOptions ?? false;
 $openForm = $openForm ?? false;
 $defaultStatus = $defaultStatus ?? '';
 $showHero = $showHero ?? false;
 $heroLabel = $heroLabel ?? '';
+$quickActionIcon = $quickActionIcon ?? 'dashboard';
+$quickActionLabel = $quickActionLabel ?? 'Regel toevoegen';
 ?>
 <?php if ($period): ?>
     <?php if ($showHero): ?>
-        <div class="hero-balance hero-balance-tall">
+        <div class="hero-balance">
             <div class="hero-balance-label"><?= View::e($heroLabel) ?></div>
             <div class="hero-balance-amount"><?= View::money($outstanding) ?></div>
         </div>
-    <?php endif; ?>
 
-    <button type="button" class="fab-button<?= $showHero ? ' on-hero' : '' ?>" data-toggle-target="add-form-panel" aria-label="Regel toevoegen">+</button>
+        <div class="quick-actions">
+            <a class="quick-action" href="<?= View::e(View::url($listPage, ['period' => $period['id'], 'open' => 1])) ?>">
+                <span class="quick-action-icon"><?= View::navIcon($quickActionIcon) ?></span>
+                <?= View::e($quickActionLabel) ?>
+            </a>
+        </div>
+    <?php else: ?>
+        <button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Regel toevoegen">+</button>
+    <?php endif; ?>
 
     <div class="form-panel" id="add-form-panel" <?= ($editing || $openForm) ? '' : 'hidden' ?>>
         <div class="card">
@@ -116,7 +127,7 @@ $heroLabel = $heroLabel ?? '';
         </div>
     </div>
 
-    <div class="grid-stats<?= $showHero ? ' grid-stats-overlap' : '' ?>" style="grid-template-columns: 1fr 1fr;">
+    <div class="grid-stats" style="grid-template-columns: 1fr 1fr;">
         <div class="stat">
             <div class="label">Totaal begroot</div>
             <div class="value"><?= View::money((float) $totals['budgeted']) ?></div>

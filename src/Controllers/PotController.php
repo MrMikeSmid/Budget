@@ -19,6 +19,7 @@ final class PotController
             'periods' => BudgetPeriod::all(),
             'period' => $period,
             'editing' => $editId ? Pot::find($editId) : null,
+            'openForm' => $editId !== null || !empty($_GET['open']),
         ]);
     }
 
