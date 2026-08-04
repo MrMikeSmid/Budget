@@ -328,14 +328,14 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
 .row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .row-actions form { display: inline; }
 
-/* Bewerken/Verwijderen altijd naast elkaar, ongeacht de breedte van de
-   kolom — de tabel scrolt toch al horizontaal, dus liever dat dan de
-   knoppen onder elkaar laten wrappen. */
-.row-actions.row-actions-nowrap { flex-wrap: nowrap; }
-
 /* Status onder de omschrijving (i.p.v. een eigen kolom) bij inkomsten/
    vaste lasten. */
 .line-item-status { margin-top: 4px; }
+
+/* Klikbare tabelrij (bijv. inkomsten/lasten): opent het bewerkformulier
+   i.p.v. een aparte "Bewerken"-knop per rij. */
+.row-clickable { cursor: pointer; }
+.row-clickable:hover td { background: var(--bg); }
 
 .flash {
     padding: 12px 14px;
