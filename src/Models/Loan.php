@@ -54,6 +54,30 @@ final class Loan
         return $loan ? (float) $loan['remaining_amount'] : 0.0;
     }
 
+    /**
+     * Leningtermijnen in deze periode waarvan wél iets betaald is, maar niet
+     * het volledige afgesproken (begrote) termijnbedrag — bijv. de helft van
+     * de maandelijkse aflossing. Alleen deze gevallen zijn interessant voor
+     * een aandachtsvenster: nog niets betaald is de normale "openstaand"-
+     * situatie, en volledig betaald behoeft geen aandacht.
+     */
+    public static function partialPaymentsForPeriod(int $periodId): array
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT fc.id AS fixed_cost_id, fc.description, fc.budgeted, fc.actual, l.id AS loan_id, l.name AS loan_name
+             FROM fixed_costs fc
+             JOIN loans l ON l.id = fc.loan_id
+             WHERE fc.period_id = :period_id
+               AND fc.actual IS NOT NULL
+               AND fc.actual > 0
+               AND fc.actual < fc.budgeted
+             ORDER BY fc.description"
+        );
+        $stmt->execute(['period_id' => $periodId]);
+
+        return $stmt->fetchAll();
+    }
+
     public static function create(string $name, float $totalAmount, float $monthlyPayment, string $note): int
     {
         $stmt = Database::connection()->prepare(

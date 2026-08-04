@@ -15,6 +15,7 @@ use App\Support\View;
 /** @var float $incomeActual */
 /** @var float $incomeOutstanding */
 /** @var float $incomeTotal */
+/** @var array $partialLoanPayments */
 ?>
 <?php if ($period): ?>
     <div class="hero-balance">
@@ -35,6 +36,22 @@ use App\Support\View;
             <span class="quick-action-icon"><?= View::navIcon('inkomsten') ?></span>
             Inkomsten
         </a>
+    </div>
+<?php endif; ?>
+
+<?php if ($period && !empty($partialLoanPayments)): ?>
+    <div class="attention-card">
+        <h2 class="mt-0">Gedeeltelijk betaalde leningtermijn<?= count($partialLoanPayments) > 1 ? 'en' : '' ?></h2>
+        <?php foreach ($partialLoanPayments as $payment): ?>
+            <?php $remaining = (float) $payment['budgeted'] - (float) $payment['actual']; ?>
+            <div class="attention-row">
+                <div class="attention-row-title"><?= View::e($payment['loan_name']) ?></div>
+                <div class="attention-row-detail">
+                    <span>Betaald: <?= View::money((float) $payment['actual']) ?></span>
+                    <span>Nog te betalen: <?= View::money($remaining) ?></span>
+                </div>
+            </div>
+        <?php endforeach; ?>
     </div>
 <?php endif; ?>
 
