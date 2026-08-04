@@ -33,6 +33,9 @@ abstract class LineItem
 
     abstract protected static function table(): string;
 
+    /** Kolom op de transactions-tabel die naar deze regelsoort verwijst. */
+    abstract protected static function transactionLinkColumn(): string;
+
     public static function normalizeInterval(string $interval): string
     {
         return array_key_exists($interval, static::INTERVALS) ? $interval : 'maandelijks';
@@ -45,12 +48,53 @@ abstract class LineItem
 
     public static function forPeriod(int $periodId): array
     {
+        $table = static::table();
+        $linkColumn = static::transactionLinkColumn();
         $stmt = Database::connection()->prepare(
-            'SELECT * FROM ' . static::table() . ' WHERE period_id = :period_id ORDER BY sort_order, id'
+            "SELECT {$table}.*,
+                    (SELECT t.id FROM transactions t WHERE t.{$linkColumn} = {$table}.id ORDER BY t.id DESC LIMIT 1) AS linked_transaction_id
+             FROM {$table} WHERE period_id = :period_id ORDER BY sort_order, id"
         );
         $stmt->execute(['period_id' => $periodId]);
 
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Id van de kasstroommutatie die aan deze regel gekoppeld is (indien
+     * aanwezig). Zodra een regel gekoppeld is, gebeurt bewerken via die
+     * mutatie op kasstroom i.p.v. via het eigen formulier van deze regel —
+     * de mutatie kent immers ook het werkelijke bedrag en de datum.
+     */
+    public static function linkedTransactionId(int $id): ?int
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT id FROM transactions WHERE ' . static::transactionLinkColumn() . ' = :id ORDER BY id DESC LIMIT 1'
+        );
+        $stmt->execute(['id' => $id]);
+        $result = $stmt->fetchColumn();
+
+        return $result !== false ? (int) $result : null;
+    }
+
+    /**
+     * Herberekent "werkelijk" als de som van alle gekoppelde
+     * kasstroommutaties (kan er meerdere zijn bij gedeeltelijke
+     * betalingen). Wordt aangeroepen na elke create/update/delete van een
+     * gekoppelde mutatie, zodat dit bedrag nooit los raakt van de
+     * daadwerkelijke kasstroomgeschiedenis.
+     */
+    public static function syncActualFromTransactions(int $id): void
+    {
+        $pdo = Database::connection();
+        $linkColumn = static::transactionLinkColumn();
+
+        $stmt = $pdo->prepare("SELECT COALESCE(SUM(ABS(amount)), 0) FROM transactions WHERE {$linkColumn} = :id");
+        $stmt->execute(['id' => $id]);
+        $sum = (float) $stmt->fetchColumn();
+
+        $stmt = $pdo->prepare('UPDATE ' . static::table() . ' SET actual = :actual WHERE id = :id');
+        $stmt->execute(['actual' => $sum, 'id' => $id]);
     }
 
     public static function find(int $id): ?array

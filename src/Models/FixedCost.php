@@ -31,6 +31,11 @@ final class FixedCost extends LineItem
         return 'fixed_costs';
     }
 
+    protected static function transactionLinkColumn(): string
+    {
+        return 'fixed_cost_id';
+    }
+
     public static function normalizeInterval(string $interval): string
     {
         return array_key_exists($interval, self::INTERVALS) ? $interval : 'maandelijks';
