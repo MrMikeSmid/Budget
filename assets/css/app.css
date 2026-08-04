@@ -716,6 +716,15 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     box-shadow: 0 8px 20px rgba(0, 0, 0, .12);
 }
 
+/* Zelfde zwevende overlap, maar voor een gewone .card (bijv. de
+   mutatiekaart op kasstroom of de eerste potjeskaart). */
+.card-overlap {
+    margin-top: -8px;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .12);
+}
+
 /* Zwevende actiekaart die half over de hero-balance heen steekt, net als
    het snelkoppelingenblok bovenin een bank-app. */
 .quick-actions {
