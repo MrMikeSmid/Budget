@@ -89,10 +89,11 @@ final class TransactionController
         }
 
         if ($fixedCostId) {
-            self::updateLinkedLineItem(FixedCost::class, $fixedCostId, $description);
+            self::updateLinkedLineItem(FixedCost::class, $fixedCostId, $description, 'Betaald');
+            FixedCost::syncLoanPayment($fixedCostId);
         }
         if ($incomeItemId) {
-            self::updateLinkedLineItem(IncomeItem::class, $incomeItemId, $description);
+            self::updateLinkedLineItem(IncomeItem::class, $incomeItemId, $description, 'Ontvangen');
         }
 
         // De vorige koppeling (indien gewijzigd of losgekoppeld) moet ook
@@ -101,6 +102,7 @@ final class TransactionController
         if ($oldTxn) {
             if (!empty($oldTxn['fixed_cost_id']) && (int) $oldTxn['fixed_cost_id'] !== $fixedCostId) {
                 FixedCost::syncActualFromTransactions((int) $oldTxn['fixed_cost_id']);
+                FixedCost::syncLoanPayment((int) $oldTxn['fixed_cost_id']);
             }
             if (!empty($oldTxn['income_item_id']) && (int) $oldTxn['income_item_id'] !== $incomeItemId) {
                 IncomeItem::syncActualFromTransactions((int) $oldTxn['income_item_id']);
@@ -125,6 +127,7 @@ final class TransactionController
 
             if (!empty($txn['fixed_cost_id'])) {
                 FixedCost::syncActualFromTransactions((int) $txn['fixed_cost_id']);
+                FixedCost::syncLoanPayment((int) $txn['fixed_cost_id']);
             }
             if (!empty($txn['income_item_id'])) {
                 IncomeItem::syncActualFromTransactions((int) $txn['income_item_id']);
@@ -175,12 +178,16 @@ final class TransactionController
     }
 
     /**
+     * Status wordt niet handmatig ingevuld: zodra een kasstroommutatie met
+     * een bedrag aan een last/inkomst gekoppeld is, is die per definitie
+     * betaald/ontvangen — dat nogmaals los bijwerken op Lasten/Inkomsten
+     * zou dubbel werk zijn.
+     *
      * @param class-string<FixedCost>|class-string<IncomeItem> $model
      */
-    private static function updateLinkedLineItem(string $model, int $id, string $description): void
+    private static function updateLinkedLineItem(string $model, int $id, string $description, string $status): void
     {
         $budgeted = (float) str_replace(',', '.', $_POST['budgeted'] ?? '0');
-        $status = trim($_POST['status'] ?? '');
         $isRecurring = !empty($_POST['is_recurring']);
         $recurrenceInterval = $model::normalizeInterval((string) ($_POST['recurrence_interval'] ?? 'maandelijks'));
         $recurrenceMode = $model::normalizeMode((string) ($_POST['recurrence_mode'] ?? 'periode'));
