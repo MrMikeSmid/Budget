@@ -28,6 +28,11 @@ use App\Support\View;
     <a class="btn secondary" href="<?= View::e(View::url('activiteit')) ?>">Openen</a>
 </div>
 <div class="card">
+    <h2 class="mt-0">🤖 AI-advies (Gemini)</h2>
+    <p class="text-muted">Gemini API key en systeemprompt instellen voor het AI-advies op het dashboard.</p>
+    <a class="btn secondary" href="<?= View::e(View::url('instellingen-ai')) ?>">Openen</a>
+</div>
+<div class="card">
     <h2 class="mt-0">🚪 Uitloggen</h2>
     <p class="text-muted">Log uit van je account op dit apparaat.</p>
     <a class="btn secondary" href="<?= View::e(View::url('logout')) ?>">Uitloggen</a>

@@ -6,6 +6,8 @@ require __DIR__ . '/vendor/autoload.php';
 
 use App\Controllers\AccountController;
 use App\Controllers\ActivityController;
+use App\Controllers\AiAdviceController;
+use App\Controllers\AiSettingsController;
 use App\Controllers\AuthController;
 use App\Controllers\DashboardController;
 use App\Controllers\FixedCostController;
@@ -65,6 +67,13 @@ $router->get('dashboard', authed([DashboardController::class, 'index']));
 $router->get('instellingen', authed(static function () {
     View::render('settings/index');
 }));
+
+// AI-instellingen (Gemini API key + systeemprompt)
+$router->get('instellingen-ai', authed([AiSettingsController::class, 'index']));
+$router->post('instellingen-ai-save', authed([AiSettingsController::class, 'save']));
+
+// AI-advies: JSON-endpoint dat het dashboard asynchroon aanroept.
+$router->get('ai-advies', authed([AiAdviceController::class, 'index']));
 
 // Periodes
 $router->get('periods', authed([PeriodController::class, 'index']));

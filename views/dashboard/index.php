@@ -16,8 +16,6 @@ use App\Support\View;
 /** @var float $incomeOutstanding */
 /** @var float $incomeTotal */
 /** @var array $partialLoanPayments */
-/** @var string|null $paymentAdvice */
-/** @var string|null $incomeAdvice */
 ?>
 <?php if ($period): ?>
     <div class="hero-balance">
@@ -137,15 +135,15 @@ use App\Support\View;
         </div>
     </div>
 
-    <?php if ($paymentAdvice): ?>
-        <div class="card advice-card">
-            <h2 class="mt-0">💡 Advies</h2>
-            <p><?= View::e($paymentAdvice) ?></p>
-            <?php if ($incomeAdvice): ?>
-                <p class="advice-followup"><?= View::e($incomeAdvice) ?></p>
-            <?php endif; ?>
+    <div class="card advice-card" id="ai-advice-card" data-period-id="<?= (int) $period['id'] ?>">
+        <div class="section-header">
+            <h2 class="mt-0">💡 AI-advies</h2>
+            <button type="button" class="btn small secondary" id="ai-advice-refresh" title="Nieuw advies genereren">↻</button>
         </div>
-    <?php endif; ?>
+        <div id="ai-advice-body">
+            <p class="text-muted">Advies wordt opgehaald…</p>
+        </div>
+    </div>
 <?php else: ?>
     <div class="empty-state card">
         <p>Er is nog geen budgetperiode aangemaakt.</p>

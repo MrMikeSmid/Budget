@@ -98,3 +98,71 @@ document.querySelectorAll('[data-toggle-target]').forEach((button) => {
         }
     });
 });
+
+// Toon/verberg-knop voor een password-veld (bijv. de Gemini API key), zodat
+// je 'm kunt controleren zonder 'm permanent zichtbaar te maken.
+document.querySelectorAll('[data-toggle-password]').forEach((button) => {
+    const input = document.getElementById(button.dataset.togglePassword);
+    if (!input) {
+        return;
+    }
+
+    button.addEventListener('click', () => {
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        button.textContent = show ? 'Verbergen' : 'Tonen';
+    });
+});
+
+// AI-advieskaart op het dashboard: haalt het advies asynchroon op (i.p.v.
+// server-side gerenderd, zoals de rest van de app) omdat een Gemini-call
+// een paar seconden kan duren — vandaar de laad-indicator. Cachet server-
+// side per periode; de "↻"-knop dwingt een nieuwe aanroep af.
+(() => {
+    const card = document.getElementById('ai-advice-card');
+    if (!card) {
+        return;
+    }
+
+    const body = document.getElementById('ai-advice-body');
+    const refreshButton = document.getElementById('ai-advice-refresh');
+    const periodId = card.dataset.periodId;
+
+    const renderLoading = () => {
+        body.innerHTML = '';
+        const p = document.createElement('p');
+        p.className = 'text-muted';
+        p.textContent = 'Advies wordt opgehaald…';
+        body.appendChild(p);
+    };
+
+    const renderResult = (data) => {
+        body.innerHTML = '';
+        const p = document.createElement('p');
+        if (data && data.ok) {
+            p.textContent = data.text;
+        } else {
+            p.className = 'advice-error';
+            p.textContent = (data && data.error) || 'Er ging iets mis bij het ophalen van het advies.';
+        }
+        body.appendChild(p);
+    };
+
+    const load = (refresh) => {
+        renderLoading();
+        const params = new URLSearchParams({ page: 'ai-advies', period: periodId });
+        if (refresh) {
+            params.set('refresh', '1');
+        }
+        fetch('index.php?' + params.toString())
+            .then((response) => response.json())
+            .then(renderResult)
+            .catch(() => renderResult({ ok: false, error: 'Er ging iets mis bij het ophalen van het advies.' }));
+    };
+
+    load(false);
+
+    if (refreshButton) {
+        refreshButton.addEventListener('click', () => load(true));
+    }
+})();
