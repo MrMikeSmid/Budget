@@ -612,23 +612,6 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     background: var(--primary-dark);
 }
 
-/* "+"-knop die op een hero-balance landt (bijv. Vaste lasten): trekt
-   omhoog de blauwe kop in, en krijgt een witte achtergrond zodat hij
-   daar zichtbaar blijft i.p.v. blauw-op-blauw te verdwijnen. Relatief
-   gepositioneerd met een hogere z-index dan de overlappende kaart
-   erna, zodat hij zichtbaar blijft ook al steekt die kaart net zo diep
-   de hero in. */
-.fab-button.on-hero {
-    margin-top: -68px;
-    background: #fff;
-    color: var(--primary);
-    position: relative;
-    z-index: 2;
-}
-.fab-button.on-hero:hover {
-    background: var(--bg);
-}
-
 .form-panel[hidden] {
     display: none;
 }
@@ -701,33 +684,6 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     font-weight: 800;
     margin-top: 6px;
     line-height: 1.15;
-}
-
-/* Extra hoge hero (bijv. Vaste lasten): laat ruimte voor de "+"-knop en
-   het zwevende begroot/openstaand-blok die erover heen steken, zodat
-   het niet allemaal op een kluitje zit. */
-.hero-balance-tall {
-    padding-bottom: 108px;
-}
-
-/* Zwevend blok dat over de hero heen steekt, zelfde diepe overlap als
-   .quick-actions op het dashboard (i.p.v. er maar net onder te raken). */
-.grid-stats-overlap {
-    margin-top: -40px;
-    position: relative;
-    z-index: 1;
-}
-.grid-stats-overlap .stat {
-    box-shadow: 0 8px 20px rgba(0, 0, 0, .16);
-}
-
-/* Zelfde zwevende overlap, maar voor een gewone .card (bijv. de
-   mutatiekaart op kasstroom of de eerste potjeskaart). */
-.card-overlap {
-    margin-top: -40px;
-    position: relative;
-    z-index: 1;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, .16);
 }
 
 /* Zwevende actiekaart die half over de hero-balance heen steekt, net als

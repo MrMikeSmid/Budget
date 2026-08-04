@@ -19,4 +19,6 @@ View::render('partials/line-items', [
     'showRecurrenceOptions' => true,
     'showHero' => true,
     'heroLabel' => 'Nog openstaand',
+    'quickActionIcon' => 'vaste-lasten',
+    'quickActionLabel' => 'Last toevoegen',
 ], null);

@@ -8,21 +8,30 @@ use App\Support\View;
 /** @var array $periods */
 /** @var array|null $period */
 /** @var array|null $editing */
+/** @var bool $openForm */
 
+$openForm = $openForm ?? false;
 $leefpotjes = array_filter($pots, static fn ($p) => ($p['type'] ?? 'leefpotje') === 'leefpotje');
 $spaarpotjes = array_filter($pots, static fn ($p) => ($p['type'] ?? 'leefpotje') === 'spaarpotje');
 $totalPotjes = array_sum(array_column($leefpotjes, 'resolved_amount')) + array_sum(array_column($spaarpotjes, 'resolved_amount'));
 ?>
 <?php if ($period): ?>
-    <div class="hero-balance hero-balance-tall">
+    <div class="hero-balance">
         <div class="hero-balance-label">Totaal in potjes</div>
         <div class="hero-balance-amount"><?= View::money($totalPotjes) ?></div>
     </div>
+
+    <div class="quick-actions">
+        <a class="quick-action" href="<?= View::e(View::url('potjes', ['period' => $period['id'], 'open' => 1])) ?>">
+            <span class="quick-action-icon"><?= View::navIcon('potjes') ?></span>
+            Potje aanmaken
+        </a>
+    </div>
+<?php else: ?>
+    <button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Potje toevoegen">+</button>
 <?php endif; ?>
 
-<button type="button" class="fab-button<?= $period ? ' on-hero' : '' ?>" data-toggle-target="add-form-panel" aria-label="Potje toevoegen">+</button>
-
-<div class="form-panel" id="add-form-panel" <?= $editing ? '' : 'hidden' ?>>
+<div class="form-panel" id="add-form-panel" <?= ($editing || $openForm) ? '' : 'hidden' ?>>
     <div class="card">
         <h2 class="mt-0"><?= $editing ? 'Potje bewerken' : 'Nieuw potje' ?></h2>
         <?php if (!$editing && $period): ?>
@@ -77,7 +86,7 @@ $totalPotjes = array_sum(array_column($leefpotjes, 'resolved_amount')) + array_s
     </div>
 </div>
 
-<div class="card<?= $period ? ' card-overlap' : '' ?>">
+<div class="card">
     <div class="section-header">
         <h2 class="mt-0">Leefpotjes</h2>
         <span class="text-muted"><?= View::money(array_sum(array_column($leefpotjes, 'resolved_amount'))) ?></span>
