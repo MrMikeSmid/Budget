@@ -10,9 +10,8 @@ use App\Support\View;
 
 $openForm = $openForm ?? false;
 ?>
-<p><a href="<?= View::e(View::url('potjes')) ?>">&larr; Alle potjes</a></p>
-
 <div class="hero-balance">
+    <a class="hero-back" href="<?= View::e(View::url('potjes')) ?>" aria-label="Alle potjes">&larr;</a>
     <div class="hero-balance-label"><?= View::e($pot['icon'] ?: '💶') ?> <?= View::e($pot['name']) ?></div>
     <div class="hero-balance-amount"><?= View::money((float) $pot['resolved_amount']) ?></div>
 </div>
