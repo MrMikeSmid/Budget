@@ -5,7 +5,6 @@ namespace App\Controllers;
 use App\Models\Activity;
 use App\Models\BudgetPeriod;
 use App\Models\FixedCost;
-use App\Models\Loan;
 use App\Support\View;
 
 final class FixedCostController extends LineItemController
@@ -68,12 +67,12 @@ final class FixedCostController extends LineItemController
 
         if ($id > 0) {
             FixedCost::updateFull($id, $description, $budgeted, $actual, $status, $isRecurring, $recurrenceInterval, $recurrenceMode, $recurrenceDate);
-            self::syncLoanPayment($id, $status, $actual, $budgeted);
+            FixedCost::syncLoanPayment($id);
             Activity::log('vaste-lasten', 'Vaste last bijgewerkt: ' . $description, $budgeted * -1);
             View::flash('Regel opgeslagen.');
         } else {
             $newId = FixedCost::createFull($periodId, $description, $budgeted, $actual, $status, $isRecurring, $recurrenceInterval, $recurrenceMode, $recurrenceDate);
-            self::syncLoanPayment($newId, $status, $actual, $budgeted);
+            FixedCost::syncLoanPayment($newId);
             Activity::log('vaste-lasten', 'Vaste last toegevoegd: ' . $description, $budgeted * -1);
             View::flash('Regel toegevoegd.');
         }
@@ -102,30 +101,5 @@ final class FixedCostController extends LineItemController
 
         header('Location: ' . View::url('vaste-lasten', ['period' => $periodId]));
         exit;
-    }
-
-    /**
-     * Boekt of draait een lening-aflossing terug op basis van de status.
-     * "Betaald" (of variant) boekt de aflossing; alles anders draait 'm terug.
-     * Een bestaande boeking wordt bijgewerkt als het bedrag is aangepast.
-     */
-    private static function syncLoanPayment(int $fixedCostId, string $status, ?float $actual, float $budgeted): void
-    {
-        $item = FixedCost::find($fixedCostId);
-        if (!$item || empty($item['loan_id'])) {
-            return;
-        }
-
-        $isPaid = str_starts_with(mb_strtolower(trim($status)), 'betaald');
-        $existing = Loan::paymentForFixedCost($fixedCostId);
-        $amount = $actual ?? $budgeted;
-
-        if ($isPaid && !$existing) {
-            Loan::addPayment((int) $item['loan_id'], $fixedCostId, $amount);
-        } elseif ($isPaid && $existing && (float) $existing['amount'] !== $amount) {
-            Loan::updatePaymentAmountForFixedCost($fixedCostId, $amount);
-        } elseif (!$isPaid && $existing) {
-            Loan::removePaymentForFixedCost($fixedCostId);
-        }
     }
 }

@@ -16,8 +16,6 @@ use App\Support\View;
 /** @var array|null $editingOverboeking */
 /** @var bool $openForm */
 /** @var string $activeTab */
-
-$statusSuggestions = ['Betaald', 'Open', 'Volgende maand', 'Ontvangen', 'Nog te ontvangen'];
 ?>
 <?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => 'kasstroom'], null); ?>
 
@@ -97,7 +95,6 @@ $statusSuggestions = ['Betaald', 'Open', 'Volgende maand', 'Ontvangen', 'Nog te 
                                         data-linked="1"
                                         data-description="<?= View::e($fc['description']) ?>"
                                         data-budgeted="<?= View::e((string) $fc['budgeted']) ?>"
-                                        data-status="<?= View::e($fc['status']) ?>"
                                         data-recurring="<?= !empty($fc['is_recurring']) ? '1' : '0' ?>"
                                         data-interval="<?= View::e($fc['recurrence_interval'] ?? 'maandelijks') ?>"
                                         data-mode="<?= View::e($fc['recurrence_mode'] ?? 'periode') ?>"
@@ -114,7 +111,6 @@ $statusSuggestions = ['Betaald', 'Open', 'Volgende maand', 'Ontvangen', 'Nog te 
                                         data-linked="1"
                                         data-description="<?= View::e($ii['description']) ?>"
                                         data-budgeted="<?= View::e((string) $ii['budgeted']) ?>"
-                                        data-status="<?= View::e($ii['status']) ?>"
                                         data-recurring="<?= !empty($ii['is_recurring']) ? '1' : '0' ?>"
                                         data-interval="<?= View::e($ii['recurrence_interval'] ?? 'maandelijks') ?>"
                                         data-mode="<?= View::e($ii['recurrence_mode'] ?? 'periode') ?>"
@@ -131,19 +127,10 @@ $statusSuggestions = ['Betaald', 'Open', 'Volgende maand', 'Ontvangen', 'Nog te 
                     <label for="is_settled">Al daadwerkelijk afgeschreven/bijgeschreven</label>
                 </div>
                 <div id="linked-item-fields" <?= $linkedItem ? '' : 'hidden' ?>>
-                    <p class="text-muted">Deze mutatie is gekoppeld: begroot/status/terugkerend van de vaste last of inkomst bewerk je hier, niet meer op de eigen pagina.</p>
+                    <p class="text-muted">Deze mutatie is gekoppeld: begroot/terugkerend van de vaste last of inkomst bewerk je hier, niet meer op de eigen pagina. Status wordt automatisch "Betaald" (last) of "Ontvangen" (inkomst) zodra je opslaat.</p>
                     <div class="field">
                         <label for="li_budgeted">Begroot</label>
                         <input type="number" step="0.01" id="li_budgeted" name="budgeted" data-sync-field="budgeted" value="<?= View::e((string) ($linkedItem['budgeted'] ?? '0')) ?>">
-                    </div>
-                    <div class="field">
-                        <label for="li_status">Status</label>
-                        <input type="text" id="li_status" name="status" list="li-status-suggestions" data-sync-field="status" value="<?= View::e($linkedItem['status'] ?? '') ?>">
-                        <datalist id="li-status-suggestions">
-                            <?php foreach ($statusSuggestions as $s): ?>
-                                <option value="<?= View::e($s) ?>">
-                            <?php endforeach; ?>
-                        </datalist>
                     </div>
                     <div class="checkbox-field">
                         <input type="checkbox" id="li_is_recurring" name="is_recurring" data-sync-field="recurring"

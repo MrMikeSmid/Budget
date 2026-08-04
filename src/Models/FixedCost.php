@@ -166,6 +166,33 @@ final class FixedCost extends LineItem
     }
 
     /**
+     * Boekt of draait een lening-aflossing terug op basis van de status.
+     * "Betaald" (of variant) boekt de aflossing; alles anders draait 'm
+     * terug. Een bestaande boeking wordt bijgewerkt als het bedrag is
+     * aangepast. Gebruikt de actuele status/werkelijk/begroot van de regel
+     * zelf, dus roep dit pas aan nadat die zijn opgeslagen.
+     */
+    public static function syncLoanPayment(int $fixedCostId): void
+    {
+        $item = self::find($fixedCostId);
+        if (!$item || empty($item['loan_id'])) {
+            return;
+        }
+
+        $isPaid = str_starts_with(mb_strtolower(trim((string) $item['status'])), 'betaald');
+        $existing = Loan::paymentForFixedCost($fixedCostId);
+        $amount = $item['actual'] !== null ? (float) $item['actual'] : (float) $item['budgeted'];
+
+        if ($isPaid && !$existing) {
+            Loan::addPayment((int) $item['loan_id'], $fixedCostId, $amount);
+        } elseif ($isPaid && $existing && (float) $existing['amount'] !== $amount) {
+            Loan::updatePaymentAmountForFixedCost($fixedCostId, $amount);
+        } elseif (!$isPaid && $existing) {
+            Loan::removePaymentForFixedCost($fixedCostId);
+        }
+    }
+
+    /**
      * Kopieert terugkerende vaste lasten naar een periode. Zoekt niet alleen
      * in de vorige periode, maar over de hele geschiedenis: een jaarlijkse
      * last die twee periodes geleden voor het laatst voorkwam, moet nu nog
