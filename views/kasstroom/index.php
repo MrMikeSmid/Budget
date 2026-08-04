@@ -17,6 +17,13 @@ use App\Support\View;
 /** @var bool $openForm */
 /** @var string $activeTab */
 ?>
+<?php if ($period): ?>
+    <div class="hero-balance">
+        <div class="hero-balance-label">Saldo</div>
+        <div class="hero-balance-amount"><?= View::money($expectedBalance) ?></div>
+    </div>
+<?php endif; ?>
+
 <?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => 'kasstroom'], null); ?>
 
 <?php if ($period): ?>
@@ -251,54 +258,59 @@ use App\Support\View;
     </div>
     </div>
 
+    <?php
+        $filtersActive = $filters['type'] !== 'alle' || $filters['pot_id'] !== '' || $filters['sort'] !== 'datum' || $filters['dir'] !== 'asc';
+    ?>
     <div class="card">
         <div class="section-header">
-            <h2 class="mt-0">Saldo</h2>
-            <div class="value <?= $expectedBalance !== null && $expectedBalance < 0 ? 'negative' : 'positive' ?>"><?= View::money($expectedBalance) ?></div>
+            <h2 class="mt-0">Mutaties</h2>
+            <button type="button" class="btn small secondary" data-toggle-target="filter-panel">Filteren</button>
         </div>
 
-        <form class="inline-form filter-bar" method="get" action="index.php">
-            <input type="hidden" name="page" value="kasstroom">
-            <input type="hidden" name="period" value="<?= (int) $period['id'] ?>">
-            <div class="field-row">
-                <div class="field">
-                    <label for="filter_type">Type</label>
-                    <select id="filter_type" name="type" onchange="this.form.submit()">
-                        <option value="alle" <?= $filters['type'] === 'alle' ? 'selected' : '' ?>>Alles</option>
-                        <option value="uitgaven" <?= $filters['type'] === 'uitgaven' ? 'selected' : '' ?>>Uitgaven</option>
-                        <option value="overboekingen" <?= $filters['type'] === 'overboekingen' ? 'selected' : '' ?>>Overboekingen</option>
-                    </select>
+        <div id="filter-panel" <?= $filtersActive ? '' : 'hidden' ?>>
+            <form class="inline-form filter-bar" method="get" action="index.php">
+                <input type="hidden" name="page" value="kasstroom">
+                <input type="hidden" name="period" value="<?= (int) $period['id'] ?>">
+                <div class="field-row">
+                    <div class="field">
+                        <label for="filter_type">Type</label>
+                        <select id="filter_type" name="type" onchange="this.form.submit()">
+                            <option value="alle" <?= $filters['type'] === 'alle' ? 'selected' : '' ?>>Alles</option>
+                            <option value="uitgaven" <?= $filters['type'] === 'uitgaven' ? 'selected' : '' ?>>Uitgaven</option>
+                            <option value="overboekingen" <?= $filters['type'] === 'overboekingen' ? 'selected' : '' ?>>Overboekingen</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="filter_pot">Potje</label>
+                        <select id="filter_pot" name="pot_id" onchange="this.form.submit()">
+                            <option value="">Alle potjes</option>
+                            <?php foreach ($pots as $p): ?>
+                                <option value="<?= (int) $p['id'] ?>" <?= (string) $filters['pot_id'] === (string) $p['id'] ? 'selected' : '' ?>>
+                                    <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </div>
-                <div class="field">
-                    <label for="filter_pot">Potje</label>
-                    <select id="filter_pot" name="pot_id" onchange="this.form.submit()">
-                        <option value="">Alle potjes</option>
-                        <?php foreach ($pots as $p): ?>
-                            <option value="<?= (int) $p['id'] ?>" <?= (string) $filters['pot_id'] === (string) $p['id'] ? 'selected' : '' ?>>
-                                <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="filter_sort">Sorteren op</label>
+                        <select id="filter_sort" name="sort" onchange="this.form.submit()">
+                            <option value="datum" <?= $filters['sort'] === 'datum' ? 'selected' : '' ?>>Datum</option>
+                            <option value="bedrag" <?= $filters['sort'] === 'bedrag' ? 'selected' : '' ?>>Bedrag</option>
+                            <option value="omschrijving" <?= $filters['sort'] === 'omschrijving' ? 'selected' : '' ?>>Omschrijving</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="filter_dir">Richting</label>
+                        <select id="filter_dir" name="dir" onchange="this.form.submit()">
+                            <option value="asc" <?= $filters['dir'] === 'asc' ? 'selected' : '' ?>>Oplopend</option>
+                            <option value="desc" <?= $filters['dir'] === 'desc' ? 'selected' : '' ?>>Aflopend</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
-            <div class="field-row">
-                <div class="field">
-                    <label for="filter_sort">Sorteren op</label>
-                    <select id="filter_sort" name="sort" onchange="this.form.submit()">
-                        <option value="datum" <?= $filters['sort'] === 'datum' ? 'selected' : '' ?>>Datum</option>
-                        <option value="bedrag" <?= $filters['sort'] === 'bedrag' ? 'selected' : '' ?>>Bedrag</option>
-                        <option value="omschrijving" <?= $filters['sort'] === 'omschrijving' ? 'selected' : '' ?>>Omschrijving</option>
-                    </select>
-                </div>
-                <div class="field">
-                    <label for="filter_dir">Richting</label>
-                    <select id="filter_dir" name="dir" onchange="this.form.submit()">
-                        <option value="asc" <?= $filters['dir'] === 'asc' ? 'selected' : '' ?>>Oplopend</option>
-                        <option value="desc" <?= $filters['dir'] === 'desc' ? 'selected' : '' ?>>Aflopend</option>
-                    </select>
-                </div>
-            </div>
-        </form>
+            </form>
+        </div>
 
         <?php if (empty($transactions)): ?>
             <p class="text-muted">Geen mutaties voor deze periode (of dit filter).</p>
@@ -310,7 +322,6 @@ use App\Support\View;
                         <th class="nowrap">Datum</th>
                         <th class="nowrap">Omschrijving</th>
                         <th class="num">Mutatie</th>
-                        <th class="num">Saldo</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -338,7 +349,6 @@ use App\Support\View;
                                 <?php if (!empty($t['income_item_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een inkomst">Inkomst</span><?php endif; ?>
                             </td>
                             <td class="num <?= $t['amount'] < 0 ? 'negative' : 'positive' ?>"><?= $t['amount'] > 0 ? '+ ' : '' ?><?= View::money((float) $t['amount']) ?></td>
-                            <td class="num"><?= View::money((float) $t['balance']) ?></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
