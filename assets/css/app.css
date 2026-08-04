@@ -324,16 +324,12 @@ tr:last-child td { border-bottom: none; }
     }
 }
 
-/* Betaaladvies onder de dashboardtabs: informatief (blauw), niet
-   waarschuwend zoals .attention-card. */
-.advice-card {
-    background: #eff6ff;
-    border: 1px solid #dbeafe;
-}
-
+/* Betaaladvies onder de dashboardtabs: gewoon een witte kaart, net als de
+   rest — alleen de titel krijgt een accentkleur. */
 .advice-card h2 {
     font-size: 15px;
     color: var(--primary-dark);
+    margin-bottom: 10px;
 }
 
 .advice-card p {
@@ -341,10 +337,6 @@ tr:last-child td { border-bottom: none; }
 }
 
 @media (prefers-color-scheme: dark) {
-    .advice-card {
-        background: #182338;
-        border-color: #223353;
-    }
     .advice-card h2 {
         color: #93c5fd;
     }
