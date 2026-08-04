@@ -669,6 +669,32 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     text-align: center;
     padding: 28px 20px 56px;
     margin: -16px -16px 0;
+    position: relative;
+}
+
+/* Zwevend rondje linksboven in de hero, voor een "terug"-link op
+   detailpagina's — i.p.v. een losse tekstlink boven de hero die buiten
+   het ontwerp valt. */
+.hero-back {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .18);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.hero-back:hover {
+    background: rgba(255, 255, 255, .3);
+    text-decoration: none;
 }
 
 .hero-balance-label {
