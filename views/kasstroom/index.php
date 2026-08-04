@@ -350,7 +350,7 @@ $statusSuggestions = ['Betaald', 'Open', 'Volgende maand', 'Ontvangen', 'Nog te 
                                 <?php if (!empty($t['fixed_cost_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een vaste last">Last</span><?php endif; ?>
                                 <?php if (!empty($t['income_item_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een inkomst">Inkomst</span><?php endif; ?>
                             </td>
-                            <td class="num <?= $t['amount'] < 0 ? 'negative' : 'positive' ?>"><?= View::money((float) $t['amount']) ?></td>
+                            <td class="num <?= $t['amount'] < 0 ? 'negative' : 'positive' ?>"><?= $t['amount'] > 0 ? '+ ' : '' ?><?= View::money((float) $t['amount']) ?></td>
                             <td class="num"><?= View::money((float) $t['balance']) ?></td>
                         </tr>
                     <?php endforeach; ?>
