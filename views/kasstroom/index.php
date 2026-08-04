@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\LineItem;
 use App\Support\Csrf;
 use App\Support\View;
 
@@ -9,10 +10,14 @@ use App\Support\View;
 /** @var array $filters */
 /** @var float|null $expectedBalance */
 /** @var array $pots */
+/** @var array $fixedCosts */
+/** @var array $incomeItems */
 /** @var array|null $editing */
 /** @var array|null $editingOverboeking */
 /** @var bool $openForm */
 /** @var string $activeTab */
+
+$statusSuggestions = ['Betaald', 'Open', 'Volgende maand', 'Ontvangen', 'Nog te ontvangen'];
 ?>
 <?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => 'kasstroom'], null); ?>
 
@@ -26,8 +31,34 @@ use App\Support\View;
             <button type="button" class="tab-btn <?= $activeTab === 'overboeken' ? 'active' : '' ?>" data-tab-target="panel-overboeken">🔁 Overboeken</button>
         </div>
 
+        <?php
+            $currentSource = '';
+            if (!empty($editing['pot_id'])) {
+                $currentSource = 'pot:' . (int) $editing['pot_id'];
+            } elseif (!empty($editing['fixed_cost_id'])) {
+                $currentSource = 'fixed_cost:' . (int) $editing['fixed_cost_id'];
+            } elseif (!empty($editing['income_item_id'])) {
+                $currentSource = 'income:' . (int) $editing['income_item_id'];
+            }
+            $linkedItem = null;
+            if (!empty($editing['fixed_cost_id'])) {
+                foreach ($fixedCosts as $fc) {
+                    if ((int) $fc['id'] === (int) $editing['fixed_cost_id']) {
+                        $linkedItem = $fc;
+                        break;
+                    }
+                }
+            } elseif (!empty($editing['income_item_id'])) {
+                foreach ($incomeItems as $ii) {
+                    if ((int) $ii['id'] === (int) $editing['income_item_id']) {
+                        $linkedItem = $ii;
+                        break;
+                    }
+                }
+            }
+        ?>
         <div class="tab-panel" id="panel-uitgave" <?= $activeTab === 'uitgave' ? '' : 'hidden' ?>>
-            <p class="text-muted">Alleen voor uitgaven: het bedrag gaat af van het losse saldo, of — als je een potje als bron kiest — van dat potje. Nieuw geld voeg je toe bij Inkomen.</p>
+            <p class="text-muted">Alleen voor uitgaven: het bedrag gaat af van het losse saldo, of — als je een potje, vaste last of inkomst als bron kiest — daarvandaan. Nieuw, nog niet begroot geld voeg je toe bij Inkomen.</p>
             <form class="inline-form" method="post" action="<?= View::e(View::url('kasstroom-save')) ?>">
                 <?= Csrf::field() ?>
                 <input type="hidden" name="id" value="<?= (int) ($editing['id'] ?? 0) ?>">
@@ -44,22 +75,106 @@ use App\Support\View;
                 </div>
                 <div class="field">
                     <label for="description">Omschrijving</label>
-                    <input type="text" id="description" name="description" required value="<?= View::e($editing['description'] ?? '') ?>">
+                    <input type="text" id="description" name="description" required data-sync-field="description" value="<?= View::e($editing['description'] ?? '') ?>">
                 </div>
                 <div class="field">
-                    <label for="pot_id">Bron</label>
-                    <select id="pot_id" name="pot_id">
+                    <label for="source">Bron</label>
+                    <select id="source" name="source" data-sync-target="linked-item-fields">
                         <option value="">Los saldo</option>
-                        <?php foreach ($pots as $p): ?>
-                            <option value="<?= (int) $p['id'] ?>" <?= !empty($editing['pot_id']) && (int) $editing['pot_id'] === (int) $p['id'] ? 'selected' : '' ?>>
-                                <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?> (<?= View::money((float) $p['resolved_amount']) ?>)
-                            </option>
-                        <?php endforeach; ?>
+                        <?php if (!empty($pots)): ?>
+                            <optgroup label="Potjes">
+                                <?php foreach ($pots as $p): ?>
+                                    <option value="pot:<?= (int) $p['id'] ?>" <?= $currentSource === 'pot:' . $p['id'] ? 'selected' : '' ?>>
+                                        <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?> (<?= View::money((float) $p['resolved_amount']) ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            </optgroup>
+                        <?php endif; ?>
+                        <?php if (!empty($fixedCosts)): ?>
+                            <optgroup label="Vaste lasten">
+                                <?php foreach ($fixedCosts as $fc): ?>
+                                    <option value="fixed_cost:<?= (int) $fc['id'] ?>" <?= $currentSource === 'fixed_cost:' . $fc['id'] ? 'selected' : '' ?>
+                                        data-linked="1"
+                                        data-description="<?= View::e($fc['description']) ?>"
+                                        data-budgeted="<?= View::e((string) $fc['budgeted']) ?>"
+                                        data-status="<?= View::e($fc['status']) ?>"
+                                        data-recurring="<?= !empty($fc['is_recurring']) ? '1' : '0' ?>"
+                                        data-interval="<?= View::e($fc['recurrence_interval'] ?? 'maandelijks') ?>"
+                                        data-mode="<?= View::e($fc['recurrence_mode'] ?? 'periode') ?>"
+                                        data-date="<?= View::e($fc['recurrence_date'] ?? '') ?>">
+                                        <?= View::e($fc['description']) ?> (begroot <?= View::money((float) $fc['budgeted']) ?>)<?= !empty($fc['linked_transaction_id']) && (int) $fc['linked_transaction_id'] !== (int) ($editing['id'] ?? 0) ? ' — al gekoppeld' : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </optgroup>
+                        <?php endif; ?>
+                        <?php if (!empty($incomeItems)): ?>
+                            <optgroup label="Inkomsten">
+                                <?php foreach ($incomeItems as $ii): ?>
+                                    <option value="income:<?= (int) $ii['id'] ?>" <?= $currentSource === 'income:' . $ii['id'] ? 'selected' : '' ?>
+                                        data-linked="1"
+                                        data-description="<?= View::e($ii['description']) ?>"
+                                        data-budgeted="<?= View::e((string) $ii['budgeted']) ?>"
+                                        data-status="<?= View::e($ii['status']) ?>"
+                                        data-recurring="<?= !empty($ii['is_recurring']) ? '1' : '0' ?>"
+                                        data-interval="<?= View::e($ii['recurrence_interval'] ?? 'maandelijks') ?>"
+                                        data-mode="<?= View::e($ii['recurrence_mode'] ?? 'periode') ?>"
+                                        data-date="<?= View::e($ii['recurrence_date'] ?? '') ?>">
+                                        <?= View::e($ii['description']) ?> (begroot <?= View::money((float) $ii['budgeted']) ?>)<?= !empty($ii['linked_transaction_id']) && (int) $ii['linked_transaction_id'] !== (int) ($editing['id'] ?? 0) ? ' — al gekoppeld' : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </optgroup>
+                        <?php endif; ?>
                     </select>
                 </div>
                 <div class="checkbox-field">
                     <input type="checkbox" id="is_settled" name="is_settled" <?= !empty($editing['is_settled']) ? 'checked' : '' ?>>
                     <label for="is_settled">Al daadwerkelijk afgeschreven/bijgeschreven</label>
+                </div>
+                <div id="linked-item-fields" <?= $linkedItem ? '' : 'hidden' ?>>
+                    <p class="text-muted">Deze mutatie is gekoppeld: begroot/status/terugkerend van de vaste last of inkomst bewerk je hier, niet meer op de eigen pagina.</p>
+                    <div class="field">
+                        <label for="li_budgeted">Begroot</label>
+                        <input type="number" step="0.01" id="li_budgeted" name="budgeted" data-sync-field="budgeted" value="<?= View::e((string) ($linkedItem['budgeted'] ?? '0')) ?>">
+                    </div>
+                    <div class="field">
+                        <label for="li_status">Status</label>
+                        <input type="text" id="li_status" name="status" list="li-status-suggestions" data-sync-field="status" value="<?= View::e($linkedItem['status'] ?? '') ?>">
+                        <datalist id="li-status-suggestions">
+                            <?php foreach ($statusSuggestions as $s): ?>
+                                <option value="<?= View::e($s) ?>">
+                            <?php endforeach; ?>
+                        </datalist>
+                    </div>
+                    <div class="checkbox-field">
+                        <input type="checkbox" id="li_is_recurring" name="is_recurring" data-sync-field="recurring"
+                            <?= !empty($linkedItem['is_recurring']) ? 'checked' : '' ?>
+                            onchange="document.getElementById('li-recurrence-options').style.display = this.checked ? 'block' : 'none';">
+                        <label for="li_is_recurring">Terugkerend — automatisch overnemen bij een nieuwe periode</label>
+                    </div>
+                    <div id="li-recurrence-options" style="display: <?= !empty($linkedItem['is_recurring']) ? 'block' : 'none' ?>;">
+                        <div class="field-row">
+                            <div class="field">
+                                <label for="li_recurrence_interval">Frequentie</label>
+                                <select id="li_recurrence_interval" name="recurrence_interval" data-sync-field="interval" onchange="document.getElementById('li-recurrence-mode-wrap').style.display = this.value === 'maandelijks' ? 'none' : 'block';">
+                                    <?php foreach (LineItem::INTERVALS as $key => $label): ?>
+                                        <option value="<?= View::e($key) ?>" <?= ($linkedItem['recurrence_interval'] ?? 'maandelijks') === $key ? 'selected' : '' ?>><?= View::e($label) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="field" id="li-recurrence-mode-wrap" style="<?= ($linkedItem['recurrence_interval'] ?? 'maandelijks') === 'maandelijks' ? 'display:none;' : '' ?>">
+                                <label for="li_recurrence_mode">Komt terug</label>
+                                <select id="li_recurrence_mode" name="recurrence_mode" data-sync-field="mode" onchange="document.getElementById('li-recurrence-date-field').style.display = this.value === 'datum' ? 'block' : 'none';">
+                                    <?php foreach (LineItem::MODES as $key => $label): ?>
+                                        <option value="<?= View::e($key) ?>" <?= ($linkedItem['recurrence_mode'] ?? 'periode') === $key ? 'selected' : '' ?>><?= View::e($label) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field" id="li-recurrence-date-field" style="<?= ($linkedItem['recurrence_mode'] ?? 'periode') === 'datum' ? '' : 'display:none;' ?>">
+                            <label for="li_recurrence_date">Vaste datum</label>
+                            <input type="date" id="li_recurrence_date" name="recurrence_date" data-sync-field="date" value="<?= View::e($linkedItem['recurrence_date'] ?? '') ?>">
+                        </div>
+                    </div>
                 </div>
                 <button type="submit" class="btn"><?= $editing ? 'Opslaan' : 'Toevoegen' ?></button>
                 <?php if ($editing): ?>

@@ -131,11 +131,17 @@ $openForm = $openForm ?? false;
                     </thead>
                     <tbody>
                     <?php foreach ($items as $item): ?>
-                        <tr class="row-clickable" data-href="<?= View::e(View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']])) ?>">
+                        <?php
+                            $rowHref = !empty($item['linked_transaction_id'])
+                                ? View::url('kasstroom', ['period' => $period['id'], 'edit' => $item['linked_transaction_id']])
+                                : View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']]);
+                        ?>
+                        <tr class="row-clickable" data-href="<?= View::e($rowHref) ?>">
                             <td class="nowrap">
                                 <?= View::e($item['description']) ?>
                                 <?php if (!empty($item['is_recurring'])): ?> <span title="Terugkerend (<?= View::e(LineItem::INTERVALS[$item['recurrence_interval'] ?? 'maandelijks'] ?? 'Maandelijks') ?>)" class="text-muted">&#8635;</span><?php endif; ?>
                                 <?php if (!empty($item['loan_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een lening">Lening</span><?php endif; ?>
+                                <?php if (!empty($item['linked_transaction_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een kasstroommutatie">Kasstroom</span><?php endif; ?>
                                 <?php if ($item['status']): ?>
                                     <div class="line-item-status">
                                         <span class="badge <?= View::badgeClass($item['status']) ?>"><?= View::e($item['status']) ?></span>

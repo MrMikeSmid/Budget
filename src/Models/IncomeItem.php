@@ -11,6 +11,11 @@ final class IncomeItem extends LineItem
         return 'income_items';
     }
 
+    protected static function transactionLinkColumn(): string
+    {
+        return 'income_item_id';
+    }
+
     /**
      * Nog te ontvangen: begroot van regels waarvan de status niet als "ontvangen" telt.
      */
