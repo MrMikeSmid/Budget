@@ -18,14 +18,14 @@ use App\Support\View;
 /** @var string $activeTab */
 ?>
 <?php if ($period): ?>
-    <div class="hero-balance">
+    <div class="hero-balance hero-balance-tall">
         <div class="hero-balance-label">Saldo</div>
         <div class="hero-balance-amount"><?= View::money($expectedBalance) ?></div>
     </div>
 <?php endif; ?>
 
 <?php if ($period): ?>
-    <button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Mutatie toevoegen">+</button>
+    <button type="button" class="fab-button on-hero" data-toggle-target="add-form-panel" aria-label="Mutatie toevoegen">+</button>
 
     <div class="form-panel" id="add-form-panel" <?= ($editing || $openForm) ? '' : 'hidden' ?>>
     <div class="card">
@@ -259,7 +259,7 @@ use App\Support\View;
     <?php
         $filtersActive = $filters['type'] !== 'alle' || $filters['pot_id'] !== '' || $filters['sort'] !== 'datum' || $filters['dir'] !== 'asc';
     ?>
-    <div class="card">
+    <div class="card card-overlap">
         <div class="section-header">
             <h2 class="mt-0">Mutaties</h2>
             <button type="button" class="btn small secondary" data-toggle-target="filter-panel">Filteren</button>

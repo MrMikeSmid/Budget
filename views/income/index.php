@@ -16,4 +16,6 @@ View::render('partials/line-items', [
     'statusSuggestions' => ['Ontvangen', 'Nog te ontvangen'],
     'outstandingLabel' => 'Nog te ontvangen',
     'showRecurrenceOptions' => true,
+    'showHero' => true,
+    'heroLabel' => 'Nog te ontvangen',
 ], null);

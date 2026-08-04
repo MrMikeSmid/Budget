@@ -11,8 +11,16 @@ use App\Support\View;
 
 $leefpotjes = array_filter($pots, static fn ($p) => ($p['type'] ?? 'leefpotje') === 'leefpotje');
 $spaarpotjes = array_filter($pots, static fn ($p) => ($p['type'] ?? 'leefpotje') === 'spaarpotje');
+$totalPotjes = array_sum(array_column($leefpotjes, 'resolved_amount')) + array_sum(array_column($spaarpotjes, 'resolved_amount'));
 ?>
-<button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Potje toevoegen">+</button>
+<?php if ($period): ?>
+    <div class="hero-balance hero-balance-tall">
+        <div class="hero-balance-label">Totaal in potjes</div>
+        <div class="hero-balance-amount"><?= View::money($totalPotjes) ?></div>
+    </div>
+<?php endif; ?>
+
+<button type="button" class="fab-button<?= $period ? ' on-hero' : '' ?>" data-toggle-target="add-form-panel" aria-label="Potje toevoegen">+</button>
 
 <div class="form-panel" id="add-form-panel" <?= $editing ? '' : 'hidden' ?>>
     <div class="card">
@@ -69,7 +77,7 @@ $spaarpotjes = array_filter($pots, static fn ($p) => ($p['type'] ?? 'leefpotje')
     </div>
 </div>
 
-<div class="card">
+<div class="card<?= $period ? ' card-overlap' : '' ?>">
     <div class="section-header">
         <h2 class="mt-0">Leefpotjes</h2>
         <span class="text-muted"><?= View::money(array_sum(array_column($leefpotjes, 'resolved_amount'))) ?></span>
