@@ -43,10 +43,11 @@ final class TransactionController
     }
 
     /**
-     * De kasstroom-mutatie is uitsluitend voor uitgaven: het bedrag wordt
-     * altijd als negatief opgeslagen, ongeacht hoe het ingevuld is. Geld
-     * terugboeken of tussen potjes verplaatsen gaat via "Overboeken", en
-     * echt nieuw geld voeg je toe bij Inkomen.
+     * De kasstroom-mutatie is voor uitgaven, maar kan via "Bron" ook aan een
+     * inkomst gekoppeld worden — dan is het juist geld dat binnenkomt, en
+     * wordt het bedrag positief opgeslagen (groen, met plus) i.p.v.
+     * negatief. Geld terugboeken of tussen potjes verplaatsen gaat via
+     * "Overboeken".
      *
      * "Bron" kan i.p.v. een potje ook een vaste last of inkomst zijn: dat
      * koppelt de mutatie eraan (fixed_cost_id/income_item_id) en werkt
@@ -60,10 +61,12 @@ final class TransactionController
         $periodId = (int) ($_POST['period_id'] ?? 0);
         $date = $_POST['txn_date'] ?? '';
         $description = trim($_POST['description'] ?? '');
-        $amount = -abs((float) str_replace(',', '.', $_POST['amount'] ?? '0'));
         $settled = !empty($_POST['is_settled']);
 
         [$potId, $fixedCostId, $incomeItemId] = self::parseSource((string) ($_POST['source'] ?? ''));
+
+        $rawAmount = abs((float) str_replace(',', '.', $_POST['amount'] ?? '0'));
+        $amount = $incomeItemId ? $rawAmount : -$rawAmount;
 
         if ($description === '' || $date === '' || $periodId === 0) {
             View::flash('Vul een datum en omschrijving in.', 'error');
@@ -74,13 +77,14 @@ final class TransactionController
         $oldTxn = $id > 0 ? Transaction::find($id) : null;
 
         $sourceLabel = self::sourceLabel($potId, $fixedCostId, $incomeItemId);
+        $label = $incomeItemId ? 'Ontvangst' : 'Uitgave';
         if ($id > 0) {
             Transaction::update($id, $date, $description, $amount, $settled, $potId, $fixedCostId, $incomeItemId);
-            Activity::log('kasstroom', 'Uitgave bijgewerkt: ' . $description . $sourceLabel, $amount);
+            Activity::log('kasstroom', $label . ' bijgewerkt: ' . $description . $sourceLabel, $amount);
             View::flash('Transactie opgeslagen.');
         } else {
             $id = Transaction::create($periodId, $date, $description, $amount, $settled, $potId, $fixedCostId, $incomeItemId);
-            Activity::log('kasstroom', 'Uitgave toegevoegd: ' . $description . $sourceLabel, $amount);
+            Activity::log('kasstroom', $label . ' toegevoegd: ' . $description . $sourceLabel, $amount);
             View::flash('Transactie toegevoegd.');
         }
 

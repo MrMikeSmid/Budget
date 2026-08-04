@@ -54,6 +54,12 @@ final class FixedCostController extends LineItemController
         $recurrenceMode = FixedCost::normalizeMode((string) ($_POST['recurrence_mode'] ?? 'periode'));
         $recurrenceDate = trim($_POST['recurrence_date'] ?? '') ?: null;
 
+        // Een nieuwe last is nog niet betaald — de betaling wordt verwerkt
+        // op de kasstroompagina (via "Bron" koppelen aan deze last).
+        if ($id === 0 && $status === '') {
+            $status = 'Open';
+        }
+
         if ($description === '' || $periodId === 0) {
             View::flash('Vul een omschrijving in.', 'error');
             header('Location: ' . View::url('vaste-lasten', ['period' => $periodId]));

@@ -17,9 +17,11 @@ use App\Support\View;
 /** @var string $outstandingLabel */
 /** @var bool $showRecurrenceOptions */
 /** @var bool $openForm */
+/** @var string $defaultStatus */
 
 $showRecurrenceOptions = $showRecurrenceOptions ?? false;
 $openForm = $openForm ?? false;
+$defaultStatus = $defaultStatus ?? '';
 ?>
 <?php View::render('partials/period-switcher', ['periods' => $periods, 'period' => $period, 'page' => $listPage], null); ?>
 
@@ -49,7 +51,7 @@ $openForm = $openForm ?? false;
                 </div>
                 <div class="field">
                     <label for="status">Status</label>
-                    <input type="text" id="status" name="status" list="status-suggestions" value="<?= View::e($editing['status'] ?? '') ?>">
+                    <input type="text" id="status" name="status" list="status-suggestions" value="<?= View::e($editing['status'] ?? $defaultStatus) ?>">
                     <datalist id="status-suggestions">
                         <?php foreach ($statusSuggestions as $s): ?>
                             <option value="<?= View::e($s) ?>">
