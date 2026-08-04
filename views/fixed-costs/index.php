@@ -18,7 +18,8 @@ View::render('partials/line-items', [
     'outstandingLabel' => 'Nog openstaand',
     'showRecurrenceOptions' => true,
     'showHero' => true,
-    'heroLabel' => 'Nog openstaand',
+    'heroLabel' => 'Werkelijke lasten',
+    'heroValue' => (float) $totals['actual'],
     'quickActionIcon' => 'vaste-lasten',
     'quickActionLabel' => 'Last toevoegen',
 ], null);
