@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\Activity;
 use App\Models\BudgetPeriod;
 use App\Models\Pot;
+use App\Models\PotTransaction;
 use App\Models\Transaction;
 use App\Support\View;
 
@@ -14,6 +15,7 @@ final class TransactionController
     {
         $period = BudgetPeriod::resolveFromRequest();
         $editId = isset($_GET['edit']) ? (int) $_GET['edit'] : null;
+        $editOverboekingId = isset($_GET['edit_overboeking']) ? (int) $_GET['edit_overboeking'] : null;
 
         $filters = [
             'type' => $_GET['type'] ?? 'alle',
@@ -30,8 +32,9 @@ final class TransactionController
             'expectedBalance' => $period ? BudgetPeriod::endingBalance((int) $period['id']) : null,
             'pots' => $period ? Pot::allForPeriod((int) $period['id']) : Pot::all(),
             'editing' => $editId ? Transaction::find($editId) : null,
-            'openForm' => $editId !== null || !empty($_GET['open']),
-            'activeTab' => ($_GET['tab'] ?? '') === 'overboeken' ? 'overboeken' : 'uitgave',
+            'editingOverboeking' => $editOverboekingId ? PotTransaction::find($editOverboekingId) : null,
+            'openForm' => $editId !== null || $editOverboekingId !== null || !empty($_GET['open']),
+            'activeTab' => ($_GET['tab'] ?? '') === 'overboeken' || $editOverboekingId !== null ? 'overboeken' : 'uitgave',
         ]);
     }
 
