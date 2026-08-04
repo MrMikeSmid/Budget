@@ -119,7 +119,6 @@ $openForm = $openForm ?? false;
                         <th class="nowrap">Omschrijving</th>
                         <th class="num">Begroot</th>
                         <th class="num">Werkelijk</th>
-                        <th>Status</th>
                         <th></th>
                     </tr>
                     </thead>
@@ -130,16 +129,16 @@ $openForm = $openForm ?? false;
                                 <?= View::e($item['description']) ?>
                                 <?php if (!empty($item['is_recurring'])): ?> <span title="Terugkerend (<?= View::e(LineItem::INTERVALS[$item['recurrence_interval'] ?? 'maandelijks'] ?? 'Maandelijks') ?>)" class="text-muted">&#8635;</span><?php endif; ?>
                                 <?php if (!empty($item['loan_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een lening">Lening</span><?php endif; ?>
+                                <?php if ($item['status']): ?>
+                                    <div class="line-item-status">
+                                        <span class="badge <?= View::badgeClass($item['status']) ?>"><?= View::e($item['status']) ?></span>
+                                    </div>
+                                <?php endif; ?>
                             </td>
                             <td class="num"><?= View::money((float) $item['budgeted']) ?></td>
                             <td class="num"><?= $item['actual'] !== null ? View::money((float) $item['actual']) : '-' ?></td>
                             <td>
-                                <?php if ($item['status']): ?>
-                                    <span class="badge <?= View::badgeClass($item['status']) ?>"><?= View::e($item['status']) ?></span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <div class="row-actions">
+                                <div class="row-actions row-actions-nowrap">
                                     <a class="btn small secondary" href="<?= View::e(View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']])) ?>">Bewerken</a>
                                     <form method="post" action="<?= View::e(View::url($deletePage)) ?>" onsubmit="return confirm('Regel verwijderen?');">
                                         <?= Csrf::field() ?>
