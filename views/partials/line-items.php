@@ -20,6 +20,7 @@ use App\Support\View;
 /** @var string $defaultStatus */
 /** @var bool $showHero */
 /** @var string $heroLabel */
+/** @var float $heroValue */
 /** @var string $quickActionIcon */
 /** @var string $quickActionLabel */
 
@@ -28,6 +29,7 @@ $openForm = $openForm ?? false;
 $defaultStatus = $defaultStatus ?? '';
 $showHero = $showHero ?? false;
 $heroLabel = $heroLabel ?? '';
+$heroValue = $heroValue ?? $outstanding;
 $quickActionIcon = $quickActionIcon ?? 'dashboard';
 $quickActionLabel = $quickActionLabel ?? 'Regel toevoegen';
 ?>
@@ -35,7 +37,7 @@ $quickActionLabel = $quickActionLabel ?? 'Regel toevoegen';
     <?php if ($showHero): ?>
         <div class="hero-balance">
             <div class="hero-balance-label"><?= View::e($heroLabel) ?></div>
-            <div class="hero-balance-amount"><?= View::money($outstanding) ?></div>
+            <div class="hero-balance-amount"><?= View::money($heroValue) ?></div>
         </div>
 
         <div class="quick-actions">
