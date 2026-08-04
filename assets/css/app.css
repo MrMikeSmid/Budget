@@ -272,6 +272,58 @@ tr:last-child td { border-bottom: none; }
     .badge.next { background: #23225c; color: #a5b4fc; }
 }
 
+/* Aandachtsvenster op het dashboard: valt op tussen de gewone kaarten, voor
+   dingen die de gebruiker echt even moet zien (bijv. een leningtermijn
+   waarvan maar een deel betaald is). */
+.attention-card {
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    border-left: 4px solid var(--amber);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+}
+
+.attention-card h2 {
+    font-size: 15px;
+    color: #92400e;
+}
+
+.attention-row + .attention-row {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #fde68a;
+}
+
+.attention-row-title {
+    font-weight: 600;
+    color: #92400e;
+}
+
+.attention-row-detail {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+    color: #92400e;
+    margin-top: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+    .attention-card {
+        background: #3a2a08;
+        border-color: #5c4212;
+    }
+    .attention-card h2,
+    .attention-row-title,
+    .attention-row-detail {
+        color: #fbbf24;
+    }
+    .attention-row + .attention-row {
+        border-top-color: #5c4212;
+    }
+}
+
 form.inline-form {
     display: flex;
     flex-direction: column;

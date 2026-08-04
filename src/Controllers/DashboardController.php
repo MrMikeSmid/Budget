@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\BudgetPeriod;
 use App\Models\FixedCost;
 use App\Models\IncomeItem;
+use App\Models\Loan;
 use App\Models\Pot;
 use App\Support\View;
 
@@ -25,6 +26,7 @@ final class DashboardController
         $incomeActual = 0.0;
         $incomeOutstanding = 0.0;
         $incomeTotal = 0.0;
+        $partialLoanPayments = [];
 
         if ($period) {
             $balance = BudgetPeriod::endingBalance((int) $period['id']);
@@ -48,6 +50,8 @@ final class DashboardController
             $incomeActual = IncomeItem::receivedTotal((int) $period['id']);
             $incomeOutstanding = IncomeItem::outstanding((int) $period['id']);
             $incomeTotal = $incomeActual + $incomeOutstanding;
+
+            $partialLoanPayments = Loan::partialPaymentsForPeriod((int) $period['id']);
         }
 
         View::render('dashboard/index', [
@@ -64,6 +68,7 @@ final class DashboardController
             'incomeActual' => $incomeActual,
             'incomeOutstanding' => $incomeOutstanding,
             'incomeTotal' => $incomeTotal,
+            'partialLoanPayments' => $partialLoanPayments,
         ]);
     }
 }
