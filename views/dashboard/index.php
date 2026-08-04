@@ -16,6 +16,7 @@ use App\Support\View;
 /** @var float $incomeOutstanding */
 /** @var float $incomeTotal */
 /** @var array $partialLoanPayments */
+/** @var string|null $paymentAdvice */
 ?>
 <?php if ($period): ?>
     <div class="hero-balance">
@@ -134,6 +135,13 @@ use App\Support\View;
             </table>
         </div>
     </div>
+
+    <?php if ($paymentAdvice): ?>
+        <div class="card advice-card">
+            <h2 class="mt-0">💡 Advies</h2>
+            <p><?= View::e($paymentAdvice) ?></p>
+        </div>
+    <?php endif; ?>
 <?php else: ?>
     <div class="empty-state card">
         <p>Er is nog geen budgetperiode aangemaakt.</p>

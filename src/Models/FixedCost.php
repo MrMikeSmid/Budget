@@ -77,6 +77,23 @@ final class FixedCost extends LineItem
     }
 
     /**
+     * Lasten die nog niet als "Betaald" staan (dus nog geen enkele
+     * kasstroommutatie hebben) — de kandidaten voor het betaaladvies op het
+     * dashboard.
+     */
+    public static function unpaidForPeriod(int $periodId): array
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT id, description, budgeted FROM fixed_costs
+             WHERE period_id = :period_id AND status NOT LIKE 'Betaald%'
+             ORDER BY budgeted ASC"
+        );
+        $stmt->execute(['period_id' => $periodId]);
+
+        return $stmt->fetchAll();
+    }
+
+    /**
      * Daadwerkelijk betaald: bedrag van regels met status "betaald". Werkelijk
      * bedrag telt als dat is ingevuld, anders valt dit terug op het begrote
      * bedrag (zelfde patroon als IncomeItem::receivedTotal()).
