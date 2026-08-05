@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\Activity;
 use App\Models\BudgetPeriod;
+use App\Models\Category;
 use App\Models\FixedCost;
 use App\Models\Loan;
 use App\Support\View;
@@ -18,6 +19,7 @@ final class LoanController
             'loans' => Loan::all(),
             'editing' => $editId ? Loan::find($editId) : null,
             'hasActivePeriod' => BudgetPeriod::active() !== null,
+            'categories' => Category::all(),
         ]);
     }
 
@@ -29,6 +31,7 @@ final class LoanController
         $monthlyPayment = (float) str_replace(',', '.', $_POST['monthly_payment'] ?? '0');
         $note = trim($_POST['note'] ?? '');
         $interval = FixedCost::normalizeInterval((string) ($_POST['recurrence_interval'] ?? 'maandelijks'));
+        $categoryId = (int) ($_POST['category_id'] ?? 0) ?: null;
 
         if ($name === '' || $totalAmount <= 0 || $monthlyPayment <= 0) {
             View::flash('Vul een naam, een totaalbedrag en een termijnbedrag (beide groter dan 0) in.', 'error');
@@ -37,7 +40,7 @@ final class LoanController
         }
 
         if ($id > 0) {
-            Loan::update($id, $name, $totalAmount, $monthlyPayment, $note);
+            Loan::update($id, $name, $totalAmount, $monthlyPayment, $note, $categoryId);
             Activity::log('leningen', 'Lening bijgewerkt: ' . $name);
             View::flash('Lening opgeslagen.');
             header('Location: ' . View::url('leningen'));
@@ -51,7 +54,7 @@ final class LoanController
             exit;
         }
 
-        $loanId = Loan::create($name, $totalAmount, $monthlyPayment, $note);
+        $loanId = Loan::create($name, $totalAmount, $monthlyPayment, $note, $categoryId);
 
         $fixedCostId = FixedCost::createFull(
             (int) $activePeriod['id'],
@@ -64,7 +67,8 @@ final class LoanController
             'periode',
             null,
             null,
-            $loanId
+            $loanId,
+            $categoryId
         );
 
         Activity::log('leningen', 'Lening aangemaakt: ' . $name, -$monthlyPayment);

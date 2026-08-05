@@ -22,4 +22,5 @@ View::render('partials/line-items', [
     'heroValue' => $period ? IncomeItem::receivedTotal((int) $period['id']) : 0.0,
     'quickActionIcon' => 'inkomsten',
     'quickActionLabel' => 'Inkomst toevoegen',
+    'categories' => $categories,
 ], null);

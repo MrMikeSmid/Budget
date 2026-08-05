@@ -249,6 +249,8 @@ tr:last-child td { border-bottom: none; }
 .badge.open { background: #fef3c7; color: #92400e; }
 .badge.next { background: #e0e7ff; color: #3730a3; }
 .badge.neutral { background: var(--border); color: var(--text-muted); }
+.badge.category { background: #e0f2fe; color: #075985; }
+a.badge { text-decoration: none; }
 
 .progress-bar {
     width: 100%;
@@ -270,6 +272,7 @@ tr:last-child td { border-bottom: none; }
     .badge.paid, .badge.received { background: #14351f; color: #4ade80; }
     .badge.open { background: #3a2a08; color: #fbbf24; }
     .badge.next { background: #23225c; color: #a5b4fc; }
+    .badge.category { background: #0c3a52; color: #7dd3fc; }
 }
 
 /* Aandachtsvenster op het dashboard: valt op tussen de gewone kaarten, voor

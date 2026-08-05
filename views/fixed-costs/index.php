@@ -22,4 +22,5 @@ View::render('partials/line-items', [
     'heroValue' => (float) $totals['actual'],
     'quickActionIcon' => 'vaste-lasten',
     'quickActionLabel' => 'Last toevoegen',
+    'categories' => $categories,
 ], null);

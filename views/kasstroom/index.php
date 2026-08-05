@@ -16,6 +16,7 @@ use App\Support\View;
 /** @var array|null $editingOverboeking */
 /** @var bool $openForm */
 /** @var string $activeTab */
+/** @var array $categories */
 ?>
 <?php if ($period): ?>
     <div class="hero-balance">
@@ -112,7 +113,8 @@ use App\Support\View;
                                         data-recurring="<?= !empty($fc['is_recurring']) ? '1' : '0' ?>"
                                         data-interval="<?= View::e($fc['recurrence_interval'] ?? 'maandelijks') ?>"
                                         data-mode="<?= View::e($fc['recurrence_mode'] ?? 'periode') ?>"
-                                        data-date="<?= View::e($fc['recurrence_date'] ?? '') ?>">
+                                        data-date="<?= View::e($fc['recurrence_date'] ?? '') ?>"
+                                        data-category="<?= (int) ($fc['category_id'] ?? 0) ?>">
                                         <?= View::e($fc['description']) ?> (begroot <?= View::money((float) $fc['budgeted']) ?>)<?= !empty($fc['linked_transaction_id']) && (int) $fc['linked_transaction_id'] !== (int) ($editing['id'] ?? 0) ? ' — al gekoppeld' : '' ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -128,7 +130,8 @@ use App\Support\View;
                                         data-recurring="<?= !empty($ii['is_recurring']) ? '1' : '0' ?>"
                                         data-interval="<?= View::e($ii['recurrence_interval'] ?? 'maandelijks') ?>"
                                         data-mode="<?= View::e($ii['recurrence_mode'] ?? 'periode') ?>"
-                                        data-date="<?= View::e($ii['recurrence_date'] ?? '') ?>">
+                                        data-date="<?= View::e($ii['recurrence_date'] ?? '') ?>"
+                                        data-category="<?= (int) ($ii['category_id'] ?? 0) ?>">
                                         <?= View::e($ii['description']) ?> (begroot <?= View::money((float) $ii['budgeted']) ?>)<?= !empty($ii['linked_transaction_id']) && (int) $ii['linked_transaction_id'] !== (int) ($editing['id'] ?? 0) ? ' — al gekoppeld' : '' ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -145,6 +148,15 @@ use App\Support\View;
                     <div class="field">
                         <label for="li_budgeted">Begroot</label>
                         <input type="number" step="0.01" id="li_budgeted" name="budgeted" data-sync-field="budgeted" value="<?= View::e((string) ($linkedItem['budgeted'] ?? '0')) ?>">
+                    </div>
+                    <div class="field">
+                        <label for="li_category_id">Categorie</label>
+                        <select id="li_category_id" name="li_category_id" data-sync-field="category">
+                            <option value="">Geen categorie</option>
+                            <?php foreach ($categories as $c): ?>
+                                <option value="<?= (int) $c['id'] ?>" <?= (int) ($linkedItem['category_id'] ?? 0) === (int) $c['id'] ? 'selected' : '' ?>><?= View::e($c['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div class="checkbox-field">
                         <input type="checkbox" id="li_is_recurring" name="is_recurring" data-sync-field="recurring"

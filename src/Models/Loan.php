@@ -13,7 +13,9 @@ final class Loan
 {
     public static function all(): array
     {
-        $rows = Database::connection()->query('SELECT * FROM loans ORDER BY created_at DESC')->fetchAll();
+        $rows = Database::connection()->query(
+            'SELECT loans.*, c.name AS category_name FROM loans LEFT JOIN categories c ON c.id = loans.category_id ORDER BY loans.created_at DESC'
+        )->fetchAll();
 
         foreach ($rows as &$row) {
             $row['paid_amount'] = self::paidAmount((int) $row['id']);
@@ -25,7 +27,9 @@ final class Loan
 
     public static function find(int $id): ?array
     {
-        $stmt = Database::connection()->prepare('SELECT * FROM loans WHERE id = :id');
+        $stmt = Database::connection()->prepare(
+            'SELECT loans.*, c.name AS category_name FROM loans LEFT JOIN categories c ON c.id = loans.category_id WHERE loans.id = :id'
+        );
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch();
 
@@ -78,33 +82,45 @@ final class Loan
         return $stmt->fetchAll();
     }
 
-    public static function create(string $name, float $totalAmount, float $monthlyPayment, string $note): int
+    public static function create(string $name, float $totalAmount, float $monthlyPayment, string $note, ?int $categoryId = null): int
     {
         $stmt = Database::connection()->prepare(
-            'INSERT INTO loans (name, total_amount, monthly_payment, note) VALUES (:name, :total, :monthly, :note)'
+            'INSERT INTO loans (name, total_amount, monthly_payment, note, category_id) VALUES (:name, :total, :monthly, :note, :category_id)'
         );
         $stmt->execute([
             'name' => $name,
             'total' => $totalAmount,
             'monthly' => $monthlyPayment,
             'note' => $note,
+            'category_id' => $categoryId,
         ]);
 
         return (int) Database::connection()->lastInsertId();
     }
 
-    public static function update(int $id, string $name, float $totalAmount, float $monthlyPayment, string $note): void
+    /**
+     * Werkt ook de categorie bij van elke vaste-lastenregel die al aan deze
+     * lening gekoppeld is (huidige en eerdere periodes) — anders zou de
+     * termijn op "Vaste lasten" de oude categorie blijven tonen.
+     */
+    public static function update(int $id, string $name, float $totalAmount, float $monthlyPayment, string $note, ?int $categoryId = null): void
     {
-        $stmt = Database::connection()->prepare(
-            'UPDATE loans SET name = :name, total_amount = :total, monthly_payment = :monthly, note = :note WHERE id = :id'
+        $pdo = Database::connection();
+
+        $stmt = $pdo->prepare(
+            'UPDATE loans SET name = :name, total_amount = :total, monthly_payment = :monthly, note = :note, category_id = :category_id WHERE id = :id'
         );
         $stmt->execute([
             'name' => $name,
             'total' => $totalAmount,
             'monthly' => $monthlyPayment,
             'note' => $note,
+            'category_id' => $categoryId,
             'id' => $id,
         ]);
+
+        $stmt = $pdo->prepare('UPDATE fixed_costs SET category_id = :category_id WHERE loan_id = :loan_id');
+        $stmt->execute(['category_id' => $categoryId, 'loan_id' => $id]);
     }
 
     public static function delete(int $id): void

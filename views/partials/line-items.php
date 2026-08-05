@@ -23,6 +23,7 @@ use App\Support\View;
 /** @var float $heroValue */
 /** @var string $quickActionIcon */
 /** @var string $quickActionLabel */
+/** @var array $categories */
 
 $showRecurrenceOptions = $showRecurrenceOptions ?? false;
 $openForm = $openForm ?? false;
@@ -64,6 +65,15 @@ $quickActionLabel = $quickActionLabel ?? 'Regel toevoegen';
                 <div class="field">
                     <label for="budgeted">Begroot</label>
                     <input type="number" step="0.01" id="budgeted" name="budgeted" value="<?= View::e((string) ($editing['budgeted'] ?? '0')) ?>">
+                </div>
+                <div class="field">
+                    <label for="category_id">Categorie</label>
+                    <select id="category_id" name="category_id">
+                        <option value="">Geen categorie</option>
+                        <?php foreach ($categories as $c): ?>
+                            <option value="<?= (int) $c['id'] ?>" <?= (int) ($editing['category_id'] ?? 0) === (int) $c['id'] ? 'selected' : '' ?>><?= View::e($c['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
                 <div class="field">
                     <label for="status">Status</label>
@@ -160,6 +170,9 @@ $quickActionLabel = $quickActionLabel ?? 'Regel toevoegen';
                                 <?php if (!empty($item['is_recurring'])): ?> <span title="Terugkerend (<?= View::e(LineItem::INTERVALS[$item['recurrence_interval'] ?? 'maandelijks'] ?? 'Maandelijks') ?>)" class="text-muted">&#8635;</span><?php endif; ?>
                                 <?php if (!empty($item['loan_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een lening">Lening</span><?php endif; ?>
                                 <?php if (!empty($item['linked_transaction_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een kasstroommutatie">Kasstroom</span><?php endif; ?>
+                                <?php if (!empty($item['category_name'])): ?>
+                                    <a class="badge category" href="<?= View::e(View::url('categorie', ['id' => $item['category_id'], 'period' => $period['id']])) ?>" onclick="event.stopPropagation();"><?= View::e($item['category_name']) ?></a>
+                                <?php endif; ?>
                                 <?php if ($item['status']): ?>
                                     <div class="line-item-status">
                                         <span class="badge <?= View::badgeClass($item['status']) ?>"><?= View::e($item['status']) ?></span>

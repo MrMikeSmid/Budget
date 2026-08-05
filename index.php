@@ -7,6 +7,7 @@ require __DIR__ . '/vendor/autoload.php';
 use App\Controllers\AccountController;
 use App\Controllers\ActivityController;
 use App\Controllers\AuthController;
+use App\Controllers\CategoryController;
 use App\Controllers\DashboardController;
 use App\Controllers\FixedCostController;
 use App\Controllers\IncomeController;
@@ -69,6 +70,12 @@ $router->get('instellingen', authed(static function () {
 
 // Wegklikken van een "meer betaald/ontvangen dan begroot"-waarschuwing.
 $router->post('waarschuwing-dismiss', authed([WarningController::class, 'dismiss']));
+
+// Categorieën (gedeeld tussen inkomsten, lasten en leningen)
+$router->get('categorieen', authed([CategoryController::class, 'index']));
+$router->post('categorieen-save', authed([CategoryController::class, 'save']));
+$router->post('categorieen-delete', authed([CategoryController::class, 'delete']));
+$router->get('categorie', authed([CategoryController::class, 'show']));
 
 // Periodes
 $router->get('periods', authed([PeriodController::class, 'index']));

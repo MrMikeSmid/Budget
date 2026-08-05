@@ -7,6 +7,7 @@ use App\Support\View;
 /** @var array $loans */
 /** @var array|null $editing */
 /** @var bool $hasActivePeriod */
+/** @var array $categories */
 ?>
 <button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Lening toevoegen">+</button>
 
@@ -45,6 +46,15 @@ use App\Support\View;
             <?php else: ?>
                 <p class="text-muted">De frequentie van de termijn stel je in op de vaste last zelf (bij "Vaste lasten").</p>
             <?php endif; ?>
+            <div class="field">
+                <label for="category_id">Categorie</label>
+                <select id="category_id" name="category_id">
+                    <option value="">Geen categorie</option>
+                    <?php foreach ($categories as $c): ?>
+                        <option value="<?= (int) $c['id'] ?>" <?= (int) ($editing['category_id'] ?? 0) === (int) $c['id'] ? 'selected' : '' ?>><?= View::e($c['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
             <div class="field">
                 <label for="note">Opmerking</label>
                 <input type="text" id="note" name="note" value="<?= View::e($editing['note'] ?? '') ?>">
@@ -85,6 +95,9 @@ use App\Support\View;
                         <td class="nowrap">
                             <?= View::e($loan['name']) ?>
                             <?php if ($isPaidOff): ?><span class="badge paid">Afgelost</span><?php endif; ?>
+                            <?php if (!empty($loan['category_name'])): ?>
+                                <a class="badge category" href="<?= View::e(View::url('categorie', ['id' => $loan['category_id']])) ?>"><?= View::e($loan['category_name']) ?></a>
+                            <?php endif; ?>
                             <div class="progress-bar"><div class="progress-bar-fill" style="width: <?= $progress ?>%"></div></div>
                         </td>
                         <td class="num"><?= View::money((float) $loan['total_amount']) ?></td>

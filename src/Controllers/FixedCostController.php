@@ -55,6 +55,7 @@ final class FixedCostController extends LineItemController
         $recurrenceInterval = FixedCost::normalizeInterval((string) ($_POST['recurrence_interval'] ?? 'maandelijks'));
         $recurrenceMode = FixedCost::normalizeMode((string) ($_POST['recurrence_mode'] ?? 'periode'));
         $recurrenceDate = trim($_POST['recurrence_date'] ?? '') ?: null;
+        $categoryId = (int) ($_POST['category_id'] ?? 0) ?: null;
 
         // Een nieuwe last is nog niet betaald — de betaling wordt verwerkt
         // op de kasstroompagina (via "Bron" koppelen aan deze last).
@@ -69,12 +70,12 @@ final class FixedCostController extends LineItemController
         }
 
         if ($id > 0) {
-            FixedCost::updateFull($id, $description, $budgeted, $actual, $status, $isRecurring, $recurrenceInterval, $recurrenceMode, $recurrenceDate);
+            FixedCost::updateFull($id, $description, $budgeted, $actual, $status, $isRecurring, $recurrenceInterval, $recurrenceMode, $recurrenceDate, $categoryId);
             FixedCost::syncLoanPayment($id);
             Activity::log('vaste-lasten', 'Vaste last bijgewerkt: ' . $description, $budgeted * -1);
             View::flash('Regel opgeslagen.');
         } else {
-            $newId = FixedCost::createFull($periodId, $description, $budgeted, $actual, $status, $isRecurring, $recurrenceInterval, $recurrenceMode, $recurrenceDate);
+            $newId = FixedCost::createFull($periodId, $description, $budgeted, $actual, $status, $isRecurring, $recurrenceInterval, $recurrenceMode, $recurrenceDate, null, null, $categoryId);
             FixedCost::syncLoanPayment($newId);
             Activity::log('vaste-lasten', 'Vaste last toegevoegd: ' . $description, $budgeted * -1);
             View::flash('Regel toegevoegd.');
