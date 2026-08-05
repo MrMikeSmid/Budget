@@ -53,11 +53,12 @@ final class FixedCost extends LineItem
 
     /**
      * Nog openstaand: het volledige begrote bedrag van regels met status
-     * "Open", plus — bij status "Betaald" — het verschil tussen begroot en
-     * werkelijk als er minder is betaald dan begroot (een gedeeltelijke
-     * betaling laat dus het restant nog als openstaand zien, in plaats van
-     * de hele regel als afgehandeld te beschouwen zodra de status op
-     * "Betaald" staat).
+     * "Open", plus — alléén bij leningtermijnen — bij status "Betaald" het
+     * verschil tussen begroot en werkelijk als er minder is betaald dan
+     * begroot (een gedeeltelijke aflossing laat het restant dus nog als
+     * openstaand zien). Bij een gewone (niet aan een lening gekoppelde) last
+     * betekent minder betaald dan begroot juist dat er te veel begroot was —
+     * dat is geen nog te betalen bedrag, dus telt niet mee.
      */
     public static function outstanding(int $periodId): float
     {
@@ -65,7 +66,7 @@ final class FixedCost extends LineItem
             "SELECT COALESCE(SUM(
                 CASE
                     WHEN status LIKE 'Open%' THEN budgeted
-                    WHEN status LIKE 'Betaald%' THEN MAX(budgeted - COALESCE(actual, budgeted), 0)
+                    WHEN status LIKE 'Betaald%' AND loan_id IS NOT NULL THEN MAX(budgeted - COALESCE(actual, budgeted), 0)
                     ELSE 0
                 END
              ), 0) FROM fixed_costs
@@ -86,7 +87,7 @@ final class FixedCost extends LineItem
             "SELECT COALESCE(SUM(
                 CASE
                     WHEN status LIKE 'Open%' THEN budgeted
-                    WHEN status LIKE 'Betaald%' THEN MAX(budgeted - COALESCE(actual, budgeted), 0)
+                    WHEN status LIKE 'Betaald%' AND loan_id IS NOT NULL THEN MAX(budgeted - COALESCE(actual, budgeted), 0)
                     ELSE 0
                 END
              ), 0) FROM fixed_costs
