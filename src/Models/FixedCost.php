@@ -77,6 +77,27 @@ final class FixedCost extends LineItem
     }
 
     /**
+     * Zelfde als outstanding(), maar beperkt tot één categorie — voor de
+     * categoriedetailpagina.
+     */
+    public static function outstandingForCategory(int $categoryId, int $periodId): float
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT COALESCE(SUM(
+                CASE
+                    WHEN status LIKE 'Open%' THEN budgeted
+                    WHEN status LIKE 'Betaald%' THEN MAX(budgeted - COALESCE(actual, budgeted), 0)
+                    ELSE 0
+                END
+             ), 0) FROM fixed_costs
+             WHERE period_id = :period_id AND category_id = :category_id"
+        );
+        $stmt->execute(['period_id' => $periodId, 'category_id' => $categoryId]);
+
+        return (float) $stmt->fetchColumn();
+    }
+
+    /**
      * Lasten (inclusief leningtermijnen) waarvan werkelijk hoger is dan
      * begroot, en waarvan de waarschuwing daarover nog niet bekeken is —
      * voor het waarschuwingsvenster op het dashboard. loan_name is gevuld

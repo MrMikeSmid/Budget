@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Category;
 use App\Support\Csrf;
 use App\Support\View;
 
@@ -19,6 +20,14 @@ use App\Support\View;
             <div class="field">
                 <label for="name">Naam</label>
                 <input type="text" id="name" name="name" required value="<?= View::e($editing['name'] ?? '') ?>" placeholder="Bijv. Boodschappen">
+            </div>
+            <div class="field">
+                <label for="type">Soort categorie</label>
+                <select id="type" name="type">
+                    <?php foreach (Category::TYPES as $key => $label): ?>
+                        <option value="<?= View::e($key) ?>" <?= ($editing['type'] ?? 'uitgaven') === $key ? 'selected' : '' ?>><?= View::e($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <button type="submit" class="btn"><?= $editing ? 'Opslaan' : 'Toevoegen' ?></button>
             <?php if ($editing): ?>
@@ -45,7 +54,10 @@ use App\Support\View;
                 <tbody>
                 <?php foreach ($categories as $c): ?>
                     <tr class="row-clickable" data-href="<?= View::e(View::url('categorieen', ['edit' => $c['id']])) ?>">
-                        <td><?= View::e($c['name']) ?></td>
+                        <td>
+                            <?= View::e($c['name']) ?>
+                            <span class="badge neutral"><?= View::e(Category::TYPES[$c['type']] ?? 'Uitgaven') ?></span>
+                        </td>
                         <td>
                             <a class="btn small secondary" href="<?= View::e(View::url('categorie', ['id' => $c['id']])) ?>" onclick="event.stopPropagation();">Bekijken</a>
                         </td>
