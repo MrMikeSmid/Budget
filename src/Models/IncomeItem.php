@@ -48,24 +48,6 @@ final class IncomeItem extends LineItem
     }
 
     /**
-     * Inkomsten waarvan het werkelijke bedrag nog niet is ingevuld — het
-     * begrote bedrag is dan nog een verwachting, geen ontvangen geld. Input
-     * voor het betaaladvies op het dashboard: "wat kan ik betalen zodra dit
-     * nog binnenkomt?".
-     */
-    public static function unreceivedForPeriod(int $periodId): array
-    {
-        $stmt = Database::connection()->prepare(
-            "SELECT id, description, budgeted FROM income_items
-             WHERE period_id = :period_id AND actual IS NULL
-             ORDER BY budgeted DESC"
-        );
-        $stmt->execute(['period_id' => $periodId]);
-
-        return $stmt->fetchAll();
-    }
-
-    /**
      * Inkomsten waarvan werkelijk hoger is dan begroot, en waarvan de
      * waarschuwing daarover nog niet bekeken is — voor het positieve
      * waarschuwingsvenster op het dashboard ("meer ontvangen dan begroot").

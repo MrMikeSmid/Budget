@@ -179,16 +179,6 @@ use App\Support\View;
             </table>
         </div>
     </div>
-
-    <div class="card advice-card" id="ai-advice-card" data-period-id="<?= (int) $period['id'] ?>">
-        <div class="section-header">
-            <h2 class="mt-0">💡 AI-advies</h2>
-            <button type="button" class="btn small secondary" id="ai-advice-refresh" title="Nieuw advies genereren">↻</button>
-        </div>
-        <div id="ai-advice-body">
-            <p class="text-muted">Advies wordt opgehaald…</p>
-        </div>
-    </div>
 <?php else: ?>
     <div class="empty-state card">
         <p>Er is nog geen budgetperiode aangemaakt.</p>
