@@ -163,12 +163,19 @@ $quickActionLabel = $quickActionLabel ?? 'Regel toevoegen';
                             $rowHref = !empty($item['linked_transaction_id'])
                                 ? View::url('kasstroom', ['period' => $period['id'], 'edit' => $item['linked_transaction_id']])
                                 : View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']]);
+                            $hasBadges = !empty($item['loan_id']) || !empty($item['linked_transaction_id']) || !empty($item['category_name']) || $item['status'];
                         ?>
-                        <tr class="row-clickable" data-href="<?= View::e($rowHref) ?>">
+                        <tr class="row-clickable<?= $hasBadges ? ' item-row-main' : '' ?>" data-href="<?= View::e($rowHref) ?>">
                             <td class="nowrap">
                                 <?= View::e($item['description']) ?>
                                 <?php if (!empty($item['is_recurring'])): ?> <span title="Terugkerend (<?= View::e(LineItem::INTERVALS[$item['recurrence_interval'] ?? 'maandelijks'] ?? 'Maandelijks') ?>)" class="text-muted">&#8635;</span><?php endif; ?>
-                                <?php if (!empty($item['loan_id']) || !empty($item['linked_transaction_id']) || !empty($item['category_name']) || $item['status']): ?>
+                            </td>
+                            <td class="num"><?= View::money((float) $item['budgeted']) ?></td>
+                            <td class="num"><?= $item['actual'] !== null ? View::money((float) $item['actual']) : '-' ?></td>
+                        </tr>
+                        <?php if ($hasBadges): ?>
+                            <tr class="row-clickable item-badges-row" data-href="<?= View::e($rowHref) ?>">
+                                <td colspan="3">
                                     <div class="item-badges">
                                         <?php if (!empty($item['loan_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een lening">Lening</span><?php endif; ?>
                                         <?php if (!empty($item['linked_transaction_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een kasstroommutatie">Kasstroom</span><?php endif; ?>
@@ -179,11 +186,9 @@ $quickActionLabel = $quickActionLabel ?? 'Regel toevoegen';
                                             <span class="badge <?= View::badgeClass($item['status']) ?>"><?= View::e($item['status']) ?></span>
                                         <?php endif; ?>
                                     </div>
-                                <?php endif; ?>
-                            </td>
-                            <td class="num"><?= View::money((float) $item['budgeted']) ?></td>
-                            <td class="num"><?= $item['actual'] !== null ? View::money((float) $item['actual']) : '-' ?></td>
-                        </tr>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
