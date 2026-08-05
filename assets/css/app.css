@@ -465,10 +465,22 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
 .row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .row-actions form { display: inline; }
 
-/* Alle badges (koppelingen, categorie, status) onder de omschrijving i.p.v.
-   ernaast — gebruikt bij inkomsten/vaste lasten en kasstroom. */
+/* Alle badges (koppelingen, categorie, status) op een eigen rij die over de
+   volle tabelbreedte loopt (colspan), onder de titel/bedragen-rij i.p.v.
+   ernaast of beperkt tot de omschrijvingskolom — gebruikt bij inkomsten/
+   vaste lasten en kasstroom. De twee rijen (titel+bedragen, badges) horen
+   visueel bij elkaar: geen lijntje ertussenin, wel een normaal lijntje na
+   de badges-rij als scheiding met het volgende item. */
+.item-row-main td {
+    border-bottom: none;
+    padding-bottom: 2px;
+}
+
+.item-badges-row td {
+    padding-top: 0;
+}
+
 .item-badges {
-    margin-top: 4px;
     display: flex;
     flex-wrap: wrap;
     gap: 4px;

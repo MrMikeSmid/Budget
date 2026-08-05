@@ -356,12 +356,16 @@ use App\Support\View;
                             } else {
                                 $rowHref = View::url('kasstroom', ['period' => $period['id'], 'edit' => $t['id']]);
                             }
+                            $hasBadges = $isTransfer || !empty($t['is_settled']) || $t['pot_name'] || !empty($t['fixed_cost_id']) || !empty($t['income_item_id']) || !empty($t['category_name']);
                         ?>
-                        <tr class="row-clickable" data-href="<?= View::e($rowHref) ?>" style="<?= !empty($t['is_settled']) ? 'opacity:.65;' : '' ?>">
+                        <tr class="row-clickable<?= $hasBadges ? ' item-row-main' : '' ?>" data-href="<?= View::e($rowHref) ?>" style="<?= !empty($t['is_settled']) ? 'opacity:.65;' : '' ?>">
                             <td class="nowrap"><?= View::e($t['txn_date']) ?></td>
-                            <td class="nowrap">
-                                <?= View::e($t['description']) ?>
-                                <?php if ($isTransfer || !empty($t['is_settled']) || $t['pot_name'] || !empty($t['fixed_cost_id']) || !empty($t['income_item_id']) || !empty($t['category_name'])): ?>
+                            <td class="nowrap"><?= View::e($t['description']) ?></td>
+                            <td class="num <?= $t['amount'] < 0 ? 'negative' : 'positive' ?>"><?= $t['amount'] > 0 ? '+ ' : '' ?><?= View::money((float) $t['amount']) ?></td>
+                        </tr>
+                        <?php if ($hasBadges): ?>
+                            <tr class="row-clickable item-badges-row" data-href="<?= View::e($rowHref) ?>" style="<?= !empty($t['is_settled']) ? 'opacity:.65;' : '' ?>">
+                                <td colspan="3">
                                     <div class="item-badges">
                                         <?php if ($isTransfer): ?> <span class="badge neutral">🔁 overboeking</span><?php endif; ?>
                                         <?php if (!empty($t['is_settled'])): ?> <span class="badge paid">verwerkt</span><?php endif; ?>
@@ -372,10 +376,9 @@ use App\Support\View;
                                             <a class="badge category" href="<?= View::e(View::url('categorie', ['id' => $t['category_id'], 'period' => $period['id']])) ?>" onclick="event.stopPropagation();"><?= View::e($t['category_name']) ?></a>
                                         <?php endif; ?>
                                     </div>
-                                <?php endif; ?>
-                            </td>
-                            <td class="num <?= $t['amount'] < 0 ? 'negative' : 'positive' ?>"><?= $t['amount'] > 0 ? '+ ' : '' ?><?= View::money((float) $t['amount']) ?></td>
-                        </tr>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
