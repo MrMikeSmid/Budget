@@ -61,9 +61,13 @@ final class Transaction
     {
         $stmt = Database::connection()->prepare(
             "SELECT t.id, 'kasstroom' AS source, t.txn_date, t.description, t.amount, t.is_settled, t.pot_id,
-                    t.fixed_cost_id, t.income_item_id, p.name AS pot_name, p.icon AS pot_icon
+                    t.fixed_cost_id, t.income_item_id, p.name AS pot_name, p.icon AS pot_icon,
+                    c.id AS category_id, c.name AS category_name
              FROM transactions t
              LEFT JOIN pots p ON p.id = t.pot_id
+             LEFT JOIN fixed_costs fc ON fc.id = t.fixed_cost_id
+             LEFT JOIN income_items ii ON ii.id = t.income_item_id
+             LEFT JOIN categories c ON c.id = COALESCE(fc.category_id, ii.category_id)
              WHERE t.period_id = :period_id"
         );
         $stmt->execute(['period_id' => $periodId]);
@@ -71,7 +75,8 @@ final class Transaction
 
         $stmt = Database::connection()->prepare(
             "SELECT pt.id, 'overboeking' AS source, pt.txn_date, pt.description, -pt.amount AS amount, 0 AS is_settled, pt.pot_id,
-                    NULL AS fixed_cost_id, NULL AS income_item_id, p.name AS pot_name, p.icon AS pot_icon
+                    NULL AS fixed_cost_id, NULL AS income_item_id, p.name AS pot_name, p.icon AS pot_icon,
+                    NULL AS category_id, NULL AS category_name
              FROM pot_transactions pt
              JOIN pots p ON p.id = pt.pot_id
              WHERE pt.period_id = :period_id AND pt.transfer_pot_id IS NULL"
