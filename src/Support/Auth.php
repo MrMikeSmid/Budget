@@ -56,4 +56,11 @@ final class Auth
             exit;
         }
     }
+
+    public static function isAdmin(): bool
+    {
+        $user = self::user();
+
+        return $user !== null && User::isAdmin($user);
+    }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\Settings;
+
 final class View
 {
     /** @var array<string, mixed> */
@@ -71,7 +73,7 @@ final class View
      */
     public static function absoluteUrl(string $page, array $params = []): string
     {
-        $configured = Config::get()['app_url'] ?? null;
+        $configured = Settings::appUrl();
         $base = $configured !== null ? rtrim($configured, '/') : self::guessBaseUrl();
 
         return $base . '/' . self::url($page, $params);
