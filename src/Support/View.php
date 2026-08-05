@@ -62,6 +62,32 @@ final class View
     }
 
     /**
+     * Absolute link, nodig voor e-mails (verificatie/uitnodigingen) waar een
+     * relatieve index.php?page=... link geen betekenis heeft. Gebruikt de
+     * geconfigureerde 'app_url' als die gezet is; anders (lokaal draaien,
+     * zonder config.php) afgeleid uit de huidige request. Vertrouw dat laatste
+     * niet in productie: de Host-header is door de client te vervalsen, dus
+     * zet 'app_url' expliciet in config.php op een publieke server.
+     */
+    public static function absoluteUrl(string $page, array $params = []): string
+    {
+        $configured = Config::get()['app_url'] ?? null;
+        $base = $configured !== null ? rtrim($configured, '/') : self::guessBaseUrl();
+
+        return $base . '/' . self::url($page, $params);
+    }
+
+    private static function guessBaseUrl(): string
+    {
+        $isHttps = (($_SERVER['HTTPS'] ?? '') !== '') && $_SERVER['HTTPS'] !== 'off';
+        $scheme = $isHttps ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $dir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/index.php')), '/');
+
+        return $scheme . '://' . $host . $dir;
+    }
+
+    /**
      * Line-art iconen (Feather/Lucide-stijl: uniforme stroke, geen vulling).
      * Vaste set, geen user input, dus veilig om als raw SVG te echoen.
      * Gebruikt voor zowel de navigatie als losse acties (bijv. de

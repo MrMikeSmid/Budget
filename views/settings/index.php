@@ -23,9 +23,9 @@ use App\Support\View;
     <a class="btn secondary" href="<?= View::e(View::url('statistieken')) ?>">Openen</a>
 </div>
 <div class="card">
-    <h2 class="mt-0">👤 Accounts</h2>
-    <p class="text-muted">Accounts toevoegen of verwijderen. Iedereen heeft volledige rechten.</p>
-    <a class="btn secondary" href="<?= View::e(View::url('accounts')) ?>">Openen</a>
+    <h2 class="mt-0">👤 Huishouden</h2>
+    <p class="text-muted">Leden uitnodigen of verwijderen. Iedereen in het huishouden heeft volledige rechten.</p>
+    <a class="btn secondary" href="<?= View::e(View::url('huishouden')) ?>">Openen</a>
 </div>
 <div class="card">
     <h2 class="mt-0">🕒 Activiteit</h2>

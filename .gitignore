@@ -5,4 +5,7 @@
 /storage/*.sqlite-wal
 /storage/*.sqlite-shm
 /storage/sessions/
+/storage/households/
+/storage/.legacy-import.lock
+/storage/.htaccess
 .DS_Store

@@ -92,11 +92,11 @@ final class PotTransactionController
         // zodat de kasstroomlijst hem overslaat (i.p.v. hem als storting/
         // opname op los saldo te tonen, wat hij niet is).
         if ($fromPot) {
-            PotTransaction::create($fromPot['id'], $user['id'] ?? null, $periodId, $date, $label, -$amount, $toPot['id'] ?? null);
+            PotTransaction::create($fromPot['id'], $user['id'] ?? null, $user['name'] ?? null, $periodId, $date, $label, -$amount, $toPot['id'] ?? null);
             Activity::log('potjes', "Overboeking vanuit potje '{$fromPot['name']}' naar {$toLabel}: {$label}", -$amount);
         }
         if ($toPot) {
-            PotTransaction::create($toPot['id'], $user['id'] ?? null, $periodId, $date, $label, $amount, $fromPot['id'] ?? null);
+            PotTransaction::create($toPot['id'], $user['id'] ?? null, $user['name'] ?? null, $periodId, $date, $label, $amount, $fromPot['id'] ?? null);
             Activity::log('potjes', "Overboeking naar potje '{$toPot['name']}' vanuit {$fromLabel}: {$label}", $amount);
         }
 

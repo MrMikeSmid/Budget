@@ -3,8 +3,8 @@
 use App\Support\Csrf;
 use App\Support\View;
 ?>
-<p class="text-muted">Welkom! Maak het eerste account aan om te beginnen.</p>
-<form class="inline-form" method="post" action="<?= View::e(View::url('setup')) ?>">
+<p class="text-muted">Maak een account aan. Je krijgt meteen je eigen huishouden waar je later anderen voor kan uitnodigen.</p>
+<form class="inline-form" method="post" action="<?= View::e(View::url('registreren')) ?>">
     <?= Csrf::field() ?>
     <div class="field">
         <label for="name">Naam</label>
@@ -20,3 +20,4 @@ use App\Support\View;
     </div>
     <button type="submit" class="btn">Account aanmaken</button>
 </form>
+<p class="text-muted"><a href="<?= View::e(View::url('login')) ?>">Heb je al een account? Log in</a></p>

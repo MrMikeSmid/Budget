@@ -3,73 +3,40 @@
 namespace App\Support;
 
 use PDO;
+use RuntimeException;
 
+/**
+ * PDO-verbinding naar de database van het ACTIEVE huishouden. Elk huishouden
+ * heeft zijn eigen SQLite-bestand (zie storage/households/{id}/database.sqlite);
+ * index.php roept useHouseholdDb() één keer aan per request, zodra bekend is
+ * welk huishouden de ingelogde gebruiker actief heeft, vóórdat enig model
+ * hiervan leest. Voor globale data (users/households/invites) zie AppDatabase.
+ */
 final class Database
 {
-    private static ?PDO $connection = null;
+    /** @var array<string, PDO> */
+    private static array $connections = [];
+
+    private static ?string $activePath = null;
+
+    public static function useHouseholdDb(string $absolutePath): void
+    {
+        self::$activePath = $absolutePath;
+    }
 
     public static function connection(): PDO
     {
-        if (self::$connection === null) {
-            self::$connection = self::connect();
+        if (self::$activePath === null) {
+            throw new RuntimeException(
+                'Geen actief huishouden ingesteld — Database::useHouseholdDb() moet vóór elke query aangeroepen zijn.'
+            );
         }
 
-        return self::$connection;
-    }
-
-    private static function connect(): PDO
-    {
-        $config = Config::get();
-        $dbPath = $config['db_path'];
-        $isNew = !file_exists($dbPath);
-
-        $storageDir = dirname($dbPath);
-        if (!is_dir($storageDir)) {
-            mkdir($storageDir, 0775, true);
+        if (!isset(self::$connections[self::$activePath])) {
+            $migrationsDir = __DIR__ . '/../../database/migrations';
+            self::$connections[self::$activePath] = SqliteConnection::open(self::$activePath, $migrationsDir);
         }
 
-        // storage/ wordt door het deploy-script nooit overschreven (zo overleeft de
-        // database elke deploy), dus storage/.htaccess komt daar ook nooit via git
-        // terecht. Zet 'm hier zelf neer zodat de sqlite-file nooit direct
-        // downloadbaar is via de browser, ook niet bij een verse installatie.
-        $htaccess = $storageDir . '/.htaccess';
-        if (!file_exists($htaccess)) {
-            file_put_contents($htaccess, "Require all denied\nDeny from all\n");
-        }
-
-        $pdo = new PDO('sqlite:' . $dbPath);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $pdo->exec('PRAGMA foreign_keys = ON');
-
-        self::migrate($pdo);
-
-        return $pdo;
-    }
-
-    private static function migrate(PDO $pdo): void
-    {
-        $pdo->exec('CREATE TABLE IF NOT EXISTS migrations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            filename TEXT NOT NULL UNIQUE,
-            applied_at TEXT NOT NULL DEFAULT (datetime(\'now\'))
-        )');
-
-        $applied = $pdo->query('SELECT filename FROM migrations')->fetchAll(PDO::FETCH_COLUMN);
-        $migrationsDir = __DIR__ . '/../../database/migrations';
-        $files = glob($migrationsDir . '/*.sql');
-        sort($files);
-
-        foreach ($files as $file) {
-            $filename = basename($file);
-            if (in_array($filename, $applied, true)) {
-                continue;
-            }
-
-            $sql = file_get_contents($file);
-            $pdo->exec($sql);
-            $stmt = $pdo->prepare('INSERT INTO migrations (filename) VALUES (:filename)');
-            $stmt->execute(['filename' => $filename]);
-        }
+        return self::$connections[self::$activePath];
     }
 }
