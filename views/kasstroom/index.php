@@ -361,11 +361,18 @@ use App\Support\View;
                             <td class="nowrap"><?= View::e($t['txn_date']) ?></td>
                             <td class="nowrap">
                                 <?= View::e($t['description']) ?>
-                                <?php if ($isTransfer): ?> <span class="badge neutral">🔁 overboeking</span><?php endif; ?>
-                                <?php if (!empty($t['is_settled'])): ?> <span class="badge paid">verwerkt</span><?php endif; ?>
-                                <?php if ($t['pot_name']): ?> <span class="badge neutral"><?= View::e($t['pot_icon'] ?: '💶') ?> <?= View::e($t['pot_name']) ?></span><?php endif; ?>
-                                <?php if (!empty($t['fixed_cost_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een vaste last">Last</span><?php endif; ?>
-                                <?php if (!empty($t['income_item_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een inkomst">Inkomst</span><?php endif; ?>
+                                <?php if ($isTransfer || !empty($t['is_settled']) || $t['pot_name'] || !empty($t['fixed_cost_id']) || !empty($t['income_item_id']) || !empty($t['category_name'])): ?>
+                                    <div class="item-badges">
+                                        <?php if ($isTransfer): ?> <span class="badge neutral">🔁 overboeking</span><?php endif; ?>
+                                        <?php if (!empty($t['is_settled'])): ?> <span class="badge paid">verwerkt</span><?php endif; ?>
+                                        <?php if ($t['pot_name']): ?> <span class="badge neutral"><?= View::e($t['pot_icon'] ?: '💶') ?> <?= View::e($t['pot_name']) ?></span><?php endif; ?>
+                                        <?php if (!empty($t['fixed_cost_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een vaste last">Last</span><?php endif; ?>
+                                        <?php if (!empty($t['income_item_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een inkomst">Inkomst</span><?php endif; ?>
+                                        <?php if (!empty($t['category_name'])): ?>
+                                            <a class="badge category" href="<?= View::e(View::url('categorie', ['id' => $t['category_id'], 'period' => $period['id']])) ?>" onclick="event.stopPropagation();"><?= View::e($t['category_name']) ?></a>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
                             </td>
                             <td class="num <?= $t['amount'] < 0 ? 'negative' : 'positive' ?>"><?= $t['amount'] > 0 ? '+ ' : '' ?><?= View::money((float) $t['amount']) ?></td>
                         </tr>

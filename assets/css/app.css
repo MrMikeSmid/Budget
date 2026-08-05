@@ -465,9 +465,14 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
 .row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .row-actions form { display: inline; }
 
-/* Status onder de omschrijving (i.p.v. een eigen kolom) bij inkomsten/
-   vaste lasten. */
-.line-item-status { margin-top: 4px; }
+/* Alle badges (koppelingen, categorie, status) onder de omschrijving i.p.v.
+   ernaast — gebruikt bij inkomsten/vaste lasten en kasstroom. */
+.item-badges {
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
 
 /* Klikbare tabelrij (bijv. inkomsten/lasten): opent het bewerkformulier
    i.p.v. een aparte "Bewerken"-knop per rij. */
