@@ -1,7 +1,15 @@
 <?php
 
+use App\Support\Auth;
 use App\Support\View;
 ?>
+<?php if (Auth::isAdmin()): ?>
+<div class="card">
+    <h2 class="mt-0">🛠️ Admin</h2>
+    <p class="text-muted">SMTP-instellingen, gebruikers handmatig verifiëren, overzicht van alle huishoudens.</p>
+    <a class="btn secondary" href="<?= View::e(View::url('admin')) ?>">Openen</a>
+</div>
+<?php endif; ?>
 <div class="card">
     <h2 class="mt-0">📅 Budgetperiodes</h2>
     <p class="text-muted">Maandperiodes beheren en de actieve periode kiezen.</p>

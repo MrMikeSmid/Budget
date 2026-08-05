@@ -54,4 +54,17 @@ final class User
     {
         return !empty($user['email_verified_at']);
     }
+
+    public static function isAdmin(array $user): bool
+    {
+        return !empty($user['is_admin']);
+    }
+
+    /**
+     * Alle gebruikers, app-breed — voor het admin-overzicht.
+     */
+    public static function all(): array
+    {
+        return AppDatabase::connection()->query('SELECT * FROM users ORDER BY created_at')->fetchAll();
+    }
 }

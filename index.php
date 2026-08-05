@@ -5,6 +5,7 @@ declare(strict_types=1);
 require __DIR__ . '/vendor/autoload.php';
 
 use App\Controllers\ActivityController;
+use App\Controllers\AdminController;
 use App\Controllers\AuthController;
 use App\Controllers\CategoryController;
 use App\Controllers\DashboardController;
@@ -127,6 +128,26 @@ function authed(callable $handler): callable
     };
 }
 
+/**
+ * App-breed beheerdersrecht (los van huishoudens — een admin hoeft geen lid
+ * van een huishouden te zijn om bijv. SMTP-instellingen te beheren), dus
+ * geen huishouden-resolutie zoals bij authed().
+ */
+function adminOnly(callable $handler): callable
+{
+    return static function () use ($handler) {
+        Auth::requireLogin();
+
+        if (!Auth::isAdmin()) {
+            http_response_code(403);
+            View::render('errors/403', [], 'layout-guest');
+            return;
+        }
+
+        $handler();
+    };
+}
+
 $router = new Router('dashboard');
 
 // Gastroutes: alleen bereikbaar zonder sessie (of maken er geen gebruik van).
@@ -210,6 +231,12 @@ $router->post('huishouden-uitnodigen', authed([InviteController::class, 'send'])
 $router->post('huishouden-verwijderen', authed([HouseholdController::class, 'removeMember']));
 $router->post('huishouden-hernoemen', authed([HouseholdController::class, 'rename']));
 $router->post('huishouden-wisselen', authed([HouseholdController::class, 'switchHousehold']));
+
+// Admin: app-breed beheer (SMTP-instellingen, gebruikers handmatig
+// verifiëren, overzicht van huishoudens) — alleen voor is_admin-accounts.
+$router->get('admin', adminOnly([AdminController::class, 'index']));
+$router->post('admin-instellingen-save', adminOnly([AdminController::class, 'saveSettings']));
+$router->post('admin-verifieer-gebruiker', adminOnly([AdminController::class, 'verifyUser']));
 
 try {
     $router->dispatch();

@@ -57,4 +57,18 @@ final class Household
         $stmt = AppDatabase::connection()->prepare('UPDATE households SET name = :name WHERE id = :id');
         $stmt->execute(['name' => $name, 'id' => $id]);
     }
+
+    /**
+     * Alle huishoudens met hun aantal leden — voor het admin-overzicht.
+     */
+    public static function allWithMemberCounts(): array
+    {
+        return AppDatabase::connection()->query(
+            'SELECT h.*, COUNT(hm.user_id) AS member_count
+             FROM households h
+             LEFT JOIN household_members hm ON hm.household_id = h.id
+             GROUP BY h.id
+             ORDER BY h.created_at'
+        )->fetchAll();
+    }
 }

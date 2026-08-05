@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Models\Settings;
+
 /**
  * Kleine, afhankelijkheidsvrije SMTP-client. Genoeg voor de twee soorten mail
  * die deze app verstuurt (verificatie, uitnodiging): STARTTLS/impliciete TLS,
@@ -17,7 +19,7 @@ final class Mailer
     public static function trySend(string $to, string $subject, string $html, string $text): bool
     {
         try {
-            $config = Config::get()['mail'];
+            $config = Settings::mailConfig();
 
             if (empty($config['host'])) {
                 return false;
@@ -45,7 +47,7 @@ final class Mailer
         stream_set_timeout($stream, 10);
 
         self::expect($stream, '220');
-        $localName = parse_url(Config::get()['app_url'] ?? '', PHP_URL_HOST) ?: 'localhost';
+        $localName = parse_url(Settings::appUrl() ?? '', PHP_URL_HOST) ?: 'localhost';
 
         self::command($stream, "EHLO {$localName}", '250');
 
