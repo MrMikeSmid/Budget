@@ -14,8 +14,8 @@ final class SqliteConnection
     public static function open(string $dbPath, string $migrationsDir): PDO
     {
         $storageDir = dirname($dbPath);
-        if (!is_dir($storageDir)) {
-            mkdir($storageDir, 0775, true);
+        if (!is_dir($storageDir) && !mkdir($storageDir, 0775, true) && !is_dir($storageDir)) {
+            throw new \RuntimeException("Kon map niet aanmaken: {$storageDir}");
         }
 
         // Zie Database::connect() van vroeger: storage/ wordt nooit door een
@@ -32,8 +32,14 @@ final class SqliteConnection
         $pdo->exec('PRAGMA foreign_keys = ON');
         // WAL + busy_timeout: meerdere leden van hetzelfde huishouden kunnen
         // tegelijk schrijven zonder meteen een SQLITE_BUSY-fout te krijgen.
-        $pdo->exec('PRAGMA journal_mode = WAL');
-        $pdo->exec('PRAGMA busy_timeout = 5000');
+        // Puur een optimalisatie — als de omgeving (bijv. een netwerkschijf op
+        // sommige hosting) dit niet toestaat, mag dat de app niet blokkeren.
+        try {
+            $pdo->exec('PRAGMA journal_mode = WAL');
+            $pdo->exec('PRAGMA busy_timeout = 5000');
+        } catch (\Throwable $e) {
+            error_log('SqliteConnection: kon WAL/busy_timeout niet instellen, ga door zonder: ' . $e->getMessage());
+        }
 
         self::migrate($pdo, $migrationsDir);
 

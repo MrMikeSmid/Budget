@@ -76,8 +76,8 @@ final class LegacyImporter
         }
 
         if (!is_file($newDbPath)) {
-            if (!is_dir($newHouseholdDir)) {
-                mkdir($newHouseholdDir, 0775, true);
+            if (!is_dir($newHouseholdDir) && !mkdir($newHouseholdDir, 0775, true) && !is_dir($newHouseholdDir)) {
+                throw new RuntimeException("Kon map niet aanmaken: {$newHouseholdDir}");
             }
 
             if (!rename($oldDbPath, $newDbPath)) {
