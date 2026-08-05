@@ -132,7 +132,8 @@ final class FixedCost extends LineItem
         string $recurrenceMode = 'periode',
         ?string $recurrenceDate = null,
         ?int $recurrenceGroupId = null,
-        ?int $loanId = null
+        ?int $loanId = null,
+        ?int $categoryId = null
     ): int {
         $pdo = Database::connection();
 
@@ -142,9 +143,9 @@ final class FixedCost extends LineItem
 
         $stmt = $pdo->prepare(
             'INSERT INTO fixed_costs
-                (period_id, description, budgeted, actual, status, is_recurring, recurrence_interval, recurrence_mode, recurrence_date, recurrence_group_id, loan_id, sort_order)
+                (period_id, description, budgeted, actual, status, is_recurring, recurrence_interval, recurrence_mode, recurrence_date, recurrence_group_id, loan_id, category_id, sort_order)
              VALUES
-                (:period_id, :description, :budgeted, :actual, :status, :is_recurring, :recurrence_interval, :recurrence_mode, :recurrence_date, :recurrence_group_id, :loan_id, :sort_order)'
+                (:period_id, :description, :budgeted, :actual, :status, :is_recurring, :recurrence_interval, :recurrence_mode, :recurrence_date, :recurrence_group_id, :loan_id, :category_id, :sort_order)'
         );
         $stmt->execute([
             'period_id' => $periodId,
@@ -158,6 +159,7 @@ final class FixedCost extends LineItem
             'recurrence_date' => $recurrenceDate ?: null,
             'recurrence_group_id' => $recurrenceGroupId,
             'loan_id' => $loanId,
+            'category_id' => $categoryId,
             'sort_order' => $sortOrder,
         ]);
 
@@ -173,13 +175,14 @@ final class FixedCost extends LineItem
         bool $isRecurring,
         string $recurrenceInterval = 'maandelijks',
         string $recurrenceMode = 'periode',
-        ?string $recurrenceDate = null
+        ?string $recurrenceDate = null,
+        ?int $categoryId = null
     ): void {
         $stmt = Database::connection()->prepare(
             'UPDATE fixed_costs SET
                 description = :description, budgeted = :budgeted, actual = :actual, status = :status,
                 is_recurring = :is_recurring, recurrence_interval = :recurrence_interval,
-                recurrence_mode = :recurrence_mode, recurrence_date = :recurrence_date
+                recurrence_mode = :recurrence_mode, recurrence_date = :recurrence_date, category_id = :category_id
              WHERE id = :id'
         );
         $stmt->execute([
@@ -191,6 +194,7 @@ final class FixedCost extends LineItem
             'recurrence_interval' => self::normalizeInterval($recurrenceInterval),
             'recurrence_mode' => self::normalizeMode($recurrenceMode),
             'recurrence_date' => $recurrenceDate ?: null,
+            'category_id' => $categoryId,
             'id' => $id,
         ]);
     }
@@ -319,7 +323,8 @@ final class FixedCost extends LineItem
                 (string) $item['recurrence_mode'],
                 $item['recurrence_date'] ?: null,
                 $groupId,
-                $item['loan_id'] ? (int) $item['loan_id'] : null
+                $item['loan_id'] ? (int) $item['loan_id'] : null,
+                $item['category_id'] ? (int) $item['category_id'] : null
             );
         }
     }

@@ -63,11 +63,27 @@ abstract class LineItem
         $table = static::table();
         $linkColumn = static::transactionLinkColumn();
         $stmt = Database::connection()->prepare(
-            "SELECT {$table}.*,
+            "SELECT {$table}.*, c.name AS category_name,
                     (SELECT t.id FROM transactions t WHERE t.{$linkColumn} = {$table}.id ORDER BY t.id DESC LIMIT 1) AS linked_transaction_id
-             FROM {$table} WHERE period_id = :period_id ORDER BY sort_order, id"
+             FROM {$table}
+             LEFT JOIN categories c ON c.id = {$table}.category_id
+             WHERE period_id = :period_id ORDER BY sort_order, id"
         );
         $stmt->execute(['period_id' => $periodId]);
+
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Regels van deze soort in een categorie, binnen één periode — voor de
+     * categoriedetailpagina (opgeteld en per regel).
+     */
+    public static function forCategoryInPeriod(int $categoryId, int $periodId): array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT * FROM ' . static::table() . ' WHERE category_id = :category_id AND period_id = :period_id ORDER BY sort_order, id'
+        );
+        $stmt->execute(['category_id' => $categoryId, 'period_id' => $periodId]);
 
         return $stmt->fetchAll();
     }
@@ -149,7 +165,7 @@ abstract class LineItem
         return $row ?: null;
     }
 
-    public static function create(int $periodId, string $description, float $budgeted, ?float $actual, string $status, bool $isRecurring = false): int
+    public static function create(int $periodId, string $description, float $budgeted, ?float $actual, string $status, bool $isRecurring = false, ?int $categoryId = null): int
     {
         $pdo = Database::connection();
 
@@ -158,8 +174,8 @@ abstract class LineItem
         $sortOrder = (int) $stmt->fetchColumn();
 
         $stmt = $pdo->prepare(
-            'INSERT INTO ' . static::table() . ' (period_id, description, budgeted, actual, status, is_recurring, sort_order)
-             VALUES (:period_id, :description, :budgeted, :actual, :status, :is_recurring, :sort_order)'
+            'INSERT INTO ' . static::table() . ' (period_id, description, budgeted, actual, status, is_recurring, category_id, sort_order)
+             VALUES (:period_id, :description, :budgeted, :actual, :status, :is_recurring, :category_id, :sort_order)'
         );
         $stmt->execute([
             'period_id' => $periodId,
@@ -168,16 +184,17 @@ abstract class LineItem
             'actual' => $actual,
             'status' => $status,
             'is_recurring' => $isRecurring ? 1 : 0,
+            'category_id' => $categoryId,
             'sort_order' => $sortOrder,
         ]);
 
         return (int) $pdo->lastInsertId();
     }
 
-    public static function update(int $id, string $description, float $budgeted, ?float $actual, string $status, bool $isRecurring = false): void
+    public static function update(int $id, string $description, float $budgeted, ?float $actual, string $status, bool $isRecurring = false, ?int $categoryId = null): void
     {
         $stmt = Database::connection()->prepare(
-            'UPDATE ' . static::table() . ' SET description = :description, budgeted = :budgeted, actual = :actual, status = :status, is_recurring = :is_recurring WHERE id = :id'
+            'UPDATE ' . static::table() . ' SET description = :description, budgeted = :budgeted, actual = :actual, status = :status, is_recurring = :is_recurring, category_id = :category_id WHERE id = :id'
         );
         $stmt->execute([
             'description' => $description,
@@ -185,6 +202,7 @@ abstract class LineItem
             'actual' => $actual,
             'status' => $status,
             'is_recurring' => $isRecurring ? 1 : 0,
+            'category_id' => $categoryId,
             'id' => $id,
         ]);
     }
@@ -204,7 +222,8 @@ abstract class LineItem
         string $recurrenceInterval = 'maandelijks',
         string $recurrenceMode = 'periode',
         ?string $recurrenceDate = null,
-        ?int $recurrenceGroupId = null
+        ?int $recurrenceGroupId = null,
+        ?int $categoryId = null
     ): int {
         $pdo = Database::connection();
 
@@ -214,9 +233,9 @@ abstract class LineItem
 
         $stmt = $pdo->prepare(
             'INSERT INTO ' . static::table() . '
-                (period_id, description, budgeted, actual, status, is_recurring, recurrence_interval, recurrence_mode, recurrence_date, recurrence_group_id, sort_order)
+                (period_id, description, budgeted, actual, status, is_recurring, recurrence_interval, recurrence_mode, recurrence_date, recurrence_group_id, category_id, sort_order)
              VALUES
-                (:period_id, :description, :budgeted, :actual, :status, :is_recurring, :recurrence_interval, :recurrence_mode, :recurrence_date, :recurrence_group_id, :sort_order)'
+                (:period_id, :description, :budgeted, :actual, :status, :is_recurring, :recurrence_interval, :recurrence_mode, :recurrence_date, :recurrence_group_id, :category_id, :sort_order)'
         );
         $stmt->execute([
             'period_id' => $periodId,
@@ -229,6 +248,7 @@ abstract class LineItem
             'recurrence_mode' => static::normalizeMode($recurrenceMode),
             'recurrence_date' => $recurrenceDate ?: null,
             'recurrence_group_id' => $recurrenceGroupId,
+            'category_id' => $categoryId,
             'sort_order' => $sortOrder,
         ]);
 
@@ -244,13 +264,14 @@ abstract class LineItem
         bool $isRecurring,
         string $recurrenceInterval = 'maandelijks',
         string $recurrenceMode = 'periode',
-        ?string $recurrenceDate = null
+        ?string $recurrenceDate = null,
+        ?int $categoryId = null
     ): void {
         $stmt = Database::connection()->prepare(
             'UPDATE ' . static::table() . ' SET
                 description = :description, budgeted = :budgeted, actual = :actual, status = :status,
                 is_recurring = :is_recurring, recurrence_interval = :recurrence_interval,
-                recurrence_mode = :recurrence_mode, recurrence_date = :recurrence_date
+                recurrence_mode = :recurrence_mode, recurrence_date = :recurrence_date, category_id = :category_id
              WHERE id = :id'
         );
         $stmt->execute([
@@ -259,6 +280,7 @@ abstract class LineItem
             'actual' => $actual,
             'status' => $status,
             'is_recurring' => $isRecurring ? 1 : 0,
+            'category_id' => $categoryId,
             'recurrence_interval' => static::normalizeInterval($recurrenceInterval),
             'recurrence_mode' => static::normalizeMode($recurrenceMode),
             'recurrence_date' => $recurrenceDate ?: null,
@@ -386,7 +408,8 @@ abstract class LineItem
                 (string) $item['recurrence_interval'],
                 (string) $item['recurrence_mode'],
                 $item['recurrence_date'] ?: null,
-                $groupId
+                $groupId,
+                $item['category_id'] ? (int) $item['category_id'] : null
             );
         }
     }

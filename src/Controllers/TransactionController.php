@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\Activity;
 use App\Models\BudgetPeriod;
+use App\Models\Category;
 use App\Models\FixedCost;
 use App\Models\IncomeItem;
 use App\Models\Pot;
@@ -39,6 +40,7 @@ final class TransactionController
             'editingOverboeking' => $editOverboekingId ? PotTransaction::find($editOverboekingId) : null,
             'openForm' => $editId !== null || $editOverboekingId !== null || !empty($_GET['open']),
             'activeTab' => ($_GET['tab'] ?? '') === 'overboeken' || $editOverboekingId !== null ? 'overboeken' : 'uitgave',
+            'categories' => Category::all(),
         ]);
     }
 
@@ -196,8 +198,9 @@ final class TransactionController
         $recurrenceInterval = $model::normalizeInterval((string) ($_POST['recurrence_interval'] ?? 'maandelijks'));
         $recurrenceMode = $model::normalizeMode((string) ($_POST['recurrence_mode'] ?? 'periode'));
         $recurrenceDate = trim($_POST['recurrence_date'] ?? '') ?: null;
+        $categoryId = (int) ($_POST['li_category_id'] ?? 0) ?: null;
 
-        $model::updateFull($id, $description, $budgeted, null, $status, $isRecurring, $recurrenceInterval, $recurrenceMode, $recurrenceDate);
+        $model::updateFull($id, $description, $budgeted, null, $status, $isRecurring, $recurrenceInterval, $recurrenceMode, $recurrenceDate, $categoryId);
         $model::syncActualFromTransactions($id);
     }
 }

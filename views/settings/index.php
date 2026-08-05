@@ -13,6 +13,11 @@ use App\Support\View;
     <a class="btn secondary" href="<?= View::e(View::url('leningen')) ?>">Openen</a>
 </div>
 <div class="card">
+    <h2 class="mt-0">🏷️ Categorieën</h2>
+    <p class="text-muted">Categorieën beheren voor inkomsten, lasten en leningen, zodat je kunt zien hoeveel er per categorie in/uit gaat.</p>
+    <a class="btn secondary" href="<?= View::e(View::url('categorieen')) ?>">Openen</a>
+</div>
+<div class="card">
     <h2 class="mt-0">📊 Statistieken</h2>
     <p class="text-muted">Inkomsten, uitgaven en potjes per maand, kwartaal of jaar, met grafieken en een volledig totaaloverzicht.</p>
     <a class="btn secondary" href="<?= View::e(View::url('statistieken')) ?>">Openen</a>

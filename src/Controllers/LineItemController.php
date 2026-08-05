@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\Activity;
 use App\Models\BudgetPeriod;
+use App\Models\Category;
 use App\Support\View;
 
 /**
@@ -50,6 +51,7 @@ abstract class LineItemController
             'outstanding' => $period ? $model::outstanding((int) $period['id']) : 0,
             'editing' => $editId ? $model::find($editId) : null,
             'openForm' => !empty($_GET['open']),
+            'categories' => Category::all(),
         ]);
     }
 
@@ -64,15 +66,16 @@ abstract class LineItemController
         $actual = $actualRaw === '' ? null : (float) str_replace(',', '.', $actualRaw);
         $status = trim($_POST['status'] ?? '');
         $isRecurring = !empty($_POST['is_recurring']);
+        $categoryId = (int) ($_POST['category_id'] ?? 0) ?: null;
 
         if ($description === '' || $periodId === 0) {
             View::flash('Vul een omschrijving in.', 'error');
         } elseif ($id > 0) {
-            $model::update($id, $description, $budgeted, $actual, $status, $isRecurring);
+            $model::update($id, $description, $budgeted, $actual, $status, $isRecurring, $categoryId);
             Activity::log(static::page(), static::label() . ' bijgewerkt: ' . $description, $budgeted * static::amountSign());
             View::flash('Regel opgeslagen.');
         } else {
-            $model::create($periodId, $description, $budgeted, $actual, $status, $isRecurring);
+            $model::create($periodId, $description, $budgeted, $actual, $status, $isRecurring, $categoryId);
             Activity::log(static::page(), static::label() . ' toegevoegd: ' . $description, $budgeted * static::amountSign());
             View::flash('Regel toegevoegd.');
         }

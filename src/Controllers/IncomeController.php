@@ -54,6 +54,7 @@ final class IncomeController extends LineItemController
         $recurrenceInterval = IncomeItem::normalizeInterval((string) ($_POST['recurrence_interval'] ?? 'maandelijks'));
         $recurrenceMode = IncomeItem::normalizeMode((string) ($_POST['recurrence_mode'] ?? 'periode'));
         $recurrenceDate = trim($_POST['recurrence_date'] ?? '') ?: null;
+        $categoryId = (int) ($_POST['category_id'] ?? 0) ?: null;
 
         if ($description === '' || $periodId === 0) {
             View::flash('Vul een omschrijving in.', 'error');
@@ -62,11 +63,11 @@ final class IncomeController extends LineItemController
         }
 
         if ($id > 0) {
-            IncomeItem::updateFull($id, $description, $budgeted, $actual, $status, $isRecurring, $recurrenceInterval, $recurrenceMode, $recurrenceDate);
+            IncomeItem::updateFull($id, $description, $budgeted, $actual, $status, $isRecurring, $recurrenceInterval, $recurrenceMode, $recurrenceDate, $categoryId);
             Activity::log('inkomsten', 'Inkomst bijgewerkt: ' . $description, $budgeted);
             View::flash('Regel opgeslagen.');
         } else {
-            IncomeItem::createFull($periodId, $description, $budgeted, $actual, $status, $isRecurring, $recurrenceInterval, $recurrenceMode, $recurrenceDate);
+            IncomeItem::createFull($periodId, $description, $budgeted, $actual, $status, $isRecurring, $recurrenceInterval, $recurrenceMode, $recurrenceDate, null, $categoryId);
             Activity::log('inkomsten', 'Inkomst toegevoegd: ' . $description, $budgeted);
             View::flash('Regel toegevoegd.');
         }
