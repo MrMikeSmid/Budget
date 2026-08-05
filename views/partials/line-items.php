@@ -24,6 +24,7 @@ use App\Support\View;
 /** @var string $quickActionIcon */
 /** @var string $quickActionLabel */
 /** @var array $categories */
+/** @var bool $groupByCategory */
 
 $showRecurrenceOptions = $showRecurrenceOptions ?? false;
 $openForm = $openForm ?? false;
@@ -33,6 +34,31 @@ $heroLabel = $heroLabel ?? '';
 $heroValue = $heroValue ?? $outstanding;
 $quickActionIcon = $quickActionIcon ?? 'dashboard';
 $quickActionLabel = $quickActionLabel ?? 'Regel toevoegen';
+$groupByCategory = $groupByCategory ?? false;
+
+// Bij groeperen: één sectie per categorie, aflopend gesorteerd op aantal
+// items — de categorie met de meeste items dus bovenaan. Regels zonder
+// categorie komen altijd als laatste sectie, ongeacht hun aantal.
+$sections = [];
+if ($groupByCategory && !empty($items)) {
+    $buckets = [];
+    foreach ($items as $item) {
+        $key = (int) ($item['category_id'] ?? 0);
+        if (!isset($buckets[$key])) {
+            $buckets[$key] = ['title' => $key > 0 ? $item['category_name'] : 'Geen categorie', 'items' => []];
+        }
+        $buckets[$key]['items'][] = $item;
+    }
+    $uncategorized = $buckets[0] ?? null;
+    unset($buckets[0]);
+    uasort($buckets, static fn (array $a, array $b) => count($b['items']) <=> count($a['items']));
+    if ($uncategorized) {
+        $buckets[0] = $uncategorized;
+    }
+    $sections = array_values($buckets);
+} else {
+    $sections[] = ['title' => null, 'items' => $items];
+}
 ?>
 <?php if ($period): ?>
     <?php if ($showHero): ?>
@@ -144,57 +170,67 @@ $quickActionLabel = $quickActionLabel ?? 'Regel toevoegen';
         </div>
     </div>
 
-    <div class="card">
-        <?php if (empty($items)): ?>
+    <?php if (empty($items)): ?>
+        <div class="card">
             <p class="text-muted">Nog geen regels voor deze periode.</p>
-        <?php else: ?>
-            <div class="table-scroll">
-                <table>
-                    <thead>
-                    <tr>
-                        <th class="nowrap">Omschrijving</th>
-                        <th class="num">Begroot</th>
-                        <th class="num">Werkelijk</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($items as $item): ?>
-                        <?php
-                            $rowHref = !empty($item['linked_transaction_id'])
-                                ? View::url('kasstroom', ['period' => $period['id'], 'edit' => $item['linked_transaction_id']])
-                                : View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']]);
-                            $hasBadges = !empty($item['loan_id']) || !empty($item['linked_transaction_id']) || !empty($item['category_name']) || $item['status'];
-                        ?>
-                        <tr class="row-clickable<?= $hasBadges ? ' item-row-main' : '' ?>" data-href="<?= View::e($rowHref) ?>">
-                            <td class="nowrap">
-                                <?= View::e($item['description']) ?>
-                                <?php if (!empty($item['is_recurring'])): ?> <span title="Terugkerend (<?= View::e(LineItem::INTERVALS[$item['recurrence_interval'] ?? 'maandelijks'] ?? 'Maandelijks') ?>)" class="text-muted">&#8635;</span><?php endif; ?>
-                            </td>
-                            <td class="num"><?= View::money((float) $item['budgeted']) ?></td>
-                            <td class="num"><?= $item['actual'] !== null ? View::money((float) $item['actual']) : '-' ?></td>
+        </div>
+    <?php else: ?>
+        <?php foreach ($sections as $section): ?>
+            <div class="card">
+                <?php if ($section['title'] !== null): ?>
+                    <div class="section-header">
+                        <h2 class="mt-0"><?= View::e($section['title']) ?></h2>
+                        <span class="text-muted"><?= count($section['items']) ?></span>
+                    </div>
+                <?php endif; ?>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th class="nowrap">Omschrijving</th>
+                            <th class="num">Begroot</th>
+                            <th class="num">Werkelijk</th>
                         </tr>
-                        <?php if ($hasBadges): ?>
-                            <tr class="row-clickable item-badges-row" data-href="<?= View::e($rowHref) ?>">
-                                <td colspan="3">
-                                    <div class="item-badges">
-                                        <?php if (!empty($item['loan_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een lening">Lening</span><?php endif; ?>
-                                        <?php if (!empty($item['linked_transaction_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een kasstroommutatie">Kasstroom</span><?php endif; ?>
-                                        <?php if (!empty($item['category_name'])): ?>
-                                            <a class="badge category" href="<?= View::e(View::url('categorie', ['id' => $item['category_id'], 'period' => $period['id']])) ?>" onclick="event.stopPropagation();"><?= View::e($item['category_name']) ?></a>
-                                        <?php endif; ?>
-                                        <?php if ($item['status']): ?>
-                                            <span class="badge <?= View::badgeClass($item['status']) ?>"><?= View::e($item['status']) ?></span>
-                                        <?php endif; ?>
-                                    </div>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($section['items'] as $item): ?>
+                            <?php
+                                $rowHref = !empty($item['linked_transaction_id'])
+                                    ? View::url('kasstroom', ['period' => $period['id'], 'edit' => $item['linked_transaction_id']])
+                                    : View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']]);
+                                $hasBadges = !empty($item['loan_id']) || !empty($item['linked_transaction_id']) || !empty($item['category_name']) || $item['status'];
+                            ?>
+                            <tr class="row-clickable<?= $hasBadges ? ' item-row-main' : '' ?>" data-href="<?= View::e($rowHref) ?>">
+                                <td class="nowrap">
+                                    <?= View::e($item['description']) ?>
+                                    <?php if (!empty($item['is_recurring'])): ?> <span title="Terugkerend (<?= View::e(LineItem::INTERVALS[$item['recurrence_interval'] ?? 'maandelijks'] ?? 'Maandelijks') ?>)" class="text-muted">&#8635;</span><?php endif; ?>
                                 </td>
+                                <td class="num"><?= View::money((float) $item['budgeted']) ?></td>
+                                <td class="num"><?= $item['actual'] !== null ? View::money((float) $item['actual']) : '-' ?></td>
                             </tr>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
+                            <?php if ($hasBadges): ?>
+                                <tr class="row-clickable item-badges-row" data-href="<?= View::e($rowHref) ?>">
+                                    <td colspan="3">
+                                        <div class="item-badges">
+                                            <?php if (!empty($item['loan_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een lening">Lening</span><?php endif; ?>
+                                            <?php if (!empty($item['linked_transaction_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een kasstroommutatie">Kasstroom</span><?php endif; ?>
+                                            <?php if (!empty($item['category_name'])): ?>
+                                                <a class="badge category" href="<?= View::e(View::url('categorie', ['id' => $item['category_id'], 'period' => $period['id']])) ?>" onclick="event.stopPropagation();"><?= View::e($item['category_name']) ?></a>
+                                            <?php endif; ?>
+                                            <?php if ($item['status']): ?>
+                                                <span class="badge <?= View::badgeClass($item['status']) ?>"><?= View::e($item['status']) ?></span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        <?php endif; ?>
-    </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
 <?php else: ?>
     <div class="empty-state card">
         <p>Er is nog geen budgetperiode aangemaakt.</p>
