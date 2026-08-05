@@ -398,27 +398,6 @@ tr:last-child td { border-bottom: none; }
     .warning-card.positive .warning-row + .warning-row { border-top-color: #16472b; }
 }
 
-/* AI-advieskaart onder de dashboardtabs: gewoon een witte kaart, net als de
-   rest — alleen de titel krijgt een accentkleur. */
-.advice-card h2 {
-    font-size: 15px;
-    color: var(--primary-dark);
-}
-
-.advice-card p {
-    margin: 0;
-}
-
-.advice-card .advice-error {
-    color: var(--red);
-}
-
-@media (prefers-color-scheme: dark) {
-    .advice-card h2 {
-        color: #93c5fd;
-    }
-}
-
 form.inline-form {
     display: flex;
     flex-direction: column;
