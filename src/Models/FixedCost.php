@@ -77,6 +77,31 @@ final class FixedCost extends LineItem
     }
 
     /**
+     * Lasten (inclusief leningtermijnen) waarvan werkelijk hoger is dan
+     * begroot, en waarvan de waarschuwing daarover nog niet bekeken is —
+     * voor het waarschuwingsvenster op het dashboard. loan_name is gevuld
+     * als het om een leningtermijn gaat, voor een duidelijkere titel dan de
+     * (vaak generieke) omschrijving van de last zelf.
+     */
+    public static function overpaidForPeriod(int $periodId): array
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT fc.*, l.name AS loan_name,
+                    (SELECT t.id FROM transactions t WHERE t.fixed_cost_id = fc.id ORDER BY t.id DESC LIMIT 1) AS linked_transaction_id
+             FROM fixed_costs fc
+             LEFT JOIN loans l ON l.id = fc.loan_id
+             WHERE fc.period_id = :period_id
+               AND fc.actual IS NOT NULL
+               AND fc.actual > fc.budgeted
+               AND fc.warning_dismissed_at IS NULL
+             ORDER BY fc.description"
+        );
+        $stmt->execute(['period_id' => $periodId]);
+
+        return $stmt->fetchAll();
+    }
+
+    /**
      * Lasten die nog niet als "Betaald" staan (dus nog geen enkele
      * kasstroommutatie hebben) — de kandidaten voor het betaaladvies op het
      * dashboard.

@@ -127,6 +127,19 @@ abstract class LineItem
         $stmt->execute(['status' => $unlinkedStatus, 'id' => $id]);
     }
 
+    /**
+     * Markeert de "meer betaald/ontvangen dan begroot"-waarschuwing op het
+     * dashboard als gezien voor deze regel — die komt daarna nooit meer
+     * terug, ook niet als er verder niets aan de regel verandert.
+     */
+    public static function dismissWarning(int $id): void
+    {
+        $stmt = Database::connection()->prepare(
+            "UPDATE " . static::table() . " SET warning_dismissed_at = datetime('now') WHERE id = :id"
+        );
+        $stmt->execute(['id' => $id]);
+    }
+
     public static function find(int $id): ?array
     {
         $stmt = Database::connection()->prepare('SELECT * FROM ' . static::table() . ' WHERE id = :id');

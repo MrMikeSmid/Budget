@@ -18,6 +18,7 @@ use App\Controllers\PotController;
 use App\Controllers\PotTransactionController;
 use App\Controllers\StatisticsController;
 use App\Controllers\TransactionController;
+use App\Controllers\WarningController;
 use App\Models\User;
 use App\Support\Auth;
 use App\Support\Config;
@@ -74,6 +75,9 @@ $router->post('instellingen-ai-save', authed([AiSettingsController::class, 'save
 
 // AI-advies: JSON-endpoint dat het dashboard asynchroon aanroept.
 $router->get('ai-advies', authed([AiAdviceController::class, 'index']));
+
+// Wegklikken van een "meer betaald/ontvangen dan begroot"-waarschuwing.
+$router->post('waarschuwing-dismiss', authed([WarningController::class, 'dismiss']));
 
 // Periodes
 $router->get('periods', authed([PeriodController::class, 'index']));

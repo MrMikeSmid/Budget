@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Csrf;
 use App\Support\View;
 
 /** @var array $periods */
@@ -16,6 +17,8 @@ use App\Support\View;
 /** @var float $incomeOutstanding */
 /** @var float $incomeTotal */
 /** @var array $partialLoanPayments */
+/** @var array $overpaidCosts */
+/** @var array $overreceivedIncome */
 ?>
 <?php if ($period): ?>
     <div class="hero-balance">
@@ -36,6 +39,48 @@ use App\Support\View;
             <span class="quick-action-icon"><?= View::navIcon('inkomsten') ?></span>
             Inkomsten
         </a>
+    </div>
+<?php endif; ?>
+
+<?php if ($period && !empty($overpaidCosts)): ?>
+    <div class="warning-card negative">
+        <h2 class="mt-0">⚠️ Meer betaald dan begroot</h2>
+        <?php foreach ($overpaidCosts as $item): ?>
+            <?php $over = (float) $item['actual'] - (float) $item['budgeted']; ?>
+            <form method="post" action="<?= View::e(View::url('waarschuwing-dismiss')) ?>" class="warning-row">
+                <?= Csrf::field() ?>
+                <input type="hidden" name="type" value="fixed_cost">
+                <input type="hidden" name="id" value="<?= (int) $item['id'] ?>">
+                <input type="hidden" name="period_id" value="<?= (int) $period['id'] ?>">
+                <input type="hidden" name="transaction_id" value="<?= (int) ($item['linked_transaction_id'] ?? 0) ?>">
+                <div class="warning-row-text">
+                    <div class="warning-row-title"><?= View::e($item['loan_name'] ?? $item['description']) ?></div>
+                    <div class="warning-row-detail">Begroot <?= View::money((float) $item['budgeted']) ?>, werkelijk <?= View::money((float) $item['actual']) ?> (<?= View::money($over) ?> te veel)</div>
+                </div>
+                <button type="submit" class="btn small">Naar mutatie</button>
+            </form>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
+
+<?php if ($period && !empty($overreceivedIncome)): ?>
+    <div class="warning-card positive">
+        <h2 class="mt-0">🎉 Meer ontvangen dan begroot</h2>
+        <?php foreach ($overreceivedIncome as $item): ?>
+            <?php $over = (float) $item['actual'] - (float) $item['budgeted']; ?>
+            <form method="post" action="<?= View::e(View::url('waarschuwing-dismiss')) ?>" class="warning-row">
+                <?= Csrf::field() ?>
+                <input type="hidden" name="type" value="income">
+                <input type="hidden" name="id" value="<?= (int) $item['id'] ?>">
+                <input type="hidden" name="period_id" value="<?= (int) $period['id'] ?>">
+                <input type="hidden" name="transaction_id" value="<?= (int) ($item['linked_transaction_id'] ?? 0) ?>">
+                <div class="warning-row-text">
+                    <div class="warning-row-title"><?= View::e($item['description']) ?></div>
+                    <div class="warning-row-detail">Begroot <?= View::money((float) $item['budgeted']) ?>, werkelijk <?= View::money((float) $item['actual']) ?> (<?= View::money($over) ?> meer ontvangen)</div>
+                </div>
+                <button type="submit" class="btn small">Naar mutatie</button>
+            </form>
+        <?php endforeach; ?>
     </div>
 <?php endif; ?>
 

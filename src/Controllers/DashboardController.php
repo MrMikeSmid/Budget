@@ -27,6 +27,8 @@ final class DashboardController
         $incomeOutstanding = 0.0;
         $incomeTotal = 0.0;
         $partialLoanPayments = [];
+        $overpaidCosts = [];
+        $overreceivedIncome = [];
 
         if ($period) {
             $balance = BudgetPeriod::endingBalance((int) $period['id']);
@@ -52,6 +54,8 @@ final class DashboardController
             $incomeTotal = $incomeActual + $incomeOutstanding;
 
             $partialLoanPayments = Loan::partialPaymentsForPeriod((int) $period['id']);
+            $overpaidCosts = FixedCost::overpaidForPeriod((int) $period['id']);
+            $overreceivedIncome = IncomeItem::overreceivedForPeriod((int) $period['id']);
         }
 
         View::render('dashboard/index', [
@@ -69,6 +73,8 @@ final class DashboardController
             'incomeOutstanding' => $incomeOutstanding,
             'incomeTotal' => $incomeTotal,
             'partialLoanPayments' => $partialLoanPayments,
+            'overpaidCosts' => $overpaidCosts,
+            'overreceivedIncome' => $overreceivedIncome,
         ]);
     }
 }
