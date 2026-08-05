@@ -40,13 +40,56 @@ if (!empty($config['debug'])) {
 session_name($config['session_name'] ?? 'budgetapp_session');
 session_start();
 
-// Zet de centrale database (gebruikers/huishoudens/uitnodigingen) klaar en
-// zet, als dit de eerste request na de upgrade naar meerdere huishoudens is,
-// de bestaande (single-tenant) database eenmalig om naar huishouden #1 —
-// zie LegacyImporter voor waarom dit hier moet gebeuren i.p.v. via een
-// handmatig servercommando.
-AppDatabase::connection();
-LegacyImporter::runIfNeeded();
+/**
+ * Vangt elke onverwachte fout tijdens het opstarten of afhandelen van een
+ * request af: logt de volledige details naar storage/error.log (via FTP te
+ * downloaden, storage/ is al beschermd tegen directe webtoegang) én naar de
+ * PHP-errorlog van de server, en toont bezoekers een nette foutpagina i.p.v.
+ * een kale 500. Geeft bewust geen technische details aan de bezoeker — de
+ * site is dan sowieso voor iedereen stuk, dus dat is geen plek om details te
+ * lekken.
+ */
+function renderFatalError(\Throwable $e, array $config): void
+{
+    http_response_code(500);
+
+    $logLine = sprintf(
+        "[%s] %s: %s in %s:%d\n%s\n\n",
+        date('c'),
+        get_class($e),
+        $e->getMessage(),
+        $e->getFile(),
+        $e->getLine(),
+        $e->getTraceAsString()
+    );
+    error_log(trim($logLine));
+
+    $storageDir = $config['storage_dir'] ?? null;
+    if ($storageDir && is_dir($storageDir)) {
+        @file_put_contents($storageDir . '/error.log', $logLine, FILE_APPEND | LOCK_EX);
+    }
+
+    echo '<!doctype html><html lang="nl"><head><meta charset="utf-8">'
+        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        . '<title>Budgetapp</title></head>'
+        . '<body style="font-family: sans-serif; max-width: 32rem; margin: 4rem auto; padding: 0 1rem; color: #1e293b;">'
+        . '<h1>Tijdelijk niet beschikbaar</h1>'
+        . '<p>Er ging iets mis. We zijn ervan op de hoogte en lossen het zo snel mogelijk op — probeer het over een paar minuten opnieuw.</p>'
+        . '</body></html>';
+}
+
+try {
+    // Zet de centrale database (gebruikers/huishoudens/uitnodigingen) klaar
+    // en zet, als dit de eerste request na de upgrade naar meerdere
+    // huishoudens is, de bestaande (single-tenant) database eenmalig om naar
+    // huishouden #1 — zie LegacyImporter voor waarom dit hier moet gebeuren
+    // i.p.v. via een handmatig servercommando.
+    AppDatabase::connection();
+    LegacyImporter::runIfNeeded();
+} catch (\Throwable $e) {
+    renderFatalError($e, $config);
+    exit;
+}
 
 /**
  * Vereist een ingelogde gebruiker MET een geldig huishouden, en zet de
@@ -168,4 +211,9 @@ $router->post('huishouden-verwijderen', authed([HouseholdController::class, 'rem
 $router->post('huishouden-hernoemen', authed([HouseholdController::class, 'rename']));
 $router->post('huishouden-wisselen', authed([HouseholdController::class, 'switchHousehold']));
 
-$router->dispatch();
+try {
+    $router->dispatch();
+} catch (\Throwable $e) {
+    renderFatalError($e, $config);
+    exit;
+}

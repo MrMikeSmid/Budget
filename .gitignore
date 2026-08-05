@@ -9,3 +9,4 @@
 /storage/.legacy-import.lock
 /storage/.htaccess
 .DS_Store
+/storage/error.log
