@@ -25,20 +25,25 @@ final class CategoryController
     {
         $id = (int) ($_POST['id'] ?? 0);
         $name = trim($_POST['name'] ?? '');
+        $type = Category::normalizeType((string) ($_POST['type'] ?? 'uitgaven'));
+        $returnTo = $_POST['return'] ?? '';
+        $redirect = $returnTo === 'categorie' && $id > 0
+            ? View::url('categorie', ['id' => $id])
+            : View::url('categorieen');
 
         if ($name === '') {
             View::flash('Vul een naam in.', 'error');
         } elseif ($id > 0) {
-            Category::update($id, $name);
+            Category::update($id, $name, $type);
             Activity::log('categorieen', 'Categorie bijgewerkt: ' . $name);
             View::flash('Categorie opgeslagen.');
         } else {
-            Category::create($name);
+            Category::create($name, $type);
             Activity::log('categorieen', 'Categorie aangemaakt: ' . $name);
             View::flash('Categorie toegevoegd.');
         }
 
-        header('Location: ' . View::url('categorieen'));
+        header('Location: ' . $redirect);
         exit;
     }
 
@@ -56,9 +61,10 @@ final class CategoryController
     }
 
     /**
-     * Alle inkomsten en lasten (incl. leningtermijnen) in deze categorie,
+     * Alle inkomsten óf lasten (incl. leningtermijnen) in deze categorie,
      * binnen de gekozen periode, met totalen — bereikt via de categorie-
-     * badge op de lijsten van inkomsten/lasten/leningen.
+     * badge op de lijsten van inkomsten/lasten/leningen. Welke van de twee
+     * getoond wordt hangt af van het type van de categorie.
      */
     public static function show(): void
     {
@@ -72,20 +78,40 @@ final class CategoryController
         }
 
         $period = BudgetPeriod::resolveFromRequest();
+        $isIncome = $category['type'] === 'inkomsten';
 
-        $incomeItems = $period ? IncomeItem::forCategoryInPeriod($id, (int) $period['id']) : [];
-        $fixedCosts = $period ? FixedCost::forCategoryInPeriod($id, (int) $period['id']) : [];
+        $incomeItems = [];
+        $fixedCosts = [];
+        $budgeted = 0.0;
+        $actual = 0.0;
+        $outstanding = 0.0;
+
+        if ($period) {
+            $periodId = (int) $period['id'];
+            if ($isIncome) {
+                $incomeItems = IncomeItem::forCategoryInPeriod($id, $periodId);
+                $budgeted = array_sum(array_column($incomeItems, 'budgeted'));
+                $actual = array_sum(array_map(static fn ($i) => (float) ($i['actual'] ?? 0), $incomeItems));
+                $outstanding = IncomeItem::outstandingForCategory($id, $periodId);
+            } else {
+                $fixedCosts = FixedCost::forCategoryInPeriod($id, $periodId);
+                $budgeted = array_sum(array_column($fixedCosts, 'budgeted'));
+                $actual = array_sum(array_map(static fn ($i) => (float) ($i['actual'] ?? 0), $fixedCosts));
+                $outstanding = FixedCost::outstandingForCategory($id, $periodId);
+            }
+        }
 
         View::render('categories/show', [
             'category' => $category,
+            'isIncome' => $isIncome,
             'periods' => BudgetPeriod::all(),
             'period' => $period,
             'incomeItems' => $incomeItems,
             'fixedCosts' => $fixedCosts,
-            'incomeBudgeted' => array_sum(array_column($incomeItems, 'budgeted')),
-            'incomeActual' => array_sum(array_map(static fn ($i) => (float) ($i['actual'] ?? 0), $incomeItems)),
-            'costsBudgeted' => array_sum(array_column($fixedCosts, 'budgeted')),
-            'costsActual' => array_sum(array_map(static fn ($i) => (float) ($i['actual'] ?? 0), $fixedCosts)),
+            'budgeted' => $budgeted,
+            'actual' => $actual,
+            'outstanding' => $outstanding,
+            'openForm' => !empty($_GET['open']),
         ]);
     }
 }

@@ -826,6 +826,31 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     text-decoration: none;
 }
 
+/* Zelfde rondje, maar rechtsboven en voor een "bewerken"-actie i.p.v.
+   terugnavigeren (bijv. categoriedetailpagina, waar de overlapkaart al
+   bezet is met begroot/openstaand i.p.v. een quick-action). */
+.hero-edit {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .18);
+    color: #fff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.hero-edit:hover {
+    background: rgba(255, 255, 255, .3);
+}
+
 .hero-balance-label {
     font-size: 12px;
     font-weight: 700;
@@ -891,6 +916,40 @@ button.quick-action {
 }
 .quick-action-icon .icon { width: 20px; height: 20px; }
 .quick-action:hover .quick-action-icon { background: var(--border); }
+
+/* Zelfde zwevende overlapkaart als .quick-actions, maar met begroot/
+   openstaand-achtige statistieken i.p.v. navigatie-iconen (bijv. de
+   categoriedetailpagina). */
+.stats-overlap {
+    display: flex;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .16);
+    margin: -40px 0 20px;
+    padding: 16px;
+    position: relative;
+    z-index: 1;
+    gap: 12px;
+}
+
+.stat-overlap-item {
+    flex: 1;
+    text-align: center;
+}
+
+.stat-overlap-item .label {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}
+
+.stat-overlap-item .value {
+    font-size: 20px;
+    font-weight: 700;
+    margin-top: 4px;
+}
 
 /* Desktop: bredere layout, zijnav i.p.v. bottom-nav */
 @media (min-width: 900px) {

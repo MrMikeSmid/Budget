@@ -31,6 +31,21 @@ final class IncomeItem extends LineItem
     }
 
     /**
+     * Zelfde als outstanding(), maar beperkt tot één categorie — voor de
+     * categoriedetailpagina.
+     */
+    public static function outstandingForCategory(int $categoryId, int $periodId): float
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT COALESCE(SUM(budgeted), 0) FROM income_items
+             WHERE period_id = :period_id AND category_id = :category_id AND status NOT LIKE 'Ontvangen%'"
+        );
+        $stmt->execute(['period_id' => $periodId, 'category_id' => $categoryId]);
+
+        return (float) $stmt->fetchColumn();
+    }
+
+    /**
      * Daadwerkelijk ontvangen: bedrag van regels met status "ontvangen". Werkelijk
      * bedrag telt als dat is ingevuld, anders valt dit terug op het begrote bedrag
      * (een regel op "ontvangen" zetten zonder apart het werkelijke bedrag in te
