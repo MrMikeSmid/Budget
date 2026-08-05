@@ -99,6 +99,29 @@ final class FixedCost extends LineItem
     }
 
     /**
+     * Werkelijk betaald per categorie (alleen regels met status "Betaald",
+     * zelfde bedragbepaling als paidTotal()), voor de horizontale
+     * categorie-balken op het dashboard. Regels zonder categorie tellen
+     * niet mee — die kunnen niet als eigen balk getoond worden.
+     */
+    public static function actualByCategory(int $periodId): array
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT c.id AS category_id, c.name AS category_name,
+                    SUM(COALESCE(fc.actual, fc.budgeted)) AS actual
+             FROM fixed_costs fc
+             JOIN categories c ON c.id = fc.category_id
+             WHERE fc.period_id = :period_id AND fc.status LIKE 'Betaald%'
+             GROUP BY c.id, c.name
+             HAVING actual > 0
+             ORDER BY actual DESC"
+        );
+        $stmt->execute(['period_id' => $periodId]);
+
+        return $stmt->fetchAll();
+    }
+
+    /**
      * Lasten (inclusief leningtermijnen) waarvan werkelijk hoger is dan
      * begroot, en waarvan de waarschuwing daarover nog niet bekeken is —
      * voor het waarschuwingsvenster op het dashboard. loan_name is gevuld
