@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Charts;
 use App\Support\Csrf;
 use App\Support\View;
 
@@ -19,6 +20,9 @@ use App\Support\View;
 /** @var array $partialLoanPayments */
 /** @var array $overpaidCosts */
 /** @var array $overreceivedIncome */
+/** @var array $categorySpending */
+
+$categorySpendingTotal = array_sum(array_column($categorySpending, 'actual'));
 ?>
 <?php if ($period): ?>
     <div class="hero-balance">
@@ -179,6 +183,31 @@ use App\Support\View;
             </table>
         </div>
     </div>
+
+    <?php if (!empty($categorySpending)): ?>
+        <div class="card">
+            <h2 class="mt-0">Uitgaven per categorie</h2>
+            <p class="text-muted" style="margin-top:-8px;">Werkelijk betaalde vaste lasten, verdeeld over de categorieën.</p>
+            <div class="category-bars">
+                <?php foreach ($categorySpending as $i => $cat): ?>
+                    <?php
+                        $catActual = (float) $cat['actual'];
+                        $percent = $categorySpendingTotal > 0 ? round($catActual / $categorySpendingTotal * 100, 1) : 0;
+                        $color = Charts::colorForIndex($i);
+                    ?>
+                    <a class="category-bar-row" href="<?= View::e(View::url('categorie', ['id' => $cat['category_id'], 'period' => $period['id']])) ?>">
+                        <div class="category-bar-label">
+                            <span><?= View::e($cat['category_name']) ?></span>
+                            <span class="text-muted"><?= View::money($catActual) ?> · <?= View::e((string) $percent) ?>%</span>
+                        </div>
+                        <div class="category-bar-track">
+                            <div class="category-bar-fill" style="width: <?= $percent ?>%; background: <?= $color ?>;"></div>
+                        </div>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 <?php else: ?>
     <div class="empty-state card">
         <p>Er is nog geen budgetperiode aangemaakt.</p>

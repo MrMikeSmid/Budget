@@ -275,6 +275,44 @@ a.badge { text-decoration: none; }
     .badge.category { background: #0c3a52; color: #7dd3fc; }
 }
 
+/* Horizontale categorie-balken op het dashboard: één balk per categorie,
+   gesorteerd op werkelijk betaald bedrag, in dezelfde kleurvolgorde als de
+   diagrammen op de statistiekenpagina (var(--chart-1) t/m var(--chart-8)). */
+.category-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.category-bar-row {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+.category-bar-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.category-bar-track {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--border);
+    overflow: hidden;
+}
+
+.category-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+}
+
 /* Aandachtsvenster op het dashboard: valt op tussen de gewone kaarten, voor
    dingen die de gebruiker echt even moet zien (bijv. een leningtermijn
    waarvan maar een deel betaald is). */

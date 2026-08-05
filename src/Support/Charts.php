@@ -15,6 +15,16 @@ final class Charts
     ];
 
     /**
+     * Zelfde kleurvolgorde als de lijn-/donutdiagrammen hierboven, voor
+     * andere plekken die per item een chart-kleur nodig hebben (bijv. de
+     * horizontale categorie-balken op het dashboard).
+     */
+    public static function colorForIndex(int $index): string
+    {
+        return self::CHART_COLOR_VARS[$index % count(self::CHART_COLOR_VARS)];
+    }
+
+    /**
      * Lijndiagram met 1-3 series over dezelfde x-as-buckets.
      *
      * @param string[] $labels x-as labels
