@@ -15,3 +15,4 @@ use App\Support\View;
     </div>
     <button type="submit" class="btn">Inloggen</button>
 </form>
+<p class="text-muted"><a href="<?= View::e(View::url('registreren')) ?>">Nog geen account? Registreer hier</a></p>

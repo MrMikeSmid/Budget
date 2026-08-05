@@ -2,26 +2,13 @@
 
 namespace App\Models;
 
-use App\Support\Database;
-use PDO;
+use App\Support\AppDatabase;
 
 final class User
 {
-    public static function count(): int
-    {
-        return (int) Database::connection()->query('SELECT COUNT(*) FROM users')->fetchColumn();
-    }
-
-    public static function all(): array
-    {
-        return Database::connection()
-            ->query('SELECT id, name, email, created_at FROM users ORDER BY name')
-            ->fetchAll();
-    }
-
     public static function find(int $id): ?array
     {
-        $stmt = Database::connection()->prepare('SELECT * FROM users WHERE id = :id');
+        $stmt = AppDatabase::connection()->prepare('SELECT * FROM users WHERE id = :id');
         $stmt->execute(['id' => $id]);
         $user = $stmt->fetch();
 
@@ -30,17 +17,21 @@ final class User
 
     public static function findByEmail(string $email): ?array
     {
-        $stmt = Database::connection()->prepare('SELECT * FROM users WHERE email = :email');
+        $stmt = AppDatabase::connection()->prepare('SELECT * FROM users WHERE email = :email');
         $stmt->execute(['email' => $email]);
         $user = $stmt->fetch();
 
         return $user ?: null;
     }
 
+    /**
+     * Nieuwe accounts zijn altijd onbevestigd — moeten eerst de
+     * verificatielink volgen voor ze kunnen inloggen (zie Auth::attempt()).
+     */
     public static function create(string $name, string $email, string $password): int
     {
-        $stmt = Database::connection()->prepare(
-            'INSERT INTO users (name, email, password_hash) VALUES (:name, :email, :password_hash)'
+        $stmt = AppDatabase::connection()->prepare(
+            'INSERT INTO users (name, email, password_hash, email_verified_at) VALUES (:name, :email, :password_hash, NULL)'
         );
         $stmt->execute([
             'name' => $name,
@@ -48,12 +39,19 @@ final class User
             'password_hash' => password_hash($password, PASSWORD_DEFAULT),
         ]);
 
-        return (int) Database::connection()->lastInsertId();
+        return (int) AppDatabase::connection()->lastInsertId();
     }
 
-    public static function delete(int $id): void
+    public static function markVerified(int $id): void
     {
-        $stmt = Database::connection()->prepare('DELETE FROM users WHERE id = :id');
+        $stmt = AppDatabase::connection()->prepare(
+            "UPDATE users SET email_verified_at = datetime('now') WHERE id = :id"
+        );
         $stmt->execute(['id' => $id]);
+    }
+
+    public static function isVerified(array $user): bool
+    {
+        return !empty($user['email_verified_at']);
     }
 }

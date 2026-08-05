@@ -21,17 +21,18 @@ final class PotTransaction
      * zodat deze rij (die het losse saldo per saldo niet raakt) apart
      * herkenbaar is van een gewone storting/opname op/van het losse saldo.
      */
-    public static function create(int $potId, ?int $userId, ?int $periodId, string $date, string $description, float $amount, ?int $transferPotId = null): int
+    public static function create(int $potId, ?int $userId, ?string $userName, ?int $periodId, string $date, string $description, float $amount, ?int $transferPotId = null): int
     {
         $pdo = Database::connection();
 
         $stmt = $pdo->prepare(
-            'INSERT INTO pot_transactions (pot_id, user_id, period_id, txn_date, description, amount, transfer_pot_id)
-             VALUES (:pot_id, :user_id, :period_id, :date, :description, :amount, :transfer_pot_id)'
+            'INSERT INTO pot_transactions (pot_id, user_id, user_name, period_id, txn_date, description, amount, transfer_pot_id)
+             VALUES (:pot_id, :user_id, :user_name, :period_id, :date, :description, :amount, :transfer_pot_id)'
         );
         $stmt->execute([
             'pot_id' => $potId,
             'user_id' => $userId,
+            'user_name' => $userName,
             'period_id' => $periodId,
             'date' => $date,
             'description' => $description,

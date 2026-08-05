@@ -51,7 +51,7 @@ $navItems = [
         <?php foreach ($navItems as $page => $item): ?>
             <?php
             $isActive = $currentPage === $page
-                || ($page === 'instellingen' && in_array($currentPage, ['periods', 'accounts', 'statistieken', 'activiteit', 'leningen', 'instellingen'], true))
+                || ($page === 'instellingen' && in_array($currentPage, ['periods', 'huishouden', 'statistieken', 'activiteit', 'leningen', 'instellingen'], true))
                 || ($page === 'potjes' && $currentPage === 'potje');
             $classes = trim('nav-' . $page . ($isActive ? ' active' : ''));
             ?>

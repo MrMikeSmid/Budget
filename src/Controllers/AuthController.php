@@ -2,53 +2,13 @@
 
 namespace App\Controllers;
 
-use App\Models\User;
 use App\Support\Auth;
 use App\Support\View;
 
 final class AuthController
 {
-    public static function showSetup(): void
-    {
-        if (User::count() > 0) {
-            header('Location: ' . View::url('login'));
-            exit;
-        }
-
-        View::render('auth/setup', [], 'layout-guest');
-    }
-
-    public static function setup(): void
-    {
-        if (User::count() > 0) {
-            header('Location: ' . View::url('login'));
-            exit;
-        }
-
-        $name = trim($_POST['name'] ?? '');
-        $email = trim($_POST['email'] ?? '');
-        $password = $_POST['password'] ?? '';
-
-        if ($name === '' || $email === '' || strlen($password) < 8) {
-            View::flash('Vul een naam, e-mailadres en een wachtwoord van minimaal 8 tekens in.', 'error');
-            header('Location: ' . View::url('setup'));
-            exit;
-        }
-
-        User::create($name, $email, $password);
-        Auth::attempt($email, $password);
-
-        header('Location: ' . View::url('dashboard'));
-        exit;
-    }
-
     public static function showLogin(): void
     {
-        if (User::count() === 0) {
-            header('Location: ' . View::url('setup'));
-            exit;
-        }
-
         if (Auth::check()) {
             header('Location: ' . View::url('dashboard'));
             exit;
@@ -62,12 +22,19 @@ final class AuthController
         $email = trim($_POST['email'] ?? '');
         $password = $_POST['password'] ?? '';
 
-        if (Auth::attempt($email, $password)) {
+        $result = Auth::attempt($email, $password);
+
+        if ($result === Auth::RESULT_OK) {
             header('Location: ' . View::url('dashboard'));
             exit;
         }
 
-        View::flash('E-mailadres of wachtwoord onjuist.', 'error');
+        if ($result === Auth::RESULT_UNVERIFIED) {
+            View::flash('Bevestig eerst je e-mailadres via de link die we je gestuurd hebben voor je kan inloggen.', 'error');
+        } else {
+            View::flash('E-mailadres of wachtwoord onjuist.', 'error');
+        }
+
         header('Location: ' . View::url('login'));
         exit;
     }

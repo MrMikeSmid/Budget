@@ -49,10 +49,22 @@ uitgaven per maand, kwartaal of jaar (lijndiagram), een apart donut-diagram
 voor de verdeling van leefpotjes en van spaarpotjes, en een volledige
 totaaltabel — puur inline SVG, geen externe library.
 
-Iedereen met een account heeft volledige rechten (geen rollen/niveaus). Er is
-geen openbare registratie: het eerste account maak je aan bij de eerste
-bezoek aan de app, daarna maak je extra accounts aan via het account binnen
-de app ("Meer" → "Accounts").
+## Meerdere huishoudens
+
+De app is multi-tenant: iedereen kan zelf een account registreren, wat
+meteen een eigen huishouden met een eigen, volledig geïsoleerde database
+oplevert. Binnen een huishouden heeft iedereen volledige rechten (geen
+rollen/niveaus) — samenwerken staat centraal, dus een lid nodigt anderen
+uit via e-mail ("Meer" → "Huishouden"). Wie een uitnodiging accepteert
+wordt lid van dát huishouden, niet van een nieuw huishouden. Nieuwe
+accounts moeten hun e-mailadres bevestigen voor ze kunnen inloggen. Is er
+(nog) geen e-mail geconfigureerd, of lukt versturen niet, dan toont de app
+de verificatie-/uitnodigingslink gewoon zelf zodat je hem handmatig kan
+delen — niets is hier hard van afhankelijk.
+
+Verstuurt de app zelf de mail (STARTTLS/AUTH LOGIN), geen externe library.
+Zet SMTP-gegevens in `config/config.php` (zie `config/config.example.php`)
+om mails écht te versturen; laat `mail.host` leeg om dit uit te schakelen.
 
 ## Lokaal draaien
 
@@ -64,9 +76,10 @@ cp config/config.example.php config/config.php
 php -S localhost:8000
 ```
 
-Open `http://localhost:8000/index.php` — de eerste keer wordt gevraagd een
-account aan te maken. De SQLite-database en het schema worden automatisch
-aangemaakt in `storage/database.sqlite`.
+Open `http://localhost:8000/index.php` en registreer een account. De
+centrale database (`storage/app.sqlite`, gebruikers/huishoudens/
+uitnodigingen) en de per-huishouden database
+(`storage/households/{id}/database.sqlite`) worden automatisch aangemaakt.
 
 ## Live zetten (mikesmid.nl/development)
 
@@ -76,13 +89,18 @@ composer-dependencies. Het sluit twee dingen bewust uit van elke deploy, zodat
 ze nooit overschreven worden:
 
 - `config/config.php` — optioneel; alleen nodig als je instellingen per
-  omgeving wilt overschrijven (bijv. een ander `db_path`). Ontbreekt dit
-  bestand, dan gebruikt de app gewoon de standaardwaarden.
-- `storage/` — bevat de SQLite-database, moet dus overleven tussen deploys.
+  omgeving wilt overschrijven (bijv. SMTP-gegevens, of `app_url` voor
+  absolute links in mails). Ontbreekt dit bestand, dan gebruikt de app
+  gewoon de standaardwaarden.
+- `storage/` — bevat de SQLite-databases, moet dus overleven tussen deploys.
 
 Er zijn geen handmatige stappen nodig: bij het eerste bezoek maakt de app
-zelf `storage/`, de SQLite-database en het `.htaccess`-bestand dat die map
-beschermt aan. Wil je later toch instellingen overschrijven, kopieer dan
+zelf `storage/`, de SQLite-databases en het `.htaccess`-bestand dat die map
+beschermt aan. Draaide hier al een oudere versie met één gedeelde database
+(`storage/database.sqlite`)? Die wordt bij de eerste request na deze
+upgrade automatisch en veilig omgezet naar het eerste huishouden — bestaande
+accounts en data blijven volledig intact (zie `src/Support/LegacyImporter.php`).
+Wil je later toch instellingen overschrijven, kopieer dan
 `config/config.example.php` naar `config/config.php` op de server en pas de
 waarden aan — dat bestand overleeft daarna elke volgende deploy.
 

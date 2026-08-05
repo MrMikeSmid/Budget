@@ -150,9 +150,8 @@ final class Pot
         // dubbel voorkomt binnen een UNION.
         $stmt = Database::connection()->prepare(
             "SELECT pt.id, 'potje' AS source, pt.txn_date, pt.description, pt.amount,
-                    u.name AS user_name, NULL AS period_id, NULL AS period_name
+                    pt.user_name, NULL AS period_id, NULL AS period_name
              FROM pot_transactions pt
-             LEFT JOIN users u ON u.id = pt.user_id
              WHERE pt.pot_id = :pot_id1
 
              UNION ALL
