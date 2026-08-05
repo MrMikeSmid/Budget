@@ -324,6 +324,80 @@ tr:last-child td { border-bottom: none; }
     }
 }
 
+/* Waarschuwingsvenster op het dashboard: "meer betaald/ontvangen dan
+   begroot". Rood (.negative) voor lasten/leningen, groen (.positive) voor
+   inkomsten. Elke regel is een eigen form: de knop klikt de waarschuwing
+   weg (blijvend) én springt naar de bijbehorende mutatie. */
+.warning-card {
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    border: 1px solid;
+}
+
+.warning-card.negative {
+    background: #fee2e2;
+    border-color: #fecaca;
+}
+
+.warning-card.positive {
+    background: #dcfce7;
+    border-color: #bbf7d0;
+}
+
+.warning-card h2 {
+    font-size: 15px;
+}
+
+.warning-card.negative h2 { color: #991b1b; }
+.warning-card.positive h2 { color: #166534; }
+
+.warning-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.warning-row + .warning-row {
+    margin-top: 10px;
+    padding-top: 10px;
+}
+
+.warning-card.negative .warning-row + .warning-row { border-top: 1px solid #fecaca; }
+.warning-card.positive .warning-row + .warning-row { border-top: 1px solid #bbf7d0; }
+
+.warning-row-title { font-weight: 600; }
+.warning-row-detail { font-size: 13px; margin-top: 2px; }
+
+.warning-card.negative .warning-row-title,
+.warning-card.negative .warning-row-detail { color: #991b1b; }
+.warning-card.positive .warning-row-title,
+.warning-card.positive .warning-row-detail { color: #166534; }
+
+@media (prefers-color-scheme: dark) {
+    .warning-card.negative {
+        background: #3b1414;
+        border-color: #5c1f1f;
+    }
+    .warning-card.positive {
+        background: #0f2e1c;
+        border-color: #16472b;
+    }
+    .warning-card.negative h2,
+    .warning-card.negative .warning-row-title,
+    .warning-card.negative .warning-row-detail {
+        color: #fca5a5;
+    }
+    .warning-card.positive h2,
+    .warning-card.positive .warning-row-title,
+    .warning-card.positive .warning-row-detail {
+        color: #86efac;
+    }
+    .warning-card.negative .warning-row + .warning-row { border-top-color: #5c1f1f; }
+    .warning-card.positive .warning-row + .warning-row { border-top-color: #16472b; }
+}
+
 /* AI-advieskaart onder de dashboardtabs: gewoon een witte kaart, net als de
    rest — alleen de titel krijgt een accentkleur. */
 .advice-card h2 {

@@ -64,4 +64,26 @@ final class IncomeItem extends LineItem
 
         return $stmt->fetchAll();
     }
+
+    /**
+     * Inkomsten waarvan werkelijk hoger is dan begroot, en waarvan de
+     * waarschuwing daarover nog niet bekeken is — voor het positieve
+     * waarschuwingsvenster op het dashboard ("meer ontvangen dan begroot").
+     */
+    public static function overreceivedForPeriod(int $periodId): array
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT ii.*,
+                    (SELECT t.id FROM transactions t WHERE t.income_item_id = ii.id ORDER BY t.id DESC LIMIT 1) AS linked_transaction_id
+             FROM income_items ii
+             WHERE ii.period_id = :period_id
+               AND ii.actual IS NOT NULL
+               AND ii.actual > ii.budgeted
+               AND ii.warning_dismissed_at IS NULL
+             ORDER BY ii.description"
+        );
+        $stmt->execute(['period_id' => $periodId]);
+
+        return $stmt->fetchAll();
+    }
 }
