@@ -4,6 +4,7 @@
 /storage/*.sqlite-journal
 /storage/*.sqlite-wal
 /storage/*.sqlite-shm
+/storage/*.migrate.lock
 /storage/sessions/
 /storage/households/
 /storage/.legacy-import.lock
