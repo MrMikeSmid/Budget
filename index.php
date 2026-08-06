@@ -11,6 +11,7 @@ use App\Controllers\CategoryController;
 use App\Controllers\DashboardController;
 use App\Controllers\FixedCostController;
 use App\Controllers\HouseholdController;
+use App\Controllers\IconMappingController;
 use App\Controllers\IncomeController;
 use App\Controllers\InviteController;
 use App\Controllers\LoanController;
@@ -231,6 +232,13 @@ $router->post('huishouden-uitnodigen', authed([InviteController::class, 'send'])
 $router->post('huishouden-verwijderen', authed([HouseholdController::class, 'removeMember']));
 $router->post('huishouden-hernoemen', authed([HouseholdController::class, 'rename']));
 $router->post('huishouden-wisselen', authed([HouseholdController::class, 'switchHousehold']));
+
+// Iconen: omschrijving aan een merk-icoon koppelen (huishouden-breed, geen
+// admin-rechten nodig — elk lid mag de logo's van de eigen vaste lasten
+// beheren).
+$router->get('iconen', authed([IconMappingController::class, 'index']));
+$router->post('iconen-save', authed([IconMappingController::class, 'save']));
+$router->post('iconen-delete', authed([IconMappingController::class, 'delete']));
 
 // Admin: app-breed beheer (SMTP-instellingen, gebruikers handmatig
 // verifiëren, overzicht van huishoudens) — alleen voor is_admin-accounts.
