@@ -49,8 +49,10 @@ use App\Support\View;
             <label for="app_url">Basis-URL van de site</label>
             <input type="url" id="app_url" name="app_url" value="<?= View::e($appUrl ?? '') ?>" placeholder="https://mikesmid.nl/budget">
         </div>
-        <button type="submit" class="btn">Opslaan</button>
+        <button type="submit" class="btn" formaction="<?= View::e(View::url('admin-instellingen-save')) ?>">Opslaan</button>
+        <button type="submit" class="btn secondary" formaction="<?= View::e(View::url('admin-instellingen-test')) ?>">Testmail versturen</button>
     </form>
+    <p class="text-muted">"Testmail versturen" slaat de ingevulde gegevens eerst op en stuurt daarna een testmail naar je eigen e-mailadres.</p>
 </div>
 
 <div class="card">
