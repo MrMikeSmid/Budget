@@ -194,6 +194,12 @@ if ($groupByCategory && !empty($items)) {
                             <?php
                                 $rowHref = View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']]);
                                 $iconSlug = $iconMap[mb_strtolower($item['description'])] ?? null;
+                                if ($iconSlug !== null && !BrandIcons::exists($iconSlug)) {
+                                    // Gekoppeld icoon bestaat niet meer (bijv. na het
+                                    // inkrimpen van de iconenset) — placeholder tonen
+                                    // i.p.v. een kapot plaatje.
+                                    $iconSlug = null;
+                                }
                             ?>
                             <a class="expense-card" href="<?= View::e($rowHref) ?>">
                                 <span class="expense-card-icon">
