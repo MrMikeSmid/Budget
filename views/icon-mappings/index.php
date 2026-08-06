@@ -21,12 +21,11 @@ use App\Support\View;
             </div>
             <div class="field">
                 <label for="icon-search">Zoek icoon</label>
-                <input type="text" id="icon-search" data-filter-target="icon-grid" data-filter-min="2" data-filter-hint="icon-grid-hint" placeholder="typ minimaal 2 tekens, bijv. netflix" autocomplete="off">
+                <input type="text" id="icon-search" data-filter-target="icon-grid" placeholder="bijv. kpn" autocomplete="off">
             </div>
-            <p id="icon-grid-hint" class="text-muted">Typ om te zoeken in <?= count($icons) ?> beschikbare merken.</p>
             <div id="icon-grid" class="icon-grid">
                 <?php foreach ($icons as $slug => $icon): ?>
-                    <label class="icon-grid-item" data-filter="<?= View::e(mb_strtolower($icon['title'] . ' ' . $slug)) ?>" hidden>
+                    <label class="icon-grid-item" data-filter="<?= View::e(mb_strtolower($icon['title'] . ' ' . $slug)) ?>">
                         <input type="radio" name="icon_slug" value="<?= View::e($slug) ?>" required>
                         <img src="<?= View::e(View::asset('icons/brands/' . $slug . '.' . BrandIcons::extension($slug))) ?>" alt="" width="26" height="26" loading="lazy">
                         <span><?= View::e($icon['title']) ?></span>
