@@ -7,6 +7,9 @@ use App\Support\View;
 /** @var array $households */
 /** @var array $mail */
 /** @var string|null $appUrl */
+/** @var string $dkimDomain */
+/** @var string|null $dkimSelector */
+/** @var string|null $dkimPublicKeyDns */
 ?>
 <div class="card">
     <h2 class="mt-0">✉️ E-mail (SMTP)</h2>
@@ -53,6 +56,41 @@ use App\Support\View;
         <button type="submit" class="btn secondary" formaction="<?= View::e(View::url('admin-instellingen-test')) ?>">Testmail versturen</button>
     </form>
     <p class="text-muted">"Testmail versturen" slaat de ingevulde gegevens eerst op en stuurt daarna een testmail naar je eigen e-mailadres.</p>
+</div>
+
+<div class="card">
+    <h2 class="mt-0">🔑 DKIM (tegen spam-plaatsing)</h2>
+    <p class="text-muted">
+        Mail die aankomt maar in spam belandt, komt bijna altijd door ontbrekende
+        SPF/DKIM/DMARC-records op je domein — niet door de app. DKIM
+        (een digitale handtekening per mail) kan de app zelf regelen; SPF en
+        DMARC stel je in bij je hostingpaneel/DNS-provider.
+    </p>
+    <?php if ($dkimSelector && $dkimPublicKeyDns): ?>
+        <p class="text-muted">DKIM is actief (selector "<?= View::e($dkimSelector) ?>"). Voeg deze TXT-record toe bij je DNS-beheer:</p>
+        <div class="field">
+            <label>Host / naam</label>
+            <input type="text" readonly value="<?= View::e($dkimSelector . '._domainkey.' . $dkimDomain) ?>" onclick="this.select()">
+        </div>
+        <div class="field">
+            <label>Waarde</label>
+            <textarea readonly rows="4" style="width:100%; font-family:monospace; font-size:0.85em; word-break:break-all;" onclick="this.select()">v=DKIM1; k=rsa; p=<?= View::e($dkimPublicKeyDns) ?></textarea>
+        </div>
+        <p class="text-muted">Sommige DNS-panelen splitsen lange TXT-waarden automatisch in stukken van 255 tekens — dat is normaal en hoeft niet handmatig.</p>
+        <form method="post" action="<?= View::e(View::url('admin-dkim-verwijderen')) ?>" onsubmit="return confirm('DKIM uitschakelen?');">
+            <?= Csrf::field() ?>
+            <button type="submit" class="btn small danger">DKIM uitschakelen</button>
+        </form>
+    <?php else: ?>
+        <?php if ($dkimDomain === ''): ?>
+            <p class="text-muted">Vul eerst een afzender-e-mailadres in hierboven (bepaalt het domein voor DKIM).</p>
+        <?php else: ?>
+            <form method="post" action="<?= View::e(View::url('admin-dkim-genereren')) ?>">
+                <?= Csrf::field() ?>
+                <button type="submit" class="btn">DKIM-sleutel genereren voor <?= View::e($dkimDomain) ?></button>
+            </form>
+        <?php endif; ?>
+    <?php endif; ?>
 </div>
 
 <div class="card">

@@ -108,14 +108,20 @@ final class Mailer
         self::command($stream, "RCPT TO:<{$to}>", ['250', '251']);
         self::command($stream, 'DATA', '354');
 
+        // Een Message-ID ontbreekt bijna nooit bij een legitieme mailserver;
+        // spamfilters gebruiken het ontbreken ervan juist als signaal.
+        $fromDomain = substr((string) strrchr($fromAddress, '@'), 1) ?: 'localhost';
+        $messageId = '<' . bin2hex(random_bytes(16)) . '@' . $fromDomain . '>';
+
         $boundary = 'bnd-' . bin2hex(random_bytes(12));
-        $headers = [
-            'MIME-Version: 1.0',
-            'From: ' . self::encodeHeaderAddress($fromName, $fromAddress),
-            'To: <' . $to . '>',
-            'Subject: ' . self::encodeHeaderText($subject),
-            'Date: ' . date('r'),
-            'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
+        $headerPairs = [
+            'MIME-Version' => '1.0',
+            'From' => self::encodeHeaderAddress($fromName, $fromAddress),
+            'To' => '<' . $to . '>',
+            'Subject' => self::encodeHeaderText($subject),
+            'Date' => date('r'),
+            'Message-ID' => $messageId,
+            'Content-Type' => 'multipart/alternative; boundary="' . $boundary . '"',
         ];
 
         $body = "--{$boundary}\r\n"
@@ -128,7 +134,19 @@ final class Mailer
             . $html . "\r\n\r\n"
             . "--{$boundary}--\r\n";
 
-        $message = implode("\r\n", $headers) . "\r\n\r\n" . $body;
+        $headerLines = [];
+        $dkim = Settings::dkimConfig();
+        if ($dkim !== null) {
+            $dkimHeaderLine = DkimSigner::sign($headerPairs, $body, $fromDomain, $dkim['selector'], $dkim['private_key']);
+            if ($dkimHeaderLine !== null) {
+                $headerLines[] = $dkimHeaderLine;
+            }
+        }
+        foreach ($headerPairs as $name => $value) {
+            $headerLines[] = $name . ': ' . $value;
+        }
+
+        $message = implode("\r\n", $headerLines) . "\r\n\r\n" . $body;
         // Regels die met een punt beginnen moeten volgens SMTP verdubbeld worden.
         $message = preg_replace('/^\./m', '..', $message);
 

@@ -6,19 +6,62 @@ use App\Models\Household;
 use App\Models\Settings;
 use App\Models\User;
 use App\Support\Auth;
+use App\Support\DkimSigner;
 use App\Support\Mailer;
 use App\Support\View;
 
 final class AdminController
 {
+    // Vaste, van cPanel's eigen (meestal "default") DKIM-selector
+    // onderscheiden naam, zodat meerdere DKIM-records naast elkaar op
+    // hetzelfde domein kunnen bestaan zonder te botsen.
+    private const DKIM_SELECTOR = 'budgetapp';
+
     public static function index(): void
     {
+        $mail = Settings::mailConfig();
+        $dkim = Settings::dkimConfig();
+
         View::render('admin/index', [
             'users' => User::all(),
             'households' => Household::allWithMemberCounts(),
-            'mail' => Settings::mailConfig(),
+            'mail' => $mail,
             'appUrl' => Settings::appUrl(),
+            'dkimDomain' => self::domainFromEmail($mail['from_address'] ?? ''),
+            'dkimSelector' => $dkim['selector'] ?? null,
+            'dkimPublicKeyDns' => $dkim !== null ? DkimSigner::publicKeyDnsFromPrivateKey($dkim['private_key']) : null,
         ]);
+    }
+
+    public static function generateDkim(): void
+    {
+        $keyPair = DkimSigner::generateKeyPair();
+
+        if ($keyPair === null) {
+            View::flash('Kon geen DKIM-sleutel genereren (openssl niet beschikbaar?).', 'error');
+        } else {
+            Settings::set('dkim_selector', self::DKIM_SELECTOR);
+            Settings::set('dkim_private_key', $keyPair['private_key']);
+            View::flash('DKIM-sleutel gegenereerd. Voeg de DNS-record hieronder toe om DKIM actief te maken.');
+        }
+
+        header('Location: ' . View::url('admin'));
+        exit;
+    }
+
+    public static function removeDkim(): void
+    {
+        Settings::set('dkim_selector', null);
+        Settings::set('dkim_private_key', null);
+
+        View::flash('DKIM-ondertekening uitgeschakeld. Vergeet niet ook de DNS-record te verwijderen.');
+        header('Location: ' . View::url('admin'));
+        exit;
+    }
+
+    private static function domainFromEmail(string $email): string
+    {
+        return substr((string) strrchr($email, '@'), 1) ?: '';
     }
 
     public static function saveSettings(): void
