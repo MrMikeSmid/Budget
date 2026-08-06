@@ -66,4 +66,20 @@ final class Settings
 
         return $stored !== null && $stored !== '' ? $stored : Config::get()['app_url'];
     }
+
+    /**
+     * @return array{selector: string, private_key: string}|null null als er
+     *         nog geen DKIM-sleutel gegenereerd is.
+     */
+    public static function dkimConfig(): ?array
+    {
+        $selector = self::get('dkim_selector');
+        $privateKey = self::get('dkim_private_key');
+
+        if ($selector === null || $privateKey === null) {
+            return null;
+        }
+
+        return ['selector' => $selector, 'private_key' => $privateKey];
+    }
 }
