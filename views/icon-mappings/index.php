@@ -1,36 +1,26 @@
 <?php
 
-use App\Support\BrandIcons;
+use App\Models\IconMapping;
 use App\Support\Csrf;
 use App\Support\View;
 
 /** @var array $mappings */
-/** @var array $icons */
 ?>
 <button type="button" class="fab-button" data-toggle-target="add-form-panel" aria-label="Icoon koppelen">+</button>
 
 <div class="form-panel" id="add-form-panel" hidden>
     <div class="card">
         <h2 class="mt-0">Icoon koppelen</h2>
-        <p class="text-muted">Vul de exacte omschrijving in zoals je die bij een vaste last of inkomst gebruikt (bijv. "Netflix") — elke regel met die omschrijving toont dan automatisch dit icoon.</p>
-        <form class="inline-form" method="post" action="<?= View::e(View::url('iconen-save')) ?>">
+        <p class="text-muted">Vul de exacte omschrijving in zoals je die bij een vaste last of inkomst gebruikt (bijv. "Netflix") en upload een afbeelding — elke regel met die omschrijving toont dan automatisch dat icoon. PNG, JPG, GIF, WEBP of SVG, tot 2 MB.</p>
+        <form class="inline-form" method="post" action="<?= View::e(View::url('iconen-save')) ?>" enctype="multipart/form-data">
             <?= Csrf::field() ?>
             <div class="field">
                 <label for="description">Omschrijving</label>
                 <input type="text" id="description" name="description" required placeholder="bijv. Netflix">
             </div>
             <div class="field">
-                <label for="icon-search">Zoek icoon</label>
-                <input type="text" id="icon-search" data-filter-target="icon-grid" placeholder="bijv. kpn" autocomplete="off">
-            </div>
-            <div id="icon-grid" class="icon-grid">
-                <?php foreach ($icons as $slug => $icon): ?>
-                    <label class="icon-grid-item" data-filter="<?= View::e(mb_strtolower($icon['title'] . ' ' . $slug)) ?>">
-                        <input type="radio" name="icon_slug" value="<?= View::e($slug) ?>" required>
-                        <img src="<?= View::e(View::asset('icons/brands/' . $slug . '.' . BrandIcons::extension($slug))) ?>" alt="" width="26" height="26" loading="lazy">
-                        <span><?= View::e($icon['title']) ?></span>
-                    </label>
-                <?php endforeach; ?>
+                <label for="icon">Afbeelding</label>
+                <input type="file" id="icon" name="icon" accept=".png,.jpg,.jpeg,.gif,.webp,.svg,image/*" required>
             </div>
             <button type="submit" class="btn">Koppelen</button>
         </form>
@@ -49,8 +39,8 @@ use App\Support\View;
                 <?php foreach ($mappings as $m): ?>
                     <tr>
                         <td style="width:36px;">
-                            <?php if (isset($icons[$m['icon_slug']])): ?>
-                                <img src="<?= View::e(View::asset('icons/brands/' . $m['icon_slug'] . '.' . BrandIcons::extension($m['icon_slug']))) ?>" alt="" width="24" height="24">
+                            <?php if (IconMapping::absolutePath($m['icon_path']) !== null): ?>
+                                <img src="<?= View::e(View::url('icoon-afbeelding', ['id' => $m['id']])) ?>" alt="" width="24" height="24">
                             <?php endif; ?>
                         </td>
                         <td class="nowrap"><?= View::e($m['description']) ?></td>
