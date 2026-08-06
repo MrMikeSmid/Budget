@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\Activity;
 use App\Models\BudgetPeriod;
 use App\Models\Category;
+use App\Models\IconMapping;
 use App\Support\View;
 
 /**
@@ -41,6 +42,7 @@ abstract class LineItemController
             'editing' => $editId ? $model::find($editId) : null,
             'openForm' => !empty($_GET['open']),
             'categories' => Category::all(),
+            'iconMap' => IconMapping::lookup(),
         ]);
     }
 

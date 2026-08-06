@@ -25,6 +25,8 @@ use App\Support\View;
 /** @var string $quickActionLabel */
 /** @var array $categories */
 /** @var bool $groupByCategory */
+/** @var bool $iconCards */
+/** @var array $iconMap */
 
 $showRecurrenceOptions = $showRecurrenceOptions ?? false;
 $openForm = $openForm ?? false;
@@ -35,6 +37,8 @@ $heroValue = $heroValue ?? $outstanding;
 $quickActionIcon = $quickActionIcon ?? 'dashboard';
 $quickActionLabel = $quickActionLabel ?? 'Regel toevoegen';
 $groupByCategory = $groupByCategory ?? false;
+$iconCards = $iconCards ?? false;
+$iconMap = $iconMap ?? [];
 
 // Bij groeperen: één sectie per categorie, aflopend gesorteerd op aantal
 // items — de categorie met de meeste items dus bovenaan. Regels zonder
@@ -183,6 +187,30 @@ if ($groupByCategory && !empty($items)) {
                         <span class="text-muted"><?= count($section['items']) ?></span>
                     </div>
                 <?php endif; ?>
+                <?php if ($iconCards): ?>
+                    <div class="expense-cards">
+                        <?php foreach ($section['items'] as $item): ?>
+                            <?php
+                                $rowHref = View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']]);
+                                $iconSlug = $iconMap[mb_strtolower($item['description'])] ?? null;
+                            ?>
+                            <a class="expense-card" href="<?= View::e($rowHref) ?>">
+                                <span class="expense-card-icon">
+                                    <?php if ($iconSlug): ?>
+                                        <img src="<?= View::e(View::asset('icons/brands/' . $iconSlug . '.svg')) ?>" alt="" width="28" height="28">
+                                    <?php else: ?>
+                                        <span class="placeholder"><?= View::e(mb_strtoupper(mb_substr($item['description'], 0, 1))) ?></span>
+                                    <?php endif; ?>
+                                </span>
+                                <span class="expense-card-title"><?= View::e($item['description']) ?></span>
+                                <span class="expense-card-amount"><?= View::money((float) $item['budgeted']) ?></span>
+                                <?php if ($item['status']): ?>
+                                    <span class="badge <?= View::badgeClass($item['status']) ?>"><?= View::e($item['status']) ?></span>
+                                <?php endif; ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
                 <div class="table-scroll">
                     <table>
                         <thead>
@@ -231,6 +259,7 @@ if ($groupByCategory && !empty($items)) {
                         </tbody>
                     </table>
                 </div>
+                <?php endif; ?>
             </div>
         <?php endforeach; ?>
     <?php endif; ?>

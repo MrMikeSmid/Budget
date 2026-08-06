@@ -24,4 +24,6 @@ View::render('partials/line-items', [
     'quickActionLabel' => 'Last toevoegen',
     'categories' => $categories,
     'groupByCategory' => true,
+    'iconCards' => true,
+    'iconMap' => $iconMap,
 ], null);
