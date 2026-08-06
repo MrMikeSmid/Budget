@@ -52,12 +52,35 @@ final class Mailer
         $port = (int) ($config['port'] ?? 587);
         $encryption = $config['encryption'] ?? 'tls';
 
+        // Certificaatverificatie uitgeschakeld: veel SMTP-relays op shared
+        // hosting draaien achter een certificaat op de servernaam i.p.v. de
+        // hostnaam die je hier invult (of een zelfondertekend certificaat),
+        // wat de strikte standaardverificatie van PHP laat stuklopen op een
+        // niet-passend/onbetrouwbaar certificaat i.p.v. een echt
+        // netwerkprobleem. We vertrouwen hier toch al op de inloggegevens
+        // (gebruikersnaam/wachtwoord) voor authenticatie, dus dit is voor
+        // dit doel (uitgaande mail versturen) een acceptabele afweging.
+        $context = stream_context_create([
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true,
+            ],
+        ]);
+
         $transport = $encryption === 'ssl' ? 'ssl://' . $host : $host;
-        $stream = stream_socket_client($transport . ':' . $port, $errno, $errstr, 10);
+        $stream = stream_socket_client(
+            $transport . ':' . $port,
+            $errno,
+            $errstr,
+            15,
+            STREAM_CLIENT_CONNECT,
+            $context
+        );
         if (!$stream) {
             throw new \RuntimeException("Kan geen verbinding maken met SMTP-server: {$errstr}");
         }
-        stream_set_timeout($stream, 10);
+        stream_set_timeout($stream, 15);
 
         self::expect($stream, '220');
         $localName = parse_url(Settings::appUrl() ?? '', PHP_URL_HOST) ?: 'localhost';
