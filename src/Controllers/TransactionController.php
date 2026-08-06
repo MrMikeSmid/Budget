@@ -4,7 +4,6 @@ namespace App\Controllers;
 
 use App\Models\Activity;
 use App\Models\BudgetPeriod;
-use App\Models\Category;
 use App\Models\FixedCost;
 use App\Models\IncomeItem;
 use App\Models\Pot;
@@ -40,7 +39,6 @@ final class TransactionController
             'editingOverboeking' => $editOverboekingId ? PotTransaction::find($editOverboekingId) : null,
             'openForm' => $editId !== null || $editOverboekingId !== null || !empty($_GET['open']),
             'activeTab' => ($_GET['tab'] ?? '') === 'overboeken' || $editOverboekingId !== null ? 'overboeken' : 'uitgave',
-            'categories' => Category::all(),
         ]);
     }
 
@@ -52,10 +50,10 @@ final class TransactionController
      * "Overboeken".
      *
      * "Bron" kan i.p.v. een potje ook een vaste last of inkomst zijn: dat
-     * koppelt de mutatie eraan (fixed_cost_id/income_item_id) en werkt
-     * meteen begroot/status/terugkerend van die regel bij — het
-     * bewerkformulier van de last/inkomst zelf is dan niet meer nodig,
-     * dit formulier vervangt het voor gekoppelde regels.
+     * koppelt de mutatie eraan (fixed_cost_id/income_item_id) en zet de
+     * status van die regel meteen op "Betaald"/"Ontvangen" — begroot,
+     * categorie en terugkerend blijven van de last/inkomst zelf (bewerk je
+     * op de eigen pagina), dit formulier gaat alleen over de mutatie.
      */
     public static function save(): void
     {
@@ -63,7 +61,10 @@ final class TransactionController
         $periodId = (int) ($_POST['period_id'] ?? 0);
         $date = $_POST['txn_date'] ?? '';
         $description = trim($_POST['description'] ?? '');
-        $settled = !empty($_POST['is_settled']);
+        // Een kasstroommutatie is per definitie al verwerkt — nog te
+        // verwerken bedragen horen als begrote regel bij Inkomsten/Lasten,
+        // niet als mutatie hier.
+        $settled = true;
 
         [$potId, $fixedCostId, $incomeItemId] = self::parseSource((string) ($_POST['source'] ?? ''));
 
@@ -91,11 +92,11 @@ final class TransactionController
         }
 
         if ($fixedCostId) {
-            self::updateLinkedLineItem(FixedCost::class, $fixedCostId, $description, 'Betaald');
+            self::updateLinkedLineItem(FixedCost::class, $fixedCostId, 'Betaald');
             FixedCost::syncLoanPayment($fixedCostId);
         }
         if ($incomeItemId) {
-            self::updateLinkedLineItem(IncomeItem::class, $incomeItemId, $description, 'Ontvangen');
+            self::updateLinkedLineItem(IncomeItem::class, $incomeItemId, 'Ontvangen');
         }
 
         // De vorige koppeling (indien gewijzigd of losgekoppeld) moet ook
@@ -184,23 +185,16 @@ final class TransactionController
     }
 
     /**
-     * Status wordt niet handmatig ingevuld: zodra een kasstroommutatie met
-     * een bedrag aan een last/inkomst gekoppeld is, is die per definitie
-     * betaald/ontvangen — dat nogmaals los bijwerken op Lasten/Inkomsten
-     * zou dubbel werk zijn.
+     * Status wordt niet handmatig ingevuld: zodra een kasstroommutatie aan
+     * een last/inkomst gekoppeld is, is die per definitie betaald/ontvangen.
+     * Raakt bewust alleen de status — begroot, categorie en terugkerend
+     * blijven zoals ze op de eigen pagina van de last/inkomst ingesteld zijn.
      *
      * @param class-string<FixedCost>|class-string<IncomeItem> $model
      */
-    private static function updateLinkedLineItem(string $model, int $id, string $description, string $status): void
+    private static function updateLinkedLineItem(string $model, int $id, string $status): void
     {
-        $budgeted = (float) str_replace(',', '.', $_POST['budgeted'] ?? '0');
-        $isRecurring = !empty($_POST['is_recurring']);
-        $recurrenceInterval = $model::normalizeInterval((string) ($_POST['recurrence_interval'] ?? 'maandelijks'));
-        $recurrenceMode = $model::normalizeMode((string) ($_POST['recurrence_mode'] ?? 'periode'));
-        $recurrenceDate = trim($_POST['recurrence_date'] ?? '') ?: null;
-        $categoryId = (int) ($_POST['li_category_id'] ?? 0) ?: null;
-
-        $model::updateFull($id, $description, $budgeted, null, $status, $isRecurring, $recurrenceInterval, $recurrenceMode, $recurrenceDate, $categoryId);
+        $model::updateStatus($id, $status);
         $model::syncActualFromTransactions($id);
     }
 }

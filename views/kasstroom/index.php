@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\LineItem;
 use App\Support\Csrf;
 use App\Support\View;
 
@@ -16,7 +15,6 @@ use App\Support\View;
 /** @var array|null $editingOverboeking */
 /** @var bool $openForm */
 /** @var string $activeTab */
-/** @var array $categories */
 ?>
 <?php if ($period): ?>
     <div class="hero-balance">
@@ -92,7 +90,7 @@ use App\Support\View;
                 </div>
                 <div class="field">
                     <label for="source">Bron</label>
-                    <select id="source" name="source" data-sync-target="linked-item-fields">
+                    <select id="source" name="source" data-sync-target="linked-item-hint">
                         <option value="">Los saldo</option>
                         <?php if (!empty($pots)): ?>
                             <optgroup label="Potjes">
@@ -108,13 +106,7 @@ use App\Support\View;
                                 <?php foreach ($fixedCosts as $fc): ?>
                                     <option value="fixed_cost:<?= (int) $fc['id'] ?>" <?= $currentSource === 'fixed_cost:' . $fc['id'] ? 'selected' : '' ?>
                                         data-linked="1"
-                                        data-description="<?= View::e($fc['description']) ?>"
-                                        data-budgeted="<?= View::e((string) $fc['budgeted']) ?>"
-                                        data-recurring="<?= !empty($fc['is_recurring']) ? '1' : '0' ?>"
-                                        data-interval="<?= View::e($fc['recurrence_interval'] ?? 'maandelijks') ?>"
-                                        data-mode="<?= View::e($fc['recurrence_mode'] ?? 'periode') ?>"
-                                        data-date="<?= View::e($fc['recurrence_date'] ?? '') ?>"
-                                        data-category="<?= (int) ($fc['category_id'] ?? 0) ?>">
+                                        data-description="<?= View::e($fc['description']) ?>">
                                         <?= View::e($fc['description']) ?> (begroot <?= View::money((float) $fc['budgeted']) ?>)<?= !empty($fc['linked_transaction_id']) && (int) $fc['linked_transaction_id'] !== (int) ($editing['id'] ?? 0) ? ' — al gekoppeld' : '' ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -125,13 +117,7 @@ use App\Support\View;
                                 <?php foreach ($incomeItems as $ii): ?>
                                     <option value="income:<?= (int) $ii['id'] ?>" <?= $currentSource === 'income:' . $ii['id'] ? 'selected' : '' ?>
                                         data-linked="1"
-                                        data-description="<?= View::e($ii['description']) ?>"
-                                        data-budgeted="<?= View::e((string) $ii['budgeted']) ?>"
-                                        data-recurring="<?= !empty($ii['is_recurring']) ? '1' : '0' ?>"
-                                        data-interval="<?= View::e($ii['recurrence_interval'] ?? 'maandelijks') ?>"
-                                        data-mode="<?= View::e($ii['recurrence_mode'] ?? 'periode') ?>"
-                                        data-date="<?= View::e($ii['recurrence_date'] ?? '') ?>"
-                                        data-category="<?= (int) ($ii['category_id'] ?? 0) ?>">
+                                        data-description="<?= View::e($ii['description']) ?>">
                                         <?= View::e($ii['description']) ?> (begroot <?= View::money((float) $ii['budgeted']) ?>)<?= !empty($ii['linked_transaction_id']) && (int) $ii['linked_transaction_id'] !== (int) ($editing['id'] ?? 0) ? ' — al gekoppeld' : '' ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -139,55 +125,8 @@ use App\Support\View;
                         <?php endif; ?>
                     </select>
                 </div>
-                <div class="checkbox-field">
-                    <input type="checkbox" id="is_settled" name="is_settled" <?= !empty($editing['is_settled']) ? 'checked' : '' ?>>
-                    <label for="is_settled">Al daadwerkelijk afgeschreven/bijgeschreven</label>
-                </div>
-                <div id="linked-item-fields" <?= $linkedItem ? '' : 'hidden' ?>>
-                    <p class="text-muted">Deze mutatie is gekoppeld: begroot/terugkerend van de vaste last of inkomst bewerk je hier, niet meer op de eigen pagina. Status wordt automatisch "Betaald" (last) of "Ontvangen" (inkomst) zodra je opslaat.</p>
-                    <div class="field">
-                        <label for="li_budgeted">Begroot</label>
-                        <input type="number" step="0.01" id="li_budgeted" name="budgeted" data-sync-field="budgeted" value="<?= View::e((string) ($linkedItem['budgeted'] ?? '0')) ?>">
-                    </div>
-                    <div class="field">
-                        <label for="li_category_id">Categorie</label>
-                        <select id="li_category_id" name="li_category_id" data-sync-field="category">
-                            <option value="">Geen categorie</option>
-                            <?php foreach ($categories as $c): ?>
-                                <option value="<?= (int) $c['id'] ?>" <?= (int) ($linkedItem['category_id'] ?? 0) === (int) $c['id'] ? 'selected' : '' ?>><?= View::e($c['name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="checkbox-field">
-                        <input type="checkbox" id="li_is_recurring" name="is_recurring" data-sync-field="recurring"
-                            <?= !empty($linkedItem['is_recurring']) ? 'checked' : '' ?>
-                            onchange="document.getElementById('li-recurrence-options').style.display = this.checked ? 'block' : 'none';">
-                        <label for="li_is_recurring">Terugkerend — automatisch overnemen bij een nieuwe periode</label>
-                    </div>
-                    <div id="li-recurrence-options" style="display: <?= !empty($linkedItem['is_recurring']) ? 'block' : 'none' ?>;">
-                        <div class="field-row">
-                            <div class="field">
-                                <label for="li_recurrence_interval">Frequentie</label>
-                                <select id="li_recurrence_interval" name="recurrence_interval" data-sync-field="interval" onchange="document.getElementById('li-recurrence-mode-wrap').style.display = this.value === 'maandelijks' ? 'none' : 'block';">
-                                    <?php foreach (LineItem::INTERVALS as $key => $label): ?>
-                                        <option value="<?= View::e($key) ?>" <?= ($linkedItem['recurrence_interval'] ?? 'maandelijks') === $key ? 'selected' : '' ?>><?= View::e($label) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="field" id="li-recurrence-mode-wrap" style="<?= ($linkedItem['recurrence_interval'] ?? 'maandelijks') === 'maandelijks' ? 'display:none;' : '' ?>">
-                                <label for="li_recurrence_mode">Komt terug</label>
-                                <select id="li_recurrence_mode" name="recurrence_mode" data-sync-field="mode" onchange="document.getElementById('li-recurrence-date-field').style.display = this.value === 'datum' ? 'block' : 'none';">
-                                    <?php foreach (LineItem::MODES as $key => $label): ?>
-                                        <option value="<?= View::e($key) ?>" <?= ($linkedItem['recurrence_mode'] ?? 'periode') === $key ? 'selected' : '' ?>><?= View::e($label) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="field" id="li-recurrence-date-field" style="<?= ($linkedItem['recurrence_mode'] ?? 'periode') === 'datum' ? '' : 'display:none;' ?>">
-                            <label for="li_recurrence_date">Vaste datum</label>
-                            <input type="date" id="li_recurrence_date" name="recurrence_date" data-sync-field="date" value="<?= View::e($linkedItem['recurrence_date'] ?? '') ?>">
-                        </div>
-                    </div>
+                <div id="linked-item-hint" <?= $linkedItem ? '' : 'hidden' ?>>
+                    <p class="text-muted">Deze mutatie is gekoppeld. Begroot, categorie en terugkerend wijzig je op de eigen pagina (Lasten/Inkomsten) — status wordt hier automatisch "Betaald" (last) of "Ontvangen" (inkomst) zodra je opslaat.</p>
                 </div>
                 <button type="submit" class="btn"><?= $editing ? 'Opslaan' : 'Toevoegen' ?></button>
                 <?php if ($editing): ?>
