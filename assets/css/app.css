@@ -15,6 +15,9 @@
     --radius: 12px;
     --nav-height: 68px;
 
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    --font-display: 'Sora', var(--font-body);
+
     /* Categorale grafiekkleuren, vaste volgorde (dataviz-richtlijn). */
     --chart-1: #2a78d6;
     --chart-2: #eb6834;
@@ -54,13 +57,21 @@ html, body {
     padding: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 16px;
-    line-height: 1.45;
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.5;
     overflow-x: hidden;
 }
 
-a { color: var(--primary); text-decoration: none; }
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+strong, b { font-weight: 600; }
+
+a { color: var(--primary); text-decoration: none; font-weight: 500; }
 a:hover { text-decoration: underline; }
 
 .app {
@@ -177,9 +188,10 @@ nav.bottom-nav a:hover .label { color: var(--text); }
 
 .stat .label {
     font-size: 12px;
+    font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: .03em;
+    letter-spacing: .08em;
 }
 
 .stat .value {
@@ -209,7 +221,7 @@ th, td {
     vertical-align: middle;
 }
 
-th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+th { color: var(--text-muted); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
 
 td.num, th.num { text-align: right; white-space: nowrap; }
 
@@ -241,7 +253,9 @@ tr:last-child td { border-bottom: none; }
     padding: 3px 8px;
     border-radius: 999px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
     white-space: nowrap;
 }
 
@@ -491,7 +505,7 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     background: var(--primary);
     color: #fff;
     font-size: 15px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     text-align: center;
 }
@@ -534,6 +548,7 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     border-radius: var(--radius);
     margin-bottom: 16px;
     font-size: 14px;
+    font-weight: 500;
 }
 .flash.success { background: #dcfce7; color: #166534; }
 .flash.error { background: #fee2e2; color: #991b1b; }
@@ -915,8 +930,10 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
 }
 
 .hero-balance-amount {
-    font-size: 40px;
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-size: clamp(32px, 9vw, 40px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
     margin-top: 6px;
     line-height: 1.15;
 }
@@ -1048,9 +1065,10 @@ button.quick-action {
 
 .stat-overlap-item .label {
     font-size: 12px;
+    font-weight: 700;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: .03em;
+    letter-spacing: .08em;
 }
 
 .stat-overlap-item .value {
