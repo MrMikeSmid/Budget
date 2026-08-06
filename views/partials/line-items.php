@@ -178,6 +178,33 @@ if ($groupByCategory && !empty($items)) {
         <div class="card">
             <p class="text-muted">Nog geen regels voor deze periode.</p>
         </div>
+    <?php elseif ($iconCards): ?>
+        <?php foreach ($sections as $section): ?>
+            <div class="expense-list">
+                <?php foreach ($section['items'] as $item): ?>
+                    <?php
+                        $rowHref = View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']]);
+                        $iconMappingId = $iconMap[mb_strtolower($item['description'])] ?? null;
+                    ?>
+                    <a class="expense-list-item" href="<?= View::e($rowHref) ?>">
+                        <span class="expense-list-icon">
+                            <?php if ($iconMappingId): ?>
+                                <img src="<?= View::e(View::url('icoon-afbeelding', ['id' => $iconMappingId])) ?>" alt="" width="28" height="28">
+                            <?php else: ?>
+                                <span class="placeholder"><?= View::e(mb_strtoupper(mb_substr($item['description'], 0, 1))) ?></span>
+                            <?php endif; ?>
+                        </span>
+                        <span class="expense-list-body">
+                            <span class="expense-list-title"><?= View::e($item['description']) ?></span>
+                            <span class="expense-list-amount"><?= View::money((float) $item['budgeted']) ?></span>
+                        </span>
+                        <?php if ($item['status']): ?>
+                            <span class="badge <?= View::badgeClass($item['status']) ?>"><?= View::e($item['status']) ?></span>
+                        <?php endif; ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        <?php endforeach; ?>
     <?php else: ?>
         <?php foreach ($sections as $section): ?>
             <div class="card">
@@ -187,30 +214,6 @@ if ($groupByCategory && !empty($items)) {
                         <span class="text-muted"><?= count($section['items']) ?></span>
                     </div>
                 <?php endif; ?>
-                <?php if ($iconCards): ?>
-                    <div class="expense-cards">
-                        <?php foreach ($section['items'] as $item): ?>
-                            <?php
-                                $rowHref = View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']]);
-                                $iconMappingId = $iconMap[mb_strtolower($item['description'])] ?? null;
-                            ?>
-                            <a class="expense-card" href="<?= View::e($rowHref) ?>">
-                                <span class="expense-card-icon">
-                                    <?php if ($iconMappingId): ?>
-                                        <img src="<?= View::e(View::url('icoon-afbeelding', ['id' => $iconMappingId])) ?>" alt="" width="28" height="28">
-                                    <?php else: ?>
-                                        <span class="placeholder"><?= View::e(mb_strtoupper(mb_substr($item['description'], 0, 1))) ?></span>
-                                    <?php endif; ?>
-                                </span>
-                                <span class="expense-card-title"><?= View::e($item['description']) ?></span>
-                                <span class="expense-card-amount"><?= View::money((float) $item['budgeted']) ?></span>
-                                <?php if ($item['status']): ?>
-                                    <span class="badge <?= View::badgeClass($item['status']) ?>"><?= View::e($item['status']) ?></span>
-                                <?php endif; ?>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
-                <?php else: ?>
                 <div class="table-scroll">
                     <table>
                         <thead>
@@ -259,7 +262,6 @@ if ($groupByCategory && !empty($items)) {
                         </tbody>
                     </table>
                 </div>
-                <?php endif; ?>
             </div>
         <?php endforeach; ?>
     <?php endif; ?>
