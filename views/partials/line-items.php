@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\LineItem;
-use App\Support\BrandIcons;
 use App\Support\Csrf;
 use App\Support\View;
 
@@ -193,18 +192,12 @@ if ($groupByCategory && !empty($items)) {
                         <?php foreach ($section['items'] as $item): ?>
                             <?php
                                 $rowHref = View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']]);
-                                $iconSlug = $iconMap[mb_strtolower($item['description'])] ?? null;
-                                if ($iconSlug !== null && !BrandIcons::exists($iconSlug)) {
-                                    // Gekoppeld icoon bestaat niet meer (bijv. na het
-                                    // inkrimpen van de iconenset) — placeholder tonen
-                                    // i.p.v. een kapot plaatje.
-                                    $iconSlug = null;
-                                }
+                                $iconMappingId = $iconMap[mb_strtolower($item['description'])] ?? null;
                             ?>
                             <a class="expense-card" href="<?= View::e($rowHref) ?>">
                                 <span class="expense-card-icon">
-                                    <?php if ($iconSlug): ?>
-                                        <img src="<?= View::e(View::asset('icons/brands/' . $iconSlug . '.' . BrandIcons::extension($iconSlug))) ?>" alt="" width="28" height="28">
+                                    <?php if ($iconMappingId): ?>
+                                        <img src="<?= View::e(View::url('icoon-afbeelding', ['id' => $iconMappingId])) ?>" alt="" width="28" height="28">
                                     <?php else: ?>
                                         <span class="placeholder"><?= View::e(mb_strtoupper(mb_substr($item['description'], 0, 1))) ?></span>
                                     <?php endif; ?>

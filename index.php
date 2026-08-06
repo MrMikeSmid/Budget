@@ -239,6 +239,7 @@ $router->post('huishouden-wisselen', authed([HouseholdController::class, 'switch
 $router->get('iconen', authed([IconMappingController::class, 'index']));
 $router->post('iconen-save', authed([IconMappingController::class, 'save']));
 $router->post('iconen-delete', authed([IconMappingController::class, 'delete']));
+$router->get('icoon-afbeelding', authed([IconMappingController::class, 'image']));
 
 // Admin: app-breed beheer (SMTP-instellingen, gebruikers handmatig
 // verifiëren, overzicht van huishoudens) — alleen voor is_admin-accounts.

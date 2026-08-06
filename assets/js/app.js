@@ -66,24 +66,6 @@ document.querySelectorAll('select[data-sync-target]').forEach((select) => {
     sync();
 });
 
-// Zoekveld dat kindelementen met een data-filter-attribuut in het
-// target-element toont/verbergt op basis van of hun data-filter-waarde de
-// getypte tekst bevat. Gebruikt door het icoon-rooster op de
-// icoon-koppelpagina.
-document.querySelectorAll('input[data-filter-target]').forEach((input) => {
-    const target = document.getElementById(input.dataset.filterTarget);
-    if (!target) {
-        return;
-    }
-
-    input.addEventListener('input', () => {
-        const query = input.value.trim().toLowerCase();
-        target.querySelectorAll('[data-filter]').forEach((el) => {
-            el.hidden = query !== '' && !el.dataset.filter.includes(query);
-        });
-    });
-});
-
 document.querySelectorAll('tr[data-href]').forEach((row) => {
     row.addEventListener('click', () => {
         window.location.href = row.dataset.href;
