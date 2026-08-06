@@ -69,19 +69,33 @@ document.querySelectorAll('select[data-sync-target]').forEach((select) => {
 // Zoekveld dat kindelementen met een data-filter-attribuut in het
 // target-element toont/verbergt op basis van of hun data-filter-waarde de
 // getypte tekst bevat. Gebruikt door het icoon-rooster op de
-// icoon-koppelpagina (150+ opties, te veel om zonder zoeken te scannen).
+// icoon-koppelpagina (3400+ opties, te veel om zonder zoeken te scannen).
+// Optioneel data-filter-min="n": pas vanaf n tekens gaan matchen tonen (i.p.v.
+// alles te tonen bij een lege zoekopdracht) — bij zo'n grote lijst blijft
+// alles verborgen totdat er genoeg getypt is, met een hint-element
+// (data-filter-hint="id") dat zolang zichtbaar blijft.
 document.querySelectorAll('input[data-filter-target]').forEach((input) => {
     const target = document.getElementById(input.dataset.filterTarget);
     if (!target) {
         return;
     }
 
-    input.addEventListener('input', () => {
+    const minLength = parseInt(input.dataset.filterMin || '0', 10);
+    const hint = input.dataset.filterHint ? document.getElementById(input.dataset.filterHint) : null;
+
+    const apply = () => {
         const query = input.value.trim().toLowerCase();
+        const tooShort = minLength > 0 && query.length < minLength;
+        if (hint) {
+            hint.hidden = !tooShort;
+        }
         target.querySelectorAll('[data-filter]').forEach((el) => {
-            el.hidden = query !== '' && !el.dataset.filter.includes(query);
+            el.hidden = tooShort || (query !== '' && !el.dataset.filter.includes(query));
         });
-    });
+    };
+
+    input.addEventListener('input', apply);
+    apply();
 });
 
 document.querySelectorAll('tr[data-href]').forEach((row) => {
