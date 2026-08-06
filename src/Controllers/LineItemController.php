@@ -32,17 +32,6 @@ abstract class LineItemController
         $editId = isset($_GET['edit']) ? (int) $_GET['edit'] : null;
         $model = static::model();
 
-        // Een regel die aan een kasstroommutatie gekoppeld is, wordt via die
-        // mutatie bewerkt (die kent ook het werkelijke bedrag en de datum) —
-        // dit eigen bewerkformulier is dan niet meer het aangewezen scherm.
-        if ($editId && $period) {
-            $linkedTransactionId = $model::linkedTransactionId($editId);
-            if ($linkedTransactionId) {
-                header('Location: ' . View::url('kasstroom', ['period' => $period['id'], 'edit' => $linkedTransactionId]));
-                exit;
-            }
-        }
-
         View::render(static::view(), [
             'periods' => BudgetPeriod::all(),
             'period' => $period,

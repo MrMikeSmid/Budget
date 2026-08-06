@@ -288,6 +288,19 @@ abstract class LineItem
         ]);
     }
 
+    /**
+     * Wijzigt alleen de status — gebruikt door TransactionController zodra
+     * een kasstroommutatie aan deze regel gekoppeld wordt/is, zonder de
+     * overige velden (begroot, categorie, terugkerend) aan te raken. Die
+     * blijven uitsluitend via het eigen bewerkformulier van de regel in te
+     * stellen.
+     */
+    public static function updateStatus(int $id, string $status): void
+    {
+        $stmt = Database::connection()->prepare('UPDATE ' . static::table() . ' SET status = :status WHERE id = :id');
+        $stmt->execute(['status' => $status, 'id' => $id]);
+    }
+
     public static function delete(int $id): void
     {
         $stmt = Database::connection()->prepare('DELETE FROM ' . static::table() . ' WHERE id = :id');

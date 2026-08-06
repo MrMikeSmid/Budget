@@ -195,9 +195,10 @@ if ($groupByCategory && !empty($items)) {
                         <tbody>
                         <?php foreach ($section['items'] as $item): ?>
                             <?php
-                                $rowHref = !empty($item['linked_transaction_id'])
-                                    ? View::url('kasstroom', ['period' => $period['id'], 'edit' => $item['linked_transaction_id']])
-                                    : View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']]);
+                                // Begroot/categorie/terugkerend van deze regel bewerk je altijd
+                                // hier, ook als er al een kasstroommutatie aan gekoppeld is — die
+                                // mutatie zelf (datum/bedrag) bewerk je via de "Kasstroom"-badge.
+                                $rowHref = View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']]);
                                 $hasBadges = !empty($item['loan_id']) || !empty($item['linked_transaction_id']) || !empty($item['category_name']) || $item['status'];
                             ?>
                             <tr class="row-clickable<?= $hasBadges ? ' item-row-main' : '' ?>" data-href="<?= View::e($rowHref) ?>">
@@ -213,7 +214,9 @@ if ($groupByCategory && !empty($items)) {
                                     <td colspan="3">
                                         <div class="item-badges">
                                             <?php if (!empty($item['loan_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een lening">Lening</span><?php endif; ?>
-                                            <?php if (!empty($item['linked_transaction_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een kasstroommutatie">Kasstroom</span><?php endif; ?>
+                                            <?php if (!empty($item['linked_transaction_id'])): ?>
+                                                <a class="badge neutral" title="Bewerk de gekoppelde kasstroommutatie (datum/bedrag)" href="<?= View::e(View::url('kasstroom', ['period' => $period['id'], 'edit' => $item['linked_transaction_id']])) ?>" onclick="event.stopPropagation();">Kasstroom</a>
+                                            <?php endif; ?>
                                             <?php if (!empty($item['category_name'])): ?>
                                                 <a class="badge category" href="<?= View::e(View::url('categorie', ['id' => $item['category_id'], 'period' => $period['id']])) ?>" onclick="event.stopPropagation();"><?= View::e($item['category_name']) ?></a>
                                             <?php endif; ?>
