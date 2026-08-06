@@ -23,7 +23,7 @@ View::render('partials/line-items', [
     'quickActionIcon' => 'vaste-lasten',
     'quickActionLabel' => 'Last toevoegen',
     'categories' => $categories,
-    'groupByCategory' => true,
+    'groupByCategory' => false,
     'iconCards' => true,
     'iconMap' => $iconMap,
 ], null);
