@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\BrandIcons;
 use App\Support\Csrf;
 use App\Support\View;
 
@@ -27,7 +28,7 @@ use App\Support\View;
                 <?php foreach ($icons as $slug => $icon): ?>
                     <label class="icon-grid-item" data-filter="<?= View::e(mb_strtolower($icon['title'] . ' ' . $slug)) ?>" hidden>
                         <input type="radio" name="icon_slug" value="<?= View::e($slug) ?>" required>
-                        <img src="<?= View::e(View::asset('icons/brands/' . $slug . '.svg')) ?>" alt="" width="26" height="26" loading="lazy">
+                        <img src="<?= View::e(View::asset('icons/brands/' . $slug . '.' . BrandIcons::extension($slug))) ?>" alt="" width="26" height="26" loading="lazy">
                         <span><?= View::e($icon['title']) ?></span>
                     </label>
                 <?php endforeach; ?>
@@ -50,7 +51,7 @@ use App\Support\View;
                     <tr>
                         <td style="width:36px;">
                             <?php if (isset($icons[$m['icon_slug']])): ?>
-                                <img src="<?= View::e(View::asset('icons/brands/' . $m['icon_slug'] . '.svg')) ?>" alt="" width="24" height="24">
+                                <img src="<?= View::e(View::asset('icons/brands/' . $m['icon_slug'] . '.' . BrandIcons::extension($m['icon_slug']))) ?>" alt="" width="24" height="24">
                             <?php endif; ?>
                         </td>
                         <td class="nowrap"><?= View::e($m['description']) ?></td>
