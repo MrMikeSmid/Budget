@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\LineItem;
+use App\Support\BrandIcons;
 use App\Support\Csrf;
 use App\Support\View;
 
@@ -197,7 +198,7 @@ if ($groupByCategory && !empty($items)) {
                             <a class="expense-card" href="<?= View::e($rowHref) ?>">
                                 <span class="expense-card-icon">
                                     <?php if ($iconSlug): ?>
-                                        <img src="<?= View::e(View::asset('icons/brands/' . $iconSlug . '.svg')) ?>" alt="" width="28" height="28">
+                                        <img src="<?= View::e(View::asset('icons/brands/' . $iconSlug . '.' . BrandIcons::extension($iconSlug))) ?>" alt="" width="28" height="28">
                                     <?php else: ?>
                                         <span class="placeholder"><?= View::e(mb_strtoupper(mb_substr($item['description'], 0, 1))) ?></span>
                                     <?php endif; ?>
