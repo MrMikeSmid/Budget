@@ -18,18 +18,31 @@ final class Mailer
 {
     public static function trySend(string $to, string $subject, string $html, string $text): bool
     {
+        return self::attempt($to, $subject, $html, $text)['ok'];
+    }
+
+    /**
+     * Zoals trySend(), maar geeft ook de technische foutmelding terug bij
+     * falen — voor de testmail-actie in het admin-paneel, waar een admin
+     * wél mag zien wat er precies misging (i.p.v. de voor de rest van de
+     * app veilige, altijd-stil-falende boolean van trySend()).
+     *
+     * @return array{ok: bool, error: ?string}
+     */
+    public static function attempt(string $to, string $subject, string $html, string $text): array
+    {
         try {
             $config = Settings::mailConfig();
 
             if (empty($config['host'])) {
-                return false;
+                return ['ok' => false, 'error' => 'Geen SMTP-host ingesteld.'];
             }
 
             self::send($config, $to, $subject, $html, $text);
-            return true;
+            return ['ok' => true, 'error' => null];
         } catch (\Throwable $e) {
             error_log('Mailer::trySend mislukt: ' . $e->getMessage());
-            return false;
+            return ['ok' => false, 'error' => $e->getMessage()];
         }
     }
 

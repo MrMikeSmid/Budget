@@ -236,6 +236,7 @@ $router->post('huishouden-wisselen', authed([HouseholdController::class, 'switch
 // verifiëren, overzicht van huishoudens) — alleen voor is_admin-accounts.
 $router->get('admin', adminOnly([AdminController::class, 'index']));
 $router->post('admin-instellingen-save', adminOnly([AdminController::class, 'saveSettings']));
+$router->post('admin-instellingen-test', adminOnly([AdminController::class, 'testSettings']));
 $router->post('admin-verifieer-gebruiker', adminOnly([AdminController::class, 'verifyUser']));
 
 try {
