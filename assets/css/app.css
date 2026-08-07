@@ -513,6 +513,7 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
 .btn.secondary { background: var(--border); color: var(--text); }
 .btn.danger { background: var(--red); color: #fff; }
 .btn.small { padding: 6px 10px; font-size: 13px; }
+.btn.block { display: block; width: 100%; }
 
 .row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .row-actions form { display: inline; }
@@ -997,6 +998,7 @@ button.quick-action {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    margin-bottom: 16px;
 }
 
 .expense-list-item {
