@@ -15,6 +15,7 @@ use App\Controllers\IconMappingController;
 use App\Controllers\IncomeController;
 use App\Controllers\InviteController;
 use App\Controllers\LoanController;
+use App\Controllers\PeriodCloseController;
 use App\Controllers\PeriodController;
 use App\Controllers\PotController;
 use App\Controllers\PotTransactionController;
@@ -202,6 +203,11 @@ $router->post('inkomsten-delete', authed([IncomeController::class, 'delete']));
 $router->get('vaste-lasten', authed([FixedCostController::class, 'index']));
 $router->post('vaste-lasten-save', authed([FixedCostController::class, 'save']));
 $router->post('vaste-lasten-delete', authed([FixedCostController::class, 'delete']));
+
+// Periode afsluiten: openstaande lasten/saldo optioneel meenemen naar een
+// andere periode (potjes lopen altijd vanzelf door).
+$router->get('periode-afsluiten', authed([PeriodCloseController::class, 'confirm']));
+$router->post('periode-afsluiten-uitvoeren', authed([PeriodCloseController::class, 'execute']));
 
 // Kasstroom
 $router->get('kasstroom', authed([TransactionController::class, 'index']));

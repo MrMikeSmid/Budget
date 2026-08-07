@@ -78,6 +78,32 @@ final class FixedCost extends LineItem
     }
 
     /**
+     * Zelfde bedragbepaling als outstanding(), maar per regel i.p.v. als
+     * totaal — voor de periode-afsluiten-pagina, waar je per last aanvinkt
+     * welke je meeneemt. Alleen regels met een openstaand bedrag > 0.
+     */
+    public static function outstandingItems(int $periodId): array
+    {
+        $stmt = Database::connection()->prepare(
+            "SELECT * FROM (
+                SELECT fc.*, c.name AS category_name,
+                        CASE
+                            WHEN fc.status LIKE 'Open%' THEN fc.budgeted
+                            WHEN fc.status LIKE 'Betaald%' AND fc.loan_id IS NOT NULL THEN MAX(fc.budgeted - COALESCE(fc.actual, fc.budgeted), 0)
+                            ELSE 0
+                        END AS outstanding_amount
+                 FROM fixed_costs fc
+                 LEFT JOIN categories c ON c.id = fc.category_id
+                 WHERE fc.period_id = :period_id
+             ) WHERE outstanding_amount > 0
+             ORDER BY description"
+        );
+        $stmt->execute(['period_id' => $periodId]);
+
+        return $stmt->fetchAll();
+    }
+
+    /**
      * Zelfde als outstanding(), maar beperkt tot één categorie — voor de
      * categoriedetailpagina.
      */
