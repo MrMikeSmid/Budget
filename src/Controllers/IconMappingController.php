@@ -64,10 +64,9 @@ final class IconMappingController
      * Levert de geüploade afbeelding voor een koppeling. storage/ is niet
      * direct via de webserver bereikbaar (zie storage/.htaccess), dus dit
      * leest het bestand zelf uit en stuurt het met het juiste Content-Type
-     * door. De mapping wordt opgezocht in de al-actieve huishouden-database
-     * (Database::connection(), gezet door authed() in index.php), dus een
-     * ander huishouden kan hier nooit bij — zelfde bescherming als elke
-     * andere authed()-pagina.
+     * door. App-breed (net als de koppelingen zelf): elk ingelogd lid van
+     * elk huishouden mag een icoon bekijken, alleen het koppelen/verwijderen
+     * is voorbehouden aan admins (zie de adminOnly()-routes in index.php).
      */
     public static function image(): void
     {
@@ -109,10 +108,10 @@ final class IconMappingController
     }
 
     /**
-     * Valideert en verplaatst een upload naar de iconenmap van het huidige
-     * huishouden, met een willekeurige bestandsnaam (voorkomt overschrijven
-     * en het raden van andermans bestandsnamen). Geeft de opgeslagen
-     * bestandsnaam terug, of null bij een ongeldig bestand.
+     * Valideert en verplaatst een upload naar de (app-brede) iconenmap, met
+     * een willekeurige bestandsnaam (voorkomt overschrijven en het raden van
+     * andermans bestandsnamen). Geeft de opgeslagen bestandsnaam terug, of
+     * null bij een ongeldig bestand.
      */
     private static function storeUpload(array $file): ?string
     {

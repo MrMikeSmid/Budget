@@ -11,7 +11,7 @@ use App\Support\View;
 <div class="form-panel" id="add-form-panel" hidden>
     <div class="card">
         <h2 class="mt-0">Icoon koppelen</h2>
-        <p class="text-muted">Vul de exacte omschrijving in zoals je die bij een vaste last of inkomst gebruikt (bijv. "Netflix") en upload een afbeelding — elke regel met die omschrijving toont dan automatisch dat icoon. PNG, JPG, GIF, WEBP of SVG, tot 2 MB.</p>
+        <p class="text-muted">Vul een woord in dat in de omschrijving van een vaste last of inkomst voorkomt (bijv. "Netflix" of "belasting") en upload een afbeelding — elke regel waar dat woord ergens in de titel staat toont dan automatisch dat icoon. Geldt voor alle huishoudens in de app, niet alleen dat van jou. PNG, JPG, GIF, WEBP of SVG, tot 2 MB.</p>
         <form class="inline-form" method="post" action="<?= View::e(View::url('iconen-save')) ?>" enctype="multipart/form-data">
             <?= Csrf::field() ?>
             <div class="field">

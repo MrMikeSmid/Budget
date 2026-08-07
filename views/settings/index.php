@@ -20,11 +20,13 @@ use App\Support\View;
     <p class="text-muted">Totaalbedrag invullen; elke betaalde termijn wordt automatisch in mindering gebracht. Komt automatisch op de vaste lasten te staan.</p>
     <a class="btn secondary" href="<?= View::e(View::url('leningen')) ?>">Openen</a>
 </div>
+<?php if (Auth::isAdmin()): ?>
 <div class="card">
     <h2 class="mt-0">🖼️ Iconen</h2>
-    <p class="text-muted">Koppel de naam van een vaste last of inkomst aan een logo, zodat die op de lasten-pagina met een eigen afbeelding wordt getoond.</p>
+    <p class="text-muted">Koppel de naam van een vaste last of inkomst aan een logo — app-breed, geldt voor alle huishoudens.</p>
     <a class="btn secondary" href="<?= View::e(View::url('iconen')) ?>">Openen</a>
 </div>
+<?php endif; ?>
 <div class="card">
     <h2 class="mt-0">🏷️ Categorieën</h2>
     <p class="text-muted">Categorieën beheren voor inkomsten, lasten en leningen, zodat je kunt zien hoeveel er per categorie in/uit gaat.</p>
