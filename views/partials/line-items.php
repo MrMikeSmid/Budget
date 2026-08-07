@@ -28,6 +28,7 @@ use App\Support\View;
 /** @var bool $groupByCategory */
 /** @var bool $iconCards */
 /** @var array $iconMap */
+/** @var bool $showIcons */
 
 $showRecurrenceOptions = $showRecurrenceOptions ?? false;
 $openForm = $openForm ?? false;
@@ -40,6 +41,7 @@ $quickActionLabel = $quickActionLabel ?? 'Regel toevoegen';
 $groupByCategory = $groupByCategory ?? false;
 $iconCards = $iconCards ?? false;
 $iconMap = $iconMap ?? [];
+$showIcons = $showIcons ?? true;
 
 // Bij groeperen: één sectie per categorie, aflopend gesorteerd op aantal
 // items — de categorie met de meeste items dus bovenaan. Regels zonder
@@ -185,9 +187,10 @@ if ($groupByCategory && !empty($items)) {
                 <?php foreach ($section['items'] as $item): ?>
                     <?php
                         $rowHref = View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']]);
-                        $iconMappingId = IconMapping::match($item['description'], $iconMap);
+                        $iconMappingId = $showIcons ? IconMapping::match($item['description'], $iconMap) : null;
                     ?>
                     <a class="expense-list-item" href="<?= View::e($rowHref) ?>">
+                        <?php if ($showIcons): ?>
                         <span class="expense-list-icon">
                             <?php if ($iconMappingId): ?>
                                 <img src="<?= View::e(View::url('icoon-afbeelding', ['id' => $iconMappingId])) ?>" alt="" width="28" height="28">
@@ -195,6 +198,7 @@ if ($groupByCategory && !empty($items)) {
                                 <span class="placeholder"><?= View::e(mb_strtoupper(mb_substr($item['description'], 0, 1))) ?></span>
                             <?php endif; ?>
                         </span>
+                        <?php endif; ?>
                         <span class="expense-list-body">
                             <span class="expense-list-title"><?= View::e($item['description']) ?></span>
                             <span class="expense-list-amount"><?= View::money((float) $item['budgeted']) ?></span>

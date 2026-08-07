@@ -23,4 +23,7 @@ View::render('partials/line-items', [
     'quickActionIcon' => 'inkomsten',
     'quickActionLabel' => 'Inkomst toevoegen',
     'categories' => $categories,
+    'groupByCategory' => false,
+    'iconCards' => true,
+    'showIcons' => false,
 ], null);
