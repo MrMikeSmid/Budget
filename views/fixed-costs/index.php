@@ -34,8 +34,6 @@ View::render('partials/line-items', [
 
 if ($period && empty($period['closed_at'])): ?>
 <div class="card">
-    <h2 class="mt-0">Periode afsluiten</h2>
-    <p class="text-muted">Openstaande lasten en resterend saldo optioneel meenemen naar een andere periode.</p>
-    <a class="btn danger" href="<?= View::e(View::url('periode-afsluiten', ['period' => $period['id']])) ?>">Periode afsluiten</a>
+    <a class="btn danger block" href="<?= View::e(View::url('periode-afsluiten', ['period' => $period['id']])) ?>">Periode afsluiten</a>
 </div>
 <?php endif; ?>
