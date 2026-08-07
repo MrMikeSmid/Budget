@@ -28,6 +28,7 @@ use App\Support\Auth;
 use App\Support\AppDatabase;
 use App\Support\Config;
 use App\Support\Database;
+use App\Support\IconMappingGlobalizer;
 use App\Support\LegacyImporter;
 use App\Support\Router;
 use App\Support\View;
@@ -88,6 +89,9 @@ try {
     // i.p.v. via een handmatig servercommando.
     AppDatabase::connection();
     LegacyImporter::runIfNeeded();
+    // Iconenkoppelingen zijn app-breed geworden (voorheen per huishouden) —
+    // zet bestaande koppelingen eenmalig over naar de centrale database.
+    IconMappingGlobalizer::runIfNeeded();
 } catch (\Throwable $e) {
     renderFatalError($e, $config);
     exit;
@@ -233,14 +237,6 @@ $router->post('huishouden-verwijderen', authed([HouseholdController::class, 'rem
 $router->post('huishouden-hernoemen', authed([HouseholdController::class, 'rename']));
 $router->post('huishouden-wisselen', authed([HouseholdController::class, 'switchHousehold']));
 
-// Iconen: omschrijving aan een merk-icoon koppelen (huishouden-breed, geen
-// admin-rechten nodig — elk lid mag de logo's van de eigen vaste lasten
-// beheren).
-$router->get('iconen', authed([IconMappingController::class, 'index']));
-$router->post('iconen-save', authed([IconMappingController::class, 'save']));
-$router->post('iconen-delete', authed([IconMappingController::class, 'delete']));
-$router->get('icoon-afbeelding', authed([IconMappingController::class, 'image']));
-
 // Admin: app-breed beheer (SMTP-instellingen, gebruikers handmatig
 // verifiëren, overzicht van huishoudens) — alleen voor is_admin-accounts.
 $router->get('admin', adminOnly([AdminController::class, 'index']));
@@ -249,6 +245,15 @@ $router->post('admin-instellingen-test', adminOnly([AdminController::class, 'tes
 $router->post('admin-dkim-genereren', adminOnly([AdminController::class, 'generateDkim']));
 $router->post('admin-dkim-verwijderen', adminOnly([AdminController::class, 'removeDkim']));
 $router->post('admin-verifieer-gebruiker', adminOnly([AdminController::class, 'verifyUser']));
+
+// Iconen: omschrijving aan een zelf-geüploade afbeelding koppelen. App-breed
+// (niet per huishouden) en dus alleen door een admin te beheren; elk
+// huishouden ziet wel gewoon de resulterende iconen op hun eigen lasten/
+// inkomsten (icoon-afbeelding is bewust geen adminOnly()).
+$router->get('iconen', adminOnly([IconMappingController::class, 'index']));
+$router->post('iconen-save', adminOnly([IconMappingController::class, 'save']));
+$router->post('iconen-delete', adminOnly([IconMappingController::class, 'delete']));
+$router->get('icoon-afbeelding', authed([IconMappingController::class, 'image']));
 
 try {
     $router->dispatch();
