@@ -552,6 +552,7 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
 }
 .flash.success { background: #dcfce7; color: #166534; }
 .flash.error { background: #fee2e2; color: #991b1b; }
+.flash.warning { background: #fef3c7; color: #92400e; }
 
 .period-switcher {
     display: flex;

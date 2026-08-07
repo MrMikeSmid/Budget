@@ -28,6 +28,12 @@ final class PeriodCloseController
             exit;
         }
 
+        if (!empty($period['closed_at'])) {
+            View::flash('Deze periode is al afgesloten.', 'error');
+            header('Location: ' . View::url('vaste-lasten', ['period' => $period['id']]));
+            exit;
+        }
+
         $periodId = (int) $period['id'];
         $otherPeriods = array_values(array_filter(
             BudgetPeriod::all(),
@@ -76,6 +82,12 @@ final class PeriodCloseController
             exit;
         }
 
+        if (!empty($period['closed_at'])) {
+            View::flash('Deze periode is al afgesloten.', 'error');
+            header('Location: ' . View::url('vaste-lasten', ['period' => $periodId]));
+            exit;
+        }
+
         $carryIds = array_map('intval', (array) ($_POST['carry_fixed_costs'] ?? []));
         $carriedCount = 0;
         foreach (FixedCost::outstandingItems($periodId) as $item) {
@@ -103,6 +115,7 @@ final class PeriodCloseController
         }
 
         BudgetPeriod::setActive($targetId);
+        BudgetPeriod::markClosed($periodId);
         $_SESSION['selected_period_id'] = $targetId;
         Activity::log('periods', 'Periode afgesloten: ' . $period['name'] . ' → ' . $target['name']);
 

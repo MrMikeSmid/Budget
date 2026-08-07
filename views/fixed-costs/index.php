@@ -2,6 +2,10 @@
 
 use App\Support\View;
 
+if ($period && !empty($period['closed_at'])): ?>
+<div class="flash warning">Deze periode is afgesloten — bewerken kan nog gewoon, maar er kan niet nogmaals afgesloten worden.</div>
+<?php endif;
+
 View::render('partials/line-items', [
     'periods' => $periods,
     'period' => $period,
@@ -28,11 +32,10 @@ View::render('partials/line-items', [
     'iconMap' => $iconMap,
 ], null);
 
-if ($period): ?>
+if ($period && empty($period['closed_at'])): ?>
 <div class="card">
     <h2 class="mt-0">Periode afsluiten</h2>
     <p class="text-muted">Openstaande lasten en resterend saldo optioneel meenemen naar een andere periode.</p>
     <a class="btn danger" href="<?= View::e(View::url('periode-afsluiten', ['period' => $period['id']])) ?>">Periode afsluiten</a>
 </div>
 <?php endif; ?>
-
