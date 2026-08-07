@@ -29,23 +29,51 @@ final class IconMapping
     }
 
     /**
-     * Omschrijving (lowercase) => mapping-id, voor snel opzoeken bij het
-     * tonen van een lijst met lasten/inkomsten. Koppelingen waarvan het
-     * bestand niet (meer) bestaat (bijv. na het weghalen van de vorige
-     * meegeleverde iconenset) worden overgeslagen — de aanroeper toont dan
-     * gewoon de placeholder-letter i.p.v. een kapot plaatje.
+     * Lijst van koppelingen (omschrijving + mapping-id) voor snel opzoeken
+     * bij het tonen van een lijst met lasten/inkomsten — zie match().
+     * Koppelingen waarvan het bestand niet (meer) bestaat (bijv. na het
+     * weghalen van de vorige meegeleverde iconenset) worden overgeslagen —
+     * de aanroeper toont dan gewoon de placeholder-letter i.p.v. een kapot
+     * plaatje.
+     *
+     * Langste omschrijving eerst: bij een titel die meerdere gekoppelde
+     * woorden bevat (bijv. "belasting" én "belastingdienst" zijn allebei
+     * gekoppeld) wint de langere, specifiekere match in match().
+     *
+     * @return array<int, array{description: string, id: int}>
      */
     public static function lookup(): array
     {
-        $map = [];
+        $mappings = [];
         foreach (self::all() as $row) {
             if (self::absolutePath($row['icon_path']) === null) {
                 continue;
             }
-            $map[mb_strtolower($row['description'])] = (int) $row['id'];
+            $mappings[] = ['description' => $row['description'], 'id' => (int) $row['id']];
         }
 
-        return $map;
+        usort($mappings, static fn (array $a, array $b) => mb_strlen($b['description']) <=> mb_strlen($a['description']));
+
+        return $mappings;
+    }
+
+    /**
+     * Zoekt de eerste (langste) gekoppelde omschrijving die ergens in $text
+     * voorkomt — hoofdletterongevoelig, jokerteken-achtig: "belasting" matcht
+     * dus ook "Voorlopige aanslag belasting 2026" of "Belastingdienst".
+     *
+     * @param array<int, array{description: string, id: int}> $mappings
+     */
+    public static function match(string $text, array $mappings): ?int
+    {
+        $haystack = mb_strtolower($text);
+        foreach ($mappings as $mapping) {
+            if ($mapping['description'] !== '' && str_contains($haystack, mb_strtolower($mapping['description']))) {
+                return $mapping['id'];
+            }
+        }
+
+        return null;
     }
 
     public static function upsert(string $description, string $iconPath): void

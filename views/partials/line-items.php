@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\IconMapping;
 use App\Models\LineItem;
 use App\Support\Csrf;
 use App\Support\View;
@@ -184,7 +185,7 @@ if ($groupByCategory && !empty($items)) {
                 <?php foreach ($section['items'] as $item): ?>
                     <?php
                         $rowHref = View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']]);
-                        $iconMappingId = $iconMap[mb_strtolower($item['description'])] ?? null;
+                        $iconMappingId = IconMapping::match($item['description'], $iconMap);
                     ?>
                     <a class="expense-list-item" href="<?= View::e($rowHref) ?>">
                         <span class="expense-list-icon">
