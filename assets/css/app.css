@@ -1021,7 +1021,7 @@ button.quick-action {
     justify-content: center;
     overflow: hidden;
 }
-.expense-list-icon img { width: 26px; height: 26px; object-fit: contain; }
+.expense-list-icon img { width: 40px; height: 40px; object-fit: cover; border-radius: inherit; }
 .expense-list-icon .placeholder { font-weight: 700; font-size: 15px; color: var(--text-muted); }
 
 .expense-list-body {
