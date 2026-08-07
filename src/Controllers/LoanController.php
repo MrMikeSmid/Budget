@@ -71,6 +71,13 @@ final class LoanController
             $categoryId
         );
 
+        // Er wordt vooruit gepland: een terugkerende last moet ook verschijnen
+        // in periodes die al bestonden vóórdat deze lening er was (zie
+        // FixedCostController::save() voor hetzelfde patroon bij gewone
+        // vaste lasten — bij leningen ontbrak deze stap, waardoor een
+        // termijn niet meekwam in een al bestaande latere periode).
+        FixedCost::fillFuturePeriods((int) $activePeriod['id']);
+
         Activity::log('leningen', 'Lening aangemaakt: ' . $name, -$monthlyPayment);
         Activity::log('vaste-lasten', 'Vaste last toegevoegd (lening): ' . $name, -$monthlyPayment);
 
