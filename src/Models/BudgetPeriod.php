@@ -129,6 +129,18 @@ final class BudgetPeriod
     }
 
     /**
+     * Markeert een periode als afgesloten (zie PeriodCloseController) —
+     * puur informatief, geen vergrendeling: de knop "Periode afsluiten"
+     * verdwijnt en er komt een waarschuwing te staan, maar bewerken blijft
+     * gewoon mogelijk.
+     */
+    public static function markClosed(int $id): void
+    {
+        $stmt = Database::connection()->prepare("UPDATE budget_periods SET closed_at = datetime('now') WHERE id = :id");
+        $stmt->execute(['id' => $id]);
+    }
+
+    /**
      * Alle periodes, chronologisch, elk met totalen inkomsten/vaste lasten en eindsaldo.
      * Basis voor de statistiekenpagina.
      */
