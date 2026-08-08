@@ -29,6 +29,7 @@ use App\Support\View;
 /** @var bool $iconCards */
 /** @var array $iconMap */
 /** @var bool $showIcons */
+/** @var string|null $attentionMessage */
 
 $showRecurrenceOptions = $showRecurrenceOptions ?? false;
 $openForm = $openForm ?? false;
@@ -42,6 +43,7 @@ $groupByCategory = $groupByCategory ?? false;
 $iconCards = $iconCards ?? false;
 $iconMap = $iconMap ?? [];
 $showIcons = $showIcons ?? true;
+$attentionMessage = $attentionMessage ?? null;
 
 // Bij groeperen: één sectie per categorie, aflopend gesorteerd op aantal
 // items — de categorie met de meeste items dus bovenaan. Regels zonder
@@ -165,6 +167,10 @@ if ($groupByCategory && !empty($items)) {
             <?php endif; ?>
         </div>
     </div>
+
+    <?php if ($attentionMessage): ?>
+        <div class="flash warning"><?= View::e($attentionMessage) ?></div>
+    <?php endif; ?>
 
     <div class="grid-stats" style="grid-template-columns: 1fr 1fr;">
         <div class="stat">

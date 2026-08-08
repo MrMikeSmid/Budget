@@ -2,10 +2,6 @@
 
 use App\Support\View;
 
-if ($period && !empty($period['closed_at'])): ?>
-<div class="flash warning">Deze periode is afgesloten — bewerken kan nog gewoon, maar er kan niet nogmaals afgesloten worden.</div>
-<?php endif;
-
 View::render('partials/line-items', [
     'periods' => $periods,
     'period' => $period,
@@ -30,6 +26,9 @@ View::render('partials/line-items', [
     'groupByCategory' => false,
     'iconCards' => true,
     'iconMap' => $iconMap,
+    'attentionMessage' => ($period && !empty($period['closed_at']))
+        ? 'Deze periode is afgesloten — bewerken kan nog gewoon, maar er kan niet nogmaals afgesloten worden.'
+        : null,
 ], null);
 
 if ($period && empty($period['closed_at'])): ?>
