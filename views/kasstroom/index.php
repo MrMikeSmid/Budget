@@ -219,111 +219,96 @@ use App\Support\View;
     <?php
         $filtersActive = $filters['type'] !== 'alle' || $filters['pot_id'] !== '' || $filters['sort'] !== 'datum' || $filters['dir'] !== 'asc';
     ?>
-    <div class="card">
-        <div class="section-header">
-            <h2 class="mt-0">Mutaties</h2>
-            <button type="button" class="btn small secondary" data-toggle-target="filter-panel">Filteren</button>
-        </div>
-
-        <div id="filter-panel" <?= $filtersActive ? '' : 'hidden' ?>>
-            <form class="inline-form filter-bar" method="get" action="index.php">
-                <input type="hidden" name="page" value="kasstroom">
-                <input type="hidden" name="period" value="<?= (int) $period['id'] ?>">
-                <div class="field-row">
-                    <div class="field">
-                        <label for="filter_type">Type</label>
-                        <select id="filter_type" name="type" onchange="this.form.submit()">
-                            <option value="alle" <?= $filters['type'] === 'alle' ? 'selected' : '' ?>>Alles</option>
-                            <option value="uitgaven" <?= $filters['type'] === 'uitgaven' ? 'selected' : '' ?>>Uitgaven</option>
-                            <option value="overboekingen" <?= $filters['type'] === 'overboekingen' ? 'selected' : '' ?>>Overboekingen</option>
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label for="filter_pot">Potje</label>
-                        <select id="filter_pot" name="pot_id" onchange="this.form.submit()">
-                            <option value="">Alle potjes</option>
-                            <?php foreach ($pots as $p): ?>
-                                <option value="<?= (int) $p['id'] ?>" <?= (string) $filters['pot_id'] === (string) $p['id'] ? 'selected' : '' ?>>
-                                    <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                </div>
-                <div class="field-row">
-                    <div class="field">
-                        <label for="filter_sort">Sorteren op</label>
-                        <select id="filter_sort" name="sort" onchange="this.form.submit()">
-                            <option value="datum" <?= $filters['sort'] === 'datum' ? 'selected' : '' ?>>Datum</option>
-                            <option value="bedrag" <?= $filters['sort'] === 'bedrag' ? 'selected' : '' ?>>Bedrag</option>
-                            <option value="omschrijving" <?= $filters['sort'] === 'omschrijving' ? 'selected' : '' ?>>Omschrijving</option>
-                        </select>
-                    </div>
-                    <div class="field">
-                        <label for="filter_dir">Richting</label>
-                        <select id="filter_dir" name="dir" onchange="this.form.submit()">
-                            <option value="asc" <?= $filters['dir'] === 'asc' ? 'selected' : '' ?>>Oplopend</option>
-                            <option value="desc" <?= $filters['dir'] === 'desc' ? 'selected' : '' ?>>Aflopend</option>
-                        </select>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <?php if (empty($transactions)): ?>
-            <p class="text-muted">Geen mutaties voor deze periode (of dit filter).</p>
-        <?php else: ?>
-            <div class="table-scroll">
-                <table>
-                    <thead>
-                    <tr>
-                        <th class="nowrap">Datum</th>
-                        <th class="nowrap">Omschrijving</th>
-                        <th class="num">Mutatie</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($transactions as $t): ?>
-                        <?php
-                            $isTransfer = $t['source'] === 'overboeking';
-                            if ($isTransfer) {
-                                $rowHref = View::url('kasstroom', ['period' => $period['id'], 'open' => 1, 'tab' => 'overboeken', 'edit_overboeking' => $t['id']]);
-                            } elseif (!empty($t['fixed_cost_id'])) {
-                                $rowHref = View::url('vaste-lasten', ['period' => $period['id'], 'edit' => $t['fixed_cost_id']]);
-                            } elseif (!empty($t['income_item_id'])) {
-                                $rowHref = View::url('inkomsten', ['period' => $period['id'], 'edit' => $t['income_item_id']]);
-                            } else {
-                                $rowHref = View::url('kasstroom', ['period' => $period['id'], 'edit' => $t['id']]);
-                            }
-                            $hasBadges = $isTransfer || !empty($t['is_settled']) || $t['pot_name'] || !empty($t['fixed_cost_id']) || !empty($t['income_item_id']) || !empty($t['category_name']);
-                        ?>
-                        <tr class="row-clickable<?= $hasBadges ? ' item-row-main' : '' ?>" data-href="<?= View::e($rowHref) ?>" style="<?= !empty($t['is_settled']) ? 'opacity:.65;' : '' ?>">
-                            <td class="nowrap"><?= View::e($t['txn_date']) ?></td>
-                            <td class="nowrap"><?= View::e($t['description']) ?></td>
-                            <td class="num <?= $t['amount'] < 0 ? 'negative' : 'positive' ?>"><?= $t['amount'] > 0 ? '+ ' : '' ?><?= View::money((float) $t['amount']) ?></td>
-                        </tr>
-                        <?php if ($hasBadges): ?>
-                            <tr class="row-clickable item-badges-row" data-href="<?= View::e($rowHref) ?>" style="<?= !empty($t['is_settled']) ? 'opacity:.65;' : '' ?>">
-                                <td colspan="3">
-                                    <div class="item-badges">
-                                        <?php if ($isTransfer): ?> <span class="badge neutral">🔁 overboeking</span><?php endif; ?>
-                                        <?php if (!empty($t['is_settled'])): ?> <span class="badge paid">verwerkt</span><?php endif; ?>
-                                        <?php if ($t['pot_name']): ?> <span class="badge neutral"><?= View::e($t['pot_icon'] ?: '💶') ?> <?= View::e($t['pot_name']) ?></span><?php endif; ?>
-                                        <?php if (!empty($t['fixed_cost_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een vaste last">Last</span><?php endif; ?>
-                                        <?php if (!empty($t['income_item_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een inkomst">Inkomst</span><?php endif; ?>
-                                        <?php if (!empty($t['category_name'])): ?>
-                                            <a class="badge category" href="<?= View::e(View::url('categorie', ['id' => $t['category_id'], 'period' => $period['id']])) ?>" onclick="event.stopPropagation();"><?= View::e($t['category_name']) ?></a>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        <?php endif; ?>
+    <div class="section-header">
+        <h2 class="mt-0">Mutaties</h2>
+        <button type="button" class="btn small secondary" data-toggle-target="filter-panel">Filteren</button>
     </div>
+
+    <div class="card" id="filter-panel" <?= $filtersActive ? '' : 'hidden' ?>>
+        <form class="inline-form filter-bar" method="get" action="index.php">
+            <input type="hidden" name="page" value="kasstroom">
+            <input type="hidden" name="period" value="<?= (int) $period['id'] ?>">
+            <div class="field-row">
+                <div class="field">
+                    <label for="filter_type">Type</label>
+                    <select id="filter_type" name="type" onchange="this.form.submit()">
+                        <option value="alle" <?= $filters['type'] === 'alle' ? 'selected' : '' ?>>Alles</option>
+                        <option value="uitgaven" <?= $filters['type'] === 'uitgaven' ? 'selected' : '' ?>>Uitgaven</option>
+                        <option value="overboekingen" <?= $filters['type'] === 'overboekingen' ? 'selected' : '' ?>>Overboekingen</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="filter_pot">Potje</label>
+                    <select id="filter_pot" name="pot_id" onchange="this.form.submit()">
+                        <option value="">Alle potjes</option>
+                        <?php foreach ($pots as $p): ?>
+                            <option value="<?= (int) $p['id'] ?>" <?= (string) $filters['pot_id'] === (string) $p['id'] ? 'selected' : '' ?>>
+                                <?= View::e($p['icon'] ?: '💶') ?> <?= View::e($p['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="filter_sort">Sorteren op</label>
+                    <select id="filter_sort" name="sort" onchange="this.form.submit()">
+                        <option value="datum" <?= $filters['sort'] === 'datum' ? 'selected' : '' ?>>Datum</option>
+                        <option value="bedrag" <?= $filters['sort'] === 'bedrag' ? 'selected' : '' ?>>Bedrag</option>
+                        <option value="omschrijving" <?= $filters['sort'] === 'omschrijving' ? 'selected' : '' ?>>Omschrijving</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="filter_dir">Richting</label>
+                    <select id="filter_dir" name="dir" onchange="this.form.submit()">
+                        <option value="asc" <?= $filters['dir'] === 'asc' ? 'selected' : '' ?>>Oplopend</option>
+                        <option value="desc" <?= $filters['dir'] === 'desc' ? 'selected' : '' ?>>Aflopend</option>
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <?php if (empty($transactions)): ?>
+        <p class="text-muted">Geen mutaties voor deze periode (of dit filter).</p>
+    <?php else: ?>
+        <div class="expense-list">
+            <?php foreach ($transactions as $t): ?>
+                <?php
+                    $isTransfer = $t['source'] === 'overboeking';
+                    if ($isTransfer) {
+                        $rowHref = View::url('kasstroom', ['period' => $period['id'], 'open' => 1, 'tab' => 'overboeken', 'edit_overboeking' => $t['id']]);
+                    } elseif (!empty($t['fixed_cost_id'])) {
+                        $rowHref = View::url('vaste-lasten', ['period' => $period['id'], 'edit' => $t['fixed_cost_id']]);
+                    } elseif (!empty($t['income_item_id'])) {
+                        $rowHref = View::url('inkomsten', ['period' => $period['id'], 'edit' => $t['income_item_id']]);
+                    } else {
+                        $rowHref = View::url('kasstroom', ['period' => $period['id'], 'edit' => $t['id']]);
+                    }
+                    $hasBadges = $isTransfer || !empty($t['is_settled']) || $t['pot_name'] || !empty($t['fixed_cost_id']) || !empty($t['income_item_id']) || !empty($t['category_name']);
+                ?>
+                <a class="expense-list-item" href="<?= View::e($rowHref) ?>" style="<?= !empty($t['is_settled']) ? 'opacity:.65;' : '' ?>">
+                    <span class="expense-list-body">
+                        <span class="expense-list-title"><?= View::e($t['description']) ?></span>
+                        <span class="expense-list-amount"><?= View::e($t['txn_date']) ?></span>
+                        <?php if ($hasBadges): ?>
+                            <span class="item-badges">
+                                <?php if ($isTransfer): ?> <span class="badge neutral">🔁 overboeking</span><?php endif; ?>
+                                <?php if (!empty($t['is_settled'])): ?> <span class="badge paid">verwerkt</span><?php endif; ?>
+                                <?php if ($t['pot_name']): ?> <span class="badge neutral"><?= View::e($t['pot_icon'] ?: '💶') ?> <?= View::e($t['pot_name']) ?></span><?php endif; ?>
+                                <?php if (!empty($t['fixed_cost_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een vaste last">Last</span><?php endif; ?>
+                                <?php if (!empty($t['income_item_id'])): ?> <span class="badge neutral" title="Gekoppeld aan een inkomst">Inkomst</span><?php endif; ?>
+                                <?php if (!empty($t['category_name'])): ?>
+                                    <span class="badge category"><?= View::e($t['category_name']) ?></span>
+                                <?php endif; ?>
+                            </span>
+                        <?php endif; ?>
+                    </span>
+                    <span class="expense-list-value <?= $t['amount'] < 0 ? 'negative' : 'positive' ?>"><?= $t['amount'] > 0 ? '+ ' : '' ?><?= View::money((float) $t['amount']) ?></span>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 <?php else: ?>
     <div class="empty-state card">
         <p>Er is nog geen budgetperiode aangemaakt.</p>
