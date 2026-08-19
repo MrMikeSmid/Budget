@@ -45,60 +45,56 @@ $totalPotjes = array_sum(array_column($leefpotjes, 'resolved_amount')) + array_s
     </div>
 </div>
 
-<div class="card">
-    <div class="section-header">
-        <h2 class="mt-0">Leefpotjes</h2>
-        <span class="text-muted"><?= View::money(array_sum(array_column($leefpotjes, 'resolved_amount'))) ?></span>
-    </div>
-    <?php if (empty($leefpotjes)): ?>
-        <p class="text-muted">Nog geen leefpotjes aangemaakt.</p>
-    <?php else: ?>
-        <div class="expense-list">
-            <?php foreach ($leefpotjes as $pot): ?>
-                <a class="expense-list-item" href="<?= View::e(View::url('potje', ['id' => $pot['id']])) ?>">
-                    <span class="expense-list-icon">
-                        <span class="emoji"><?= View::e($pot['icon'] ?: '💶') ?></span>
-                    </span>
-                    <span class="expense-list-body">
-                        <span class="expense-list-title"><?= View::e($pot['name']) ?></span>
-                        <?php if ($pot['linked_period_name']): ?>
-                            <span class="expense-list-amount">Gekoppeld: <?= View::e($pot['linked_period_name']) ?></span>
-                        <?php elseif ($pot['note']): ?>
-                            <span class="expense-list-amount"><?= View::e($pot['note']) ?></span>
-                        <?php endif; ?>
-                    </span>
-                    <span class="expense-list-value"><?= View::money((float) $pot['resolved_amount']) ?></span>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
+<div class="section-header">
+    <h2 class="mt-0">Leefpotjes</h2>
+    <span class="text-muted"><?= View::money(array_sum(array_column($leefpotjes, 'resolved_amount'))) ?></span>
 </div>
+<?php if (empty($leefpotjes)): ?>
+    <p class="text-muted">Nog geen leefpotjes aangemaakt.</p>
+<?php else: ?>
+    <div class="expense-list">
+        <?php foreach ($leefpotjes as $pot): ?>
+            <a class="expense-list-item" href="<?= View::e(View::url('potje', ['id' => $pot['id']])) ?>">
+                <span class="expense-list-icon">
+                    <span class="emoji"><?= View::e($pot['icon'] ?: '💶') ?></span>
+                </span>
+                <span class="expense-list-body">
+                    <span class="expense-list-title"><?= View::e($pot['name']) ?></span>
+                    <?php if ($pot['linked_period_name']): ?>
+                        <span class="expense-list-amount">Gekoppeld: <?= View::e($pot['linked_period_name']) ?></span>
+                    <?php elseif ($pot['note']): ?>
+                        <span class="expense-list-amount"><?= View::e($pot['note']) ?></span>
+                    <?php endif; ?>
+                </span>
+                <span class="expense-list-value"><?= View::money((float) $pot['resolved_amount']) ?></span>
+            </a>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
 
-<div class="card">
-    <div class="section-header">
-        <h2 class="mt-0">Spaarpotjes</h2>
-        <span class="text-muted"><?= View::money(array_sum(array_column($spaarpotjes, 'resolved_amount'))) ?></span>
-    </div>
-    <?php if (empty($spaarpotjes)): ?>
-        <p class="text-muted">Nog geen spaarpotjes aangemaakt.</p>
-    <?php else: ?>
-        <div class="expense-list">
-            <?php foreach ($spaarpotjes as $pot): ?>
-                <a class="expense-list-item" href="<?= View::e(View::url('potje', ['id' => $pot['id']])) ?>">
-                    <span class="expense-list-icon">
-                        <span class="emoji"><?= View::e($pot['icon'] ?: '💶') ?></span>
-                    </span>
-                    <span class="expense-list-body">
-                        <span class="expense-list-title"><?= View::e($pot['name']) ?></span>
-                        <?php if ($pot['linked_period_name']): ?>
-                            <span class="expense-list-amount">Gekoppeld: <?= View::e($pot['linked_period_name']) ?></span>
-                        <?php elseif ($pot['note']): ?>
-                            <span class="expense-list-amount"><?= View::e($pot['note']) ?></span>
-                        <?php endif; ?>
-                    </span>
-                    <span class="expense-list-value"><?= View::money((float) $pot['resolved_amount']) ?></span>
-                </a>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
+<div class="section-header">
+    <h2 class="mt-0">Spaarpotjes</h2>
+    <span class="text-muted"><?= View::money(array_sum(array_column($spaarpotjes, 'resolved_amount'))) ?></span>
 </div>
+<?php if (empty($spaarpotjes)): ?>
+    <p class="text-muted">Nog geen spaarpotjes aangemaakt.</p>
+<?php else: ?>
+    <div class="expense-list">
+        <?php foreach ($spaarpotjes as $pot): ?>
+            <a class="expense-list-item" href="<?= View::e(View::url('potje', ['id' => $pot['id']])) ?>">
+                <span class="expense-list-icon">
+                    <span class="emoji"><?= View::e($pot['icon'] ?: '💶') ?></span>
+                </span>
+                <span class="expense-list-body">
+                    <span class="expense-list-title"><?= View::e($pot['name']) ?></span>
+                    <?php if ($pot['linked_period_name']): ?>
+                        <span class="expense-list-amount">Gekoppeld: <?= View::e($pot['linked_period_name']) ?></span>
+                    <?php elseif ($pot['note']): ?>
+                        <span class="expense-list-amount"><?= View::e($pot['note']) ?></span>
+                    <?php endif; ?>
+                </span>
+                <span class="expense-list-value"><?= View::money((float) $pot['resolved_amount']) ?></span>
+            </a>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
