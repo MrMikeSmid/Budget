@@ -3,31 +3,46 @@
 namespace App\Support;
 
 /**
- * Selecteert welke periodes bij een gekozen tijdrange horen en berekent
- * totaaloverzichten. Puur rekenwerk, geen database-toegang.
- *
- * "Maand" toont één zelf gekozen periode; "kwartaal"/"jaar" tonen de
- * laatst aangemaakte 3 resp. 12 periodes — niet per se kalenderkwartalen/
- * -jaren, want een periode hoeft geen kalendermaand te zijn.
+ * Selecteert welke periodes bij een zelf gekozen "van"/"tot en met"-reeks
+ * horen en berekent totaaloverzichten. Puur rekenwerk, geen
+ * database-toegang.
  */
 final class Statistics
 {
-    public const RANGES = ['maand', 'kwartaal', 'jaar'];
-    public const RANGE_PERIOD_COUNTS = ['kwartaal' => 3, 'jaar' => 12];
-
     /**
-     * De laatste $count periodes op volgorde van aanmaken (hoogste id
-     * eerst), teruggegeven in chronologische volgorde (oudste eerst) zodat
-     * grafiek/tabel netjes van links naar rechts oplopen.
+     * Alle periodes van (en met) $fromId t/m (en met) $toId, chronologisch
+     * — $periods moet al chronologisch gesorteerd zijn (zie
+     * BudgetPeriod::allWithTotals(), op start_date ASC). De volgorde
+     * waarin $fromId/$toId gekozen zijn maakt niet uit: de vroegste van de
+     * twee geldt als start.
      *
      * @param array $periods output van BudgetPeriod::allWithTotals()
      */
-    public static function lastCreated(array $periods, int $count): array
+    public static function between(array $periods, int $fromId, int $toId): array
     {
-        $sorted = $periods;
-        usort($sorted, static fn (array $a, array $b): int => (int) $b['id'] <=> (int) $a['id']);
+        $fromIndex = self::indexOf($periods, $fromId);
+        $toIndex = self::indexOf($periods, $toId);
 
-        return array_reverse(array_slice($sorted, 0, $count));
+        if ($fromIndex === null || $toIndex === null) {
+            return [];
+        }
+
+        if ($fromIndex > $toIndex) {
+            [$fromIndex, $toIndex] = [$toIndex, $fromIndex];
+        }
+
+        return array_slice($periods, $fromIndex, $toIndex - $fromIndex + 1);
+    }
+
+    private static function indexOf(array $periods, int $id): ?int
+    {
+        foreach ($periods as $index => $p) {
+            if ((int) $p['id'] === $id) {
+                return $index;
+            }
+        }
+
+        return null;
     }
 
     /**

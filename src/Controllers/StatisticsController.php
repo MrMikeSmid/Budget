@@ -11,45 +11,36 @@ final class StatisticsController
 {
     public static function index(): void
     {
-        $range = $_GET['range'] ?? 'maand';
-        if (!in_array($range, Statistics::RANGES, true)) {
-            $range = 'maand';
-        }
-
         $allPeriods = BudgetPeriod::allWithTotals();
 
-        $selectedPeriod = null;
-        $requiredCount = null;
+        $defaultId = self::defaultPeriodId($allPeriods);
+        $fromId = isset($_GET['from']) ? (int) $_GET['from'] : $defaultId;
+        $toId = isset($_GET['to']) ? (int) $_GET['to'] : $defaultId;
 
-        if ($range === 'maand') {
-            $chosen = BudgetPeriod::resolveFromRequest();
-            $selectedPeriod = $chosen ? self::findById($allPeriods, (int) $chosen['id']) : null;
-            $buckets = $selectedPeriod ? [$selectedPeriod] : [];
-        } else {
-            $requiredCount = Statistics::RANGE_PERIOD_COUNTS[$range];
-            $buckets = Statistics::lastCreated($allPeriods, $requiredCount);
-        }
+        $buckets = ($fromId && $toId) ? Statistics::between($allPeriods, $fromId, $toId) : [];
 
         View::render('statistics/index', [
-            'range' => $range,
             'periods' => $allPeriods,
-            'selectedPeriod' => $selectedPeriod,
+            'fromId' => $fromId,
+            'toId' => $toId,
             'buckets' => $buckets,
             'totals' => Statistics::grandTotals($buckets),
-            'requiredCount' => $requiredCount,
-            'availableCount' => count($allPeriods),
             'pots' => Pot::all(),
         ]);
     }
 
-    private static function findById(array $periods, int $id): ?array
+    /**
+     * De actieve periode als standaardkeuze, anders de laatste (meest
+     * recente) periode — of 0 als er nog helemaal geen periode bestaat.
+     */
+    private static function defaultPeriodId(array $periods): int
     {
         foreach ($periods as $p) {
-            if ((int) $p['id'] === $id) {
-                return $p;
+            if (!empty($p['is_active'])) {
+                return (int) $p['id'];
             }
         }
 
-        return null;
+        return $periods ? (int) $periods[array_key_last($periods)]['id'] : 0;
     }
 }
