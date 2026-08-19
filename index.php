@@ -24,6 +24,7 @@ use App\Controllers\StatisticsController;
 use App\Controllers\TransactionController;
 use App\Controllers\VerifyController;
 use App\Controllers\WarningController;
+use App\Models\BudgetPeriod;
 use App\Models\HouseholdMember;
 use App\Support\Auth;
 use App\Support\AppDatabase;
@@ -176,7 +177,10 @@ $router->get('dashboard', authed([DashboardController::class, 'index']));
 
 // Instellingen-hub (verwijst door naar periodes/huishouden)
 $router->get('instellingen', authed(static function () {
-    View::render('settings/index');
+    View::render('settings/index', [
+        'periods' => BudgetPeriod::all(),
+        'period' => BudgetPeriod::resolveFromRequest(),
+    ]);
 }));
 
 // Wegklikken van een "meer betaald/ontvangen dan begroot"-waarschuwing.

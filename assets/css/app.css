@@ -109,6 +109,11 @@ header.topbar .period-switcher-compact {
 
 header.topbar .period-switcher-compact select {
     max-width: 100%;
+    min-width: 0;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 main.content {
@@ -740,28 +745,6 @@ input[type=text], input[type=email], input[type=password], input[type=number], i
     height: 10px;
     border-radius: 3px;
     flex: none;
-}
-
-.range-tabs {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 16px;
-}
-
-.range-tabs a {
-    padding: 8px 14px;
-    border-radius: 999px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.range-tabs a.active {
-    background: var(--primary);
-    border-color: var(--primary);
-    color: #fff;
 }
 
 .tab-switch {
