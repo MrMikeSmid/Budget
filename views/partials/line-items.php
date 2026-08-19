@@ -110,14 +110,25 @@ if ($groupByCategory && !empty($items)) {
                         <?php endforeach; ?>
                     </select>
                 </div>
+                <?php
+                    $currentStatus = $editing['status'] ?? $defaultStatus;
+                    $isCustomStatus = !in_array($currentStatus, $statusSuggestions, true);
+                ?>
                 <div class="field">
-                    <label for="status">Status</label>
-                    <input type="text" id="status" name="status" list="status-suggestions" value="<?= View::e($editing['status'] ?? $defaultStatus) ?>">
-                    <datalist id="status-suggestions">
+                    <label for="status_select">Status</label>
+                    <select id="status_select" onchange="
+                        var custom = document.getElementById('status');
+                        if (this.value === '__custom__') { custom.style.display = ''; custom.focus(); }
+                        else { custom.style.display = 'none'; custom.value = this.value; }
+                    ">
                         <?php foreach ($statusSuggestions as $s): ?>
-                            <option value="<?= View::e($s) ?>">
+                            <option value="<?= View::e($s) ?>" <?= !$isCustomStatus && $currentStatus === $s ? 'selected' : '' ?>><?= View::e($s) ?></option>
                         <?php endforeach; ?>
-                    </datalist>
+                        <option value="__custom__" <?= $isCustomStatus ? 'selected' : '' ?>>Zelf typen…</option>
+                    </select>
+                    <input type="text" id="status" name="status" placeholder="Eigen status"
+                        style="margin-top:6px;<?= $isCustomStatus ? '' : ' display:none;' ?>"
+                        value="<?= View::e($currentStatus) ?>">
                 </div>
                 <div class="checkbox-field">
                     <input type="checkbox" id="is_recurring" name="is_recurring"

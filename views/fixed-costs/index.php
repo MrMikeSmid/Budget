@@ -13,7 +13,7 @@ View::render('partials/line-items', [
     'listPage' => 'vaste-lasten',
     'savePage' => 'vaste-lasten-save',
     'deletePage' => 'vaste-lasten-delete',
-    'statusSuggestions' => ['Betaald', 'Open', 'Volgende maand'],
+    'statusSuggestions' => ['Open', 'Betaald'],
     'defaultStatus' => 'Open',
     'outstandingLabel' => 'Nog openstaand',
     'showRecurrenceOptions' => true,
