@@ -27,6 +27,8 @@ View::render('partials/line-items', [
     'iconCards' => true,
     'iconMap' => $iconMap,
     'showActual' => true,
+    'showTransactionSheet' => true,
+    'transactionsByItem' => $transactionsByItem,
     'attentionMessage' => ($period && !empty($period['closed_at']))
         ? 'Deze periode is afgesloten — bewerken kan nog gewoon, maar er kan niet nogmaals afgesloten worden.'
         : null,

@@ -1005,13 +1005,60 @@ button.quick-action {
     display: flex;
     align-items: center;
     gap: 12px;
+    width: 100%;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 10px 14px;
     color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
 }
 .expense-list-item:hover { background: var(--bg); text-decoration: none; }
+
+/* Onder-uit-openend paneel (bijv. gekoppelde kasstroommutaties bij een
+   vaste last): altijd in de DOM, maar onzichtbaar en niet-klikbaar tot
+   de .open-klasse toegevoegd wordt door app.js. */
+.bottom-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0);
+    visibility: hidden;
+    pointer-events: none;
+    transition: background .2s ease, visibility 0s linear .2s;
+}
+.bottom-sheet.open {
+    background: rgba(0, 0, 0, .5);
+    visibility: visible;
+    pointer-events: auto;
+    transition: background .2s ease;
+}
+
+.bottom-sheet-panel {
+    width: 100%;
+    max-width: 760px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border-radius: 16px 16px 0 0;
+    padding: 16px 20px calc(20px + env(safe-area-inset-bottom));
+    transform: translateY(100%);
+    transition: transform .25s ease;
+}
+.bottom-sheet.open .bottom-sheet-panel { transform: translateY(0); }
+
+.bottom-sheet-handle {
+    width: 40px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--border);
+    margin: 0 auto 16px;
+}
 
 .expense-list-icon {
     flex: none;

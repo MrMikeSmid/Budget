@@ -31,6 +31,8 @@ use App\Support\View;
 /** @var bool $showIcons */
 /** @var string|null $attentionMessage */
 /** @var bool $showActual */
+/** @var bool $showTransactionSheet */
+/** @var array $transactionsByItem */
 
 $showRecurrenceOptions = $showRecurrenceOptions ?? false;
 $openForm = $openForm ?? false;
@@ -46,6 +48,8 @@ $iconMap = $iconMap ?? [];
 $showIcons = $showIcons ?? true;
 $attentionMessage = $attentionMessage ?? null;
 $showActual = $showActual ?? false;
+$showTransactionSheet = $showTransactionSheet ?? false;
+$transactionsByItem = $transactionsByItem ?? [];
 
 // Bij groeperen: één sectie per categorie, aflopend gesorteerd op aantal
 // items — de categorie met de meeste items dus bovenaan. Regels zonder
@@ -208,7 +212,11 @@ if ($groupByCategory && !empty($items)) {
                         $rowHref = View::url($listPage, ['period' => $period['id'], 'edit' => $item['id']]);
                         $iconMappingId = $showIcons ? IconMapping::match($item['description'], $iconMap) : null;
                     ?>
-                    <a class="expense-list-item" href="<?= View::e($rowHref) ?>">
+                    <?php $rowTag = $showTransactionSheet ? 'button' : 'a'; ?>
+                    <<?= $rowTag ?> class="expense-list-item"
+                        <?= $showTransactionSheet
+                            ? 'type="button" data-open-sheet="txn-sheet-' . (int) $item['id'] . '"'
+                            : 'href="' . View::e($rowHref) . '"' ?>>
                         <?php if ($showIcons): ?>
                         <span class="expense-list-icon">
                             <?php if ($iconMappingId): ?>
@@ -236,7 +244,34 @@ if ($groupByCategory && !empty($items)) {
                         <?php if ($item['status']): ?>
                             <span class="badge <?= View::badgeClass($item['status']) ?>"><?= View::e($item['status']) ?></span>
                         <?php endif; ?>
-                    </a>
+                    </<?= $rowTag ?>>
+
+                    <?php if ($showTransactionSheet): ?>
+                        <?php $itemTxns = $transactionsByItem[(int) $item['id']] ?? []; ?>
+                        <div class="bottom-sheet" id="txn-sheet-<?= (int) $item['id'] ?>">
+                            <div class="bottom-sheet-panel">
+                                <div class="bottom-sheet-handle"></div>
+                                <h3 class="mt-0"><?= View::e($item['description']) ?></h3>
+                                <?php if (empty($itemTxns)): ?>
+                                    <p class="text-muted">Nog geen kasstroommutaties gekoppeld aan deze last.</p>
+                                <?php else: ?>
+                                    <div class="expense-list">
+                                        <?php foreach ($itemTxns as $txn): ?>
+                                            <div class="expense-list-item" style="cursor: default;">
+                                                <span class="expense-list-body">
+                                                    <span class="expense-list-title"><?= View::e($txn['description']) ?></span>
+                                                    <span class="expense-list-amount"><?= View::e($txn['txn_date']) ?></span>
+                                                </span>
+                                                <span class="expense-list-value negative"><?= View::money((float) $txn['amount']) ?></span>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                                <a class="btn block" href="<?= View::e($rowHref) ?>">Bewerken</a>
+                                <button type="button" class="btn secondary block" data-close-sheet style="margin-top: 8px;">Sluiten</button>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </div>
         <?php endforeach; ?>
