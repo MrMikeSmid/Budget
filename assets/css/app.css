@@ -1043,7 +1043,20 @@ button.quick-action {
     white-space: nowrap;
 }
 
-.expense-list-amount { font-size: 12px; color: var(--text-muted); }
+.expense-list-amount {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.amount-figure { display: inline-flex; align-items: center; gap: 3px; }
+
+.amount-arrow { width: 10px; height: 10px; flex: none; }
+.amount-arrow.up { color: var(--green); }
+.amount-arrow.down { color: var(--red); }
 
 .expense-list-icon .emoji { font-size: 26px; line-height: 1; }
 
