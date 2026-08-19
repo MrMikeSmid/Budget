@@ -30,6 +30,7 @@ use App\Support\View;
 /** @var array $iconMap */
 /** @var bool $showIcons */
 /** @var string|null $attentionMessage */
+/** @var bool $showActual */
 
 $showRecurrenceOptions = $showRecurrenceOptions ?? false;
 $openForm = $openForm ?? false;
@@ -44,6 +45,7 @@ $iconCards = $iconCards ?? false;
 $iconMap = $iconMap ?? [];
 $showIcons = $showIcons ?? true;
 $attentionMessage = $attentionMessage ?? null;
+$showActual = $showActual ?? false;
 
 // Bij groeperen: één sectie per categorie, aflopend gesorteerd op aantal
 // items — de categorie met de meeste items dus bovenaan. Regels zonder
@@ -218,7 +220,9 @@ if ($groupByCategory && !empty($items)) {
                         <?php endif; ?>
                         <span class="expense-list-body">
                             <span class="expense-list-title"><?= View::e($item['description']) ?></span>
-                            <span class="expense-list-amount"><?= View::money((float) $item['budgeted']) ?></span>
+                            <span class="expense-list-amount">
+                                Begroot <?= View::money((float) $item['budgeted']) ?><?php if ($showActual && $item['actual'] !== null): ?> · Werkelijk <?= View::money((float) $item['actual']) ?><?php endif; ?>
+                            </span>
                         </span>
                         <?php if ($item['status']): ?>
                             <span class="badge <?= View::badgeClass($item['status']) ?>"><?= View::e($item['status']) ?></span>
