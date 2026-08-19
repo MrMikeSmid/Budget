@@ -138,6 +138,31 @@ final class Transaction
         return $row ?: null;
     }
 
+    /**
+     * Alle kasstroommutaties van een periode die aan een vaste last
+     * gekoppeld zijn, gegroepeerd per fixed_cost_id — voor het "bekijk
+     * betalingen"-paneel op de vaste-lastenpagina. Eén regel kan meerdere
+     * gekoppelde mutaties hebben (bijv. een lening in termijnen afbetaald).
+     *
+     * @return array<int, array>
+     */
+    public static function forFixedCostsInPeriod(int $periodId): array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT * FROM transactions
+             WHERE period_id = :period_id AND fixed_cost_id IS NOT NULL
+             ORDER BY txn_date, id'
+        );
+        $stmt->execute(['period_id' => $periodId]);
+
+        $grouped = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $grouped[(int) $row['fixed_cost_id']][] = $row;
+        }
+
+        return $grouped;
+    }
+
     public static function create(int $periodId, string $date, string $description, float $amount, bool $isSettled, ?int $potId = null, ?int $fixedCostId = null, ?int $incomeItemId = null): int
     {
         $pdo = Database::connection();

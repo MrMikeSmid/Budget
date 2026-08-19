@@ -66,6 +66,46 @@ document.querySelectorAll('select[data-sync-target]').forEach((select) => {
     sync();
 });
 
+// Onder-uit-openend paneel bij een klik op een regel (bijv. gekoppelde
+// kasstroommutaties bij een vaste last): .open-klasse triggert de
+// CSS-transitie, sluiten kan via de eigen sluitknop of door naast het
+// paneel (op de achtergrond) te klikken.
+document.querySelectorAll('[data-open-sheet]').forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+        const sheet = document.getElementById(trigger.dataset.openSheet);
+        if (!sheet) {
+            return;
+        }
+        sheet.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    });
+});
+
+document.querySelectorAll('.bottom-sheet').forEach((sheet) => {
+    const close = () => {
+        sheet.classList.remove('open');
+        document.body.style.overflow = '';
+    };
+    sheet.addEventListener('click', (event) => {
+        if (event.target === sheet) {
+            close();
+        }
+    });
+    sheet.querySelectorAll('[data-close-sheet]').forEach((button) => {
+        button.addEventListener('click', close);
+    });
+});
+
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') {
+        return;
+    }
+    document.querySelectorAll('.bottom-sheet.open').forEach((sheet) => {
+        sheet.classList.remove('open');
+    });
+    document.body.style.overflow = '';
+});
+
 document.querySelectorAll('tr[data-href]').forEach((row) => {
     row.addEventListener('click', () => {
         window.location.href = row.dataset.href;

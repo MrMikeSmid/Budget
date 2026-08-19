@@ -4,7 +4,10 @@ namespace App\Controllers;
 
 use App\Models\Activity;
 use App\Models\BudgetPeriod;
+use App\Models\Category;
 use App\Models\FixedCost;
+use App\Models\IconMapping;
+use App\Models\Transaction;
 use App\Support\View;
 
 final class FixedCostController extends LineItemController
@@ -32,6 +35,30 @@ final class FixedCostController extends LineItemController
     protected static function amountSign(): int
     {
         return -1;
+    }
+
+    /**
+     * Overschrijft LineItemController::index(): geeft daarnaast, per last,
+     * de gekoppelde kasstroommutaties mee — getoond in het "bekijk
+     * betalingen"-paneel op de vaste-lastenpagina.
+     */
+    public static function index(): void
+    {
+        $period = BudgetPeriod::resolveFromRequest();
+        $editId = isset($_GET['edit']) ? (int) $_GET['edit'] : null;
+
+        View::render('fixed-costs/index', [
+            'periods' => BudgetPeriod::all(),
+            'period' => $period,
+            'items' => $period ? FixedCost::forPeriod((int) $period['id']) : [],
+            'totals' => $period ? FixedCost::totals((int) $period['id']) : ['budgeted' => 0, 'actual' => 0],
+            'outstanding' => $period ? FixedCost::outstanding((int) $period['id']) : 0,
+            'editing' => $editId ? FixedCost::find($editId) : null,
+            'openForm' => !empty($_GET['open']),
+            'categories' => Category::all(),
+            'iconMap' => IconMapping::lookup(),
+            'transactionsByItem' => $period ? Transaction::forFixedCostsInPeriod((int) $period['id']) : [],
+        ]);
     }
 
     /**
