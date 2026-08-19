@@ -1045,6 +1045,15 @@ button.quick-action {
 
 .expense-list-amount { font-size: 12px; color: var(--text-muted); }
 
+.expense-list-icon .emoji { font-size: 26px; line-height: 1; }
+
+.expense-list-value {
+    flex: none;
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
 /* Zelfde zwevende overlapkaart als .quick-actions, maar met begroot/
    openstaand-achtige statistieken i.p.v. navigatie-iconen (bijv. de
    categoriedetailpagina). */
