@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\Activity;
 use App\Models\BudgetPeriod;
+use App\Models\Category;
 use App\Models\FixedCost;
 use App\Models\IncomeItem;
 use App\Models\Pot;
@@ -35,6 +36,7 @@ final class TransactionController
             'pots' => $period ? Pot::allForPeriod((int) $period['id']) : Pot::all(),
             'fixedCosts' => $period ? FixedCost::forPeriod((int) $period['id']) : [],
             'incomeItems' => $period ? IncomeItem::forPeriod((int) $period['id']) : [],
+            'categories' => Category::all(),
             'editing' => $editId ? Transaction::find($editId) : null,
             'editingOverboeking' => $editOverboekingId ? PotTransaction::find($editOverboekingId) : null,
             'openForm' => $editId !== null || $editOverboekingId !== null || !empty($_GET['open']),
@@ -67,6 +69,7 @@ final class TransactionController
         $settled = true;
 
         [$potId, $fixedCostId, $incomeItemId] = self::parseSource((string) ($_POST['source'] ?? ''));
+        $categoryId = (int) ($_POST['category_id'] ?? 0) ?: null;
 
         $rawAmount = abs((float) str_replace(',', '.', $_POST['amount'] ?? '0'));
         $amount = $incomeItemId ? $rawAmount : -$rawAmount;
@@ -82,11 +85,11 @@ final class TransactionController
         $sourceLabel = self::sourceLabel($potId, $fixedCostId, $incomeItemId);
         $label = $incomeItemId ? 'Ontvangst' : 'Uitgave';
         if ($id > 0) {
-            Transaction::update($id, $date, $description, $amount, $settled, $potId, $fixedCostId, $incomeItemId);
+            Transaction::update($id, $date, $description, $amount, $settled, $potId, $fixedCostId, $incomeItemId, $categoryId);
             Activity::log('kasstroom', $label . ' bijgewerkt: ' . $description . $sourceLabel, $amount);
             View::flash('Transactie opgeslagen.');
         } else {
-            $id = Transaction::create($periodId, $date, $description, $amount, $settled, $potId, $fixedCostId, $incomeItemId);
+            $id = Transaction::create($periodId, $date, $description, $amount, $settled, $potId, $fixedCostId, $incomeItemId, $categoryId);
             Activity::log('kasstroom', $label . ' toegevoegd: ' . $description . $sourceLabel, $amount);
             View::flash('Transactie toegevoegd.');
         }

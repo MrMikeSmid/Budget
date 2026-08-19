@@ -67,7 +67,7 @@ final class Transaction
              LEFT JOIN pots p ON p.id = t.pot_id
              LEFT JOIN fixed_costs fc ON fc.id = t.fixed_cost_id
              LEFT JOIN income_items ii ON ii.id = t.income_item_id
-             LEFT JOIN categories c ON c.id = COALESCE(fc.category_id, ii.category_id)
+             LEFT JOIN categories c ON c.id = COALESCE(t.category_id, fc.category_id, ii.category_id)
              WHERE t.period_id = :period_id"
         );
         $stmt->execute(['period_id' => $periodId]);
@@ -163,7 +163,7 @@ final class Transaction
         return $grouped;
     }
 
-    public static function create(int $periodId, string $date, string $description, float $amount, bool $isSettled, ?int $potId = null, ?int $fixedCostId = null, ?int $incomeItemId = null): int
+    public static function create(int $periodId, string $date, string $description, float $amount, bool $isSettled, ?int $potId = null, ?int $fixedCostId = null, ?int $incomeItemId = null, ?int $categoryId = null): int
     {
         $pdo = Database::connection();
 
@@ -172,8 +172,8 @@ final class Transaction
         $sortOrder = (int) $stmt->fetchColumn();
 
         $stmt = $pdo->prepare(
-            'INSERT INTO transactions (period_id, txn_date, description, amount, is_settled, sort_order, pot_id, fixed_cost_id, income_item_id)
-             VALUES (:period_id, :date, :description, :amount, :settled, :sort_order, :pot_id, :fixed_cost_id, :income_item_id)'
+            'INSERT INTO transactions (period_id, txn_date, description, amount, is_settled, sort_order, pot_id, fixed_cost_id, income_item_id, category_id)
+             VALUES (:period_id, :date, :description, :amount, :settled, :sort_order, :pot_id, :fixed_cost_id, :income_item_id, :category_id)'
         );
         $stmt->execute([
             'period_id' => $periodId,
@@ -185,15 +185,16 @@ final class Transaction
             'pot_id' => $potId,
             'fixed_cost_id' => $fixedCostId,
             'income_item_id' => $incomeItemId,
+            'category_id' => $categoryId,
         ]);
 
         return (int) $pdo->lastInsertId();
     }
 
-    public static function update(int $id, string $date, string $description, float $amount, bool $isSettled, ?int $potId = null, ?int $fixedCostId = null, ?int $incomeItemId = null): void
+    public static function update(int $id, string $date, string $description, float $amount, bool $isSettled, ?int $potId = null, ?int $fixedCostId = null, ?int $incomeItemId = null, ?int $categoryId = null): void
     {
         $stmt = Database::connection()->prepare(
-            'UPDATE transactions SET txn_date = :date, description = :description, amount = :amount, is_settled = :settled, pot_id = :pot_id, fixed_cost_id = :fixed_cost_id, income_item_id = :income_item_id WHERE id = :id'
+            'UPDATE transactions SET txn_date = :date, description = :description, amount = :amount, is_settled = :settled, pot_id = :pot_id, fixed_cost_id = :fixed_cost_id, income_item_id = :income_item_id, category_id = :category_id WHERE id = :id'
         );
         $stmt->execute([
             'date' => $date,
@@ -203,6 +204,7 @@ final class Transaction
             'pot_id' => $potId,
             'fixed_cost_id' => $fixedCostId,
             'income_item_id' => $incomeItemId,
+            'category_id' => $categoryId,
             'id' => $id,
         ]);
     }
