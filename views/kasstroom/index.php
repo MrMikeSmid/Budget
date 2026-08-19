@@ -11,6 +11,7 @@ use App\Support\View;
 /** @var array $pots */
 /** @var array $fixedCosts */
 /** @var array $incomeItems */
+/** @var array $categories */
 /** @var array|null $editing */
 /** @var array|null $editingOverboeking */
 /** @var bool $openForm */
@@ -125,8 +126,17 @@ use App\Support\View;
                         <?php endif; ?>
                     </select>
                 </div>
+                <div class="field">
+                    <label for="category_id">Categorie</label>
+                    <select id="category_id" name="category_id">
+                        <option value="">Geen categorie</option>
+                        <?php foreach ($categories as $c): ?>
+                            <option value="<?= (int) $c['id'] ?>" <?= (int) ($editing['category_id'] ?? 0) === (int) $c['id'] ? 'selected' : '' ?>><?= View::e($c['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <div id="linked-item-hint" <?= $linkedItem ? '' : 'hidden' ?>>
-                    <p class="text-muted">Deze mutatie is gekoppeld. Begroot, categorie en terugkerend wijzig je op de eigen pagina (Lasten/Inkomsten) — status wordt hier automatisch "Betaald" (last) of "Ontvangen" (inkomst) zodra je opslaat.</p>
+                    <p class="text-muted">Deze mutatie is gekoppeld. Begroot en terugkerend wijzig je op de eigen pagina (Lasten/Inkomsten) — status wordt hier automatisch "Betaald" (last) of "Ontvangen" (inkomst) zodra je opslaat. Kies hierboven eventueel een eigen categorie, anders geldt die van de gekoppelde regel.</p>
                 </div>
                 <button type="submit" class="btn"><?= $editing ? 'Opslaan' : 'Toevoegen' ?></button>
                 <?php if ($editing): ?>
