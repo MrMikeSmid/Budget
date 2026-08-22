@@ -23,6 +23,23 @@ final class BudgetPeriod
     }
 
     /**
+     * De periode waarvan de datumrange $date bevat — gebruikt om een
+     * geïmporteerde bankmutatie automatisch in de juiste periode te zetten.
+     * Overlappen periodes elkaar niet (normale situatie), dan is dit
+     * ondubbelzinnig; bij overlap wint de eerst aangemaakte (laagste id).
+     */
+    public static function findByDate(string $date): ?array
+    {
+        $stmt = Database::connection()->prepare(
+            'SELECT * FROM budget_periods WHERE start_date <= :date AND end_date >= :date ORDER BY id LIMIT 1'
+        );
+        $stmt->execute(['date' => $date]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
+    }
+
+    /**
      * Periode uit de request (?period=ID), anders de laatst gekozen periode
      * uit de sessie, anders de actieve periode. Zo blijft een handmatig
      * gekozen periode staan zolang je door de app navigeert, i.p.v. steeds

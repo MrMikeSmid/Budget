@@ -32,6 +32,10 @@ use App\Support\View;
             <span class="quick-action-icon"><?= View::navIcon('overboeking') ?></span>
             Overboeking
         </a>
+        <a class="quick-action" href="<?= View::e(View::url('kasstroom-import')) ?>">
+            <span class="quick-action-icon"><?= View::navIcon('import') ?></span>
+            Importeren
+        </a>
     </div>
 <?php endif; ?>
 

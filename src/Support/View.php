@@ -106,6 +106,7 @@ final class View
             'instellingen' => '<line x1="4" y1="6" x2="20" y2="6"/><circle cx="14" cy="6" r="2"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="8" cy="12" r="2"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2"/>',
             'uitgave' => '<path d="M12 5v13"/><path d="m6 13 6 6 6-6"/>',
             'overboeking' => '<path d="M6 8h13l-3.5-3.5"/><path d="M18 16H5l3.5 3.5"/>',
+            'import' => '<path d="M12 3v11"/><path d="m7 10 5 5 5-5"/><path d="M5 19h14"/>',
         ];
 
         $inner = $icons[$key] ?? '<circle cx="12" cy="12" r="8"/>';

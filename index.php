@@ -7,6 +7,7 @@ require __DIR__ . '/vendor/autoload.php';
 use App\Controllers\ActivityController;
 use App\Controllers\AdminController;
 use App\Controllers\AuthController;
+use App\Controllers\BankImportController;
 use App\Controllers\CategoryController;
 use App\Controllers\DashboardController;
 use App\Controllers\FixedCostController;
@@ -217,6 +218,13 @@ $router->post('periode-afsluiten-uitvoeren', authed([PeriodCloseController::clas
 $router->get('kasstroom', authed([TransactionController::class, 'index']));
 $router->post('kasstroom-save', authed([TransactionController::class, 'save']));
 $router->post('kasstroom-delete', authed([TransactionController::class, 'delete']));
+
+// Bankimport: bestand (ING/Knab-CSV, ABN AMRO CAMT.053/MT940) inlezen,
+// uitgaven reviewen (vaste last/terugkerend/categorie), dan pas opslaan.
+$router->get('kasstroom-import', authed([BankImportController::class, 'index']));
+$router->post('kasstroom-import-upload', authed([BankImportController::class, 'upload']));
+$router->get('kasstroom-import-review', authed([BankImportController::class, 'review']));
+$router->post('kasstroom-import-commit', authed([BankImportController::class, 'commit']));
 
 // Potjes
 $router->get('potjes', authed([PotController::class, 'index']));
