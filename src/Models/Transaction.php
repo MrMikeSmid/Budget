@@ -163,7 +163,7 @@ final class Transaction
         return $grouped;
     }
 
-    public static function create(int $periodId, string $date, string $description, float $amount, bool $isSettled, ?int $potId = null, ?int $fixedCostId = null, ?int $incomeItemId = null, ?int $categoryId = null): int
+    public static function create(int $periodId, string $date, string $description, float $amount, bool $isSettled, ?int $potId = null, ?int $fixedCostId = null, ?int $incomeItemId = null, ?int $categoryId = null, ?string $bankReference = null): int
     {
         $pdo = Database::connection();
 
@@ -172,8 +172,8 @@ final class Transaction
         $sortOrder = (int) $stmt->fetchColumn();
 
         $stmt = $pdo->prepare(
-            'INSERT INTO transactions (period_id, txn_date, description, amount, is_settled, sort_order, pot_id, fixed_cost_id, income_item_id, category_id)
-             VALUES (:period_id, :date, :description, :amount, :settled, :sort_order, :pot_id, :fixed_cost_id, :income_item_id, :category_id)'
+            'INSERT INTO transactions (period_id, txn_date, description, amount, is_settled, sort_order, pot_id, fixed_cost_id, income_item_id, category_id, bank_reference)
+             VALUES (:period_id, :date, :description, :amount, :settled, :sort_order, :pot_id, :fixed_cost_id, :income_item_id, :category_id, :bank_reference)'
         );
         $stmt->execute([
             'period_id' => $periodId,
@@ -186,15 +186,16 @@ final class Transaction
             'fixed_cost_id' => $fixedCostId,
             'income_item_id' => $incomeItemId,
             'category_id' => $categoryId,
+            'bank_reference' => $bankReference,
         ]);
 
         return (int) $pdo->lastInsertId();
     }
 
-    public static function update(int $id, string $date, string $description, float $amount, bool $isSettled, ?int $potId = null, ?int $fixedCostId = null, ?int $incomeItemId = null, ?int $categoryId = null): void
+    public static function update(int $id, string $date, string $description, float $amount, bool $isSettled, ?int $potId = null, ?int $fixedCostId = null, ?int $incomeItemId = null, ?int $categoryId = null, ?string $bankReference = null): void
     {
         $stmt = Database::connection()->prepare(
-            'UPDATE transactions SET txn_date = :date, description = :description, amount = :amount, is_settled = :settled, pot_id = :pot_id, fixed_cost_id = :fixed_cost_id, income_item_id = :income_item_id, category_id = :category_id WHERE id = :id'
+            'UPDATE transactions SET txn_date = :date, description = :description, amount = :amount, is_settled = :settled, pot_id = :pot_id, fixed_cost_id = :fixed_cost_id, income_item_id = :income_item_id, category_id = :category_id, bank_reference = :bank_reference WHERE id = :id'
         );
         $stmt->execute([
             'date' => $date,
@@ -205,8 +206,40 @@ final class Transaction
             'fixed_cost_id' => $fixedCostId,
             'income_item_id' => $incomeItemId,
             'category_id' => $categoryId,
+            'bank_reference' => $bankReference,
             'id' => $id,
         ]);
+    }
+
+    /**
+     * Vindt een eerder geïmporteerde mutatie die overeenkomt met een nieuw
+     * geparste bankregel — voorkomt dubbele import bij een tweede (deels
+     * overlappende) upload. Huishouden-breed, niet beperkt tot één periode:
+     * een her-import kan in een andere periode terechtkomen dan de
+     * oorspronkelijke. Bij een bank-referentie (Knab/MT940/CAMT.053) is dat
+     * de betrouwbaarste match; zonder referentie (ING) valt dit terug op een
+     * exacte match van datum + bedrag + omschrijving.
+     */
+    public static function findDuplicate(string $date, float $amount, string $description, ?string $bankReference): ?array
+    {
+        $pdo = Database::connection();
+
+        if ($bankReference !== null && $bankReference !== '') {
+            $stmt = $pdo->prepare('SELECT * FROM transactions WHERE bank_reference = :bank_reference LIMIT 1');
+            $stmt->execute(['bank_reference' => $bankReference]);
+            $row = $stmt->fetch();
+            if ($row) {
+                return $row;
+            }
+        }
+
+        $stmt = $pdo->prepare(
+            'SELECT * FROM transactions WHERE txn_date = :date AND amount = :amount AND description = :description LIMIT 1'
+        );
+        $stmt->execute(['date' => $date, 'amount' => $amount, 'description' => $description]);
+        $row = $stmt->fetch();
+
+        return $row ?: null;
     }
 
     public static function delete(int $id): void

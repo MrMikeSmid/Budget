@@ -26,6 +26,14 @@ final class Category
         return Database::connection()->query('SELECT * FROM categories ORDER BY name')->fetchAll();
     }
 
+    public static function allByType(string $type): array
+    {
+        $stmt = Database::connection()->prepare('SELECT * FROM categories WHERE type = :type ORDER BY name');
+        $stmt->execute(['type' => self::normalizeType($type)]);
+
+        return $stmt->fetchAll();
+    }
+
     public static function find(int $id): ?array
     {
         $stmt = Database::connection()->prepare('SELECT * FROM categories WHERE id = :id');
