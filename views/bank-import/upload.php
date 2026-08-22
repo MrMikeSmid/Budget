@@ -7,7 +7,7 @@ use App\Support\View;
 ?>
 <div class="card">
     <h2 class="mt-0">Bestand importeren</h2>
-    <p class="text-muted">Upload een export van je bank. Alleen de uitgaven komen in de reviewlijst — daar kies je per regel of het een vaste last is, of die terugkerend is, en welke categorie erbij hoort. Er wordt pas iets opgeslagen ná die review.</p>
+    <p class="text-muted">Upload een export van je bank. Alle mutaties — uitgaven én ontvangsten — komen in de reviewlijst — daar kies je per regel of het een vaste last of vaste inkomst is, of die terugkerend is, en welke categorie erbij hoort. Er wordt pas iets opgeslagen ná die review.</p>
     <form class="inline-form" method="post" action="<?= View::e(View::url('kasstroom-import-upload')) ?>" enctype="multipart/form-data">
         <?= Csrf::field() ?>
         <div class="field">

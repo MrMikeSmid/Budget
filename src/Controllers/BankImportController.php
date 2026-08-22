@@ -6,14 +6,15 @@ use App\Models\Activity;
 use App\Models\BudgetPeriod;
 use App\Models\Category;
 use App\Models\FixedCost;
+use App\Models\IncomeItem;
 use App\Models\Transaction;
 use App\Support\BankImport\BankImportParseException;
 use App\Support\BankImport\BankImportParser;
 use App\Support\View;
 
 /**
- * Bankbestand (ING/Knab-CSV, ABN AMRO CAMT.053/MT940) inlezen, alleen de
- * uitgaven eruit halen, en per regel laten aanvinken of het een vaste last
+ * Bankbestand (ING/Knab-CSV, ABN AMRO CAMT.053/MT940) inlezen en per regel
+ * (uitgave én inkomst) laten aanvinken of het een vaste last/vaste inkomst
  * is (en of die terugkerend is) en welke categorie erbij hoort — vóórdat er
  * iets weggeschreven wordt. Geparste rijen leven alleen in de sessie tussen
  * upload → review → commit, er komt geen permanente opslag van het bestand
@@ -76,21 +77,21 @@ final class BankImportController
             exit;
         }
 
-        $expenses = array_values(array_filter($rows, static fn (array $r): bool => $r['amount'] < 0));
+        $mutations = array_values(array_filter($rows, static fn (array $r): bool => $r['amount'] != 0.0));
 
-        if (empty($expenses)) {
-            View::flash('Geen uitgaven gevonden in dit bestand.', 'error');
+        if (empty($mutations)) {
+            View::flash('Geen mutaties gevonden in dit bestand.', 'error');
             header('Location: ' . View::url('kasstroom-import'));
             exit;
         }
 
-        foreach ($expenses as &$row) {
+        foreach ($mutations as &$row) {
             $duplicate = Transaction::findDuplicate($row['date'], $row['amount'], $row['description'], $row['bank_reference']);
             $row['is_duplicate'] = $duplicate !== null;
         }
         unset($row);
 
-        $_SESSION['bank_import_rows'] = $expenses;
+        $_SESSION['bank_import_rows'] = $mutations;
         $_SESSION['bank_import_bank'] = $bank;
 
         header('Location: ' . View::url('kasstroom-import-review'));
@@ -110,7 +111,8 @@ final class BankImportController
             'rows' => $rows,
             'bank' => (string) ($_SESSION['bank_import_bank'] ?? ''),
             'banks' => BankImportParser::BANKS,
-            'categories' => Category::allByType('uitgaven'),
+            'expenseCategories' => Category::allByType('uitgaven'),
+            'incomeCategories' => Category::allByType('inkomsten'),
         ]);
     }
 
@@ -125,6 +127,7 @@ final class BankImportController
 
         $importedCount = 0;
         $fixedLastCount = 0;
+        $fixedIncomeCount = 0;
         $skippedNoPeriod = 0;
         $ignoredCount = 0;
 
@@ -145,16 +148,33 @@ final class BankImportController
             }
 
             $periodId = (int) $period['id'];
+            $amount = (float) $row['amount'];
+            $isIncome = $amount > 0;
             $categoryId = (int) ($_POST['category_id'][$index] ?? 0) ?: null;
-            $isFixedCost = !empty($_POST['vaste_last'][$index]);
-            $isRecurring = $isFixedCost && !empty($_POST['terugkerend'][$index]);
+            $isLineItem = !empty($_POST['vaste_last'][$index]);
+            $isRecurring = $isLineItem && !empty($_POST['terugkerend'][$index]);
 
             $fixedCostId = null;
-            if ($isFixedCost) {
+            $incomeItemId = null;
+            if ($isLineItem && $isIncome) {
+                $incomeItemId = IncomeItem::createFull(
+                    $periodId,
+                    $row['description'],
+                    abs($amount),
+                    null,
+                    'Ontvangen',
+                    $isRecurring,
+                    'maandelijks',
+                    'periode',
+                    null,
+                    null,
+                    $categoryId
+                );
+            } elseif ($isLineItem) {
                 $fixedCostId = FixedCost::createFull(
                     $periodId,
                     $row['description'],
-                    abs((float) $row['amount']),
+                    abs($amount),
                     null,
                     'Betaald',
                     $isRecurring,
@@ -171,11 +191,11 @@ final class BankImportController
                 $periodId,
                 $row['date'],
                 $row['description'],
-                (float) $row['amount'],
+                $amount,
                 true,
                 null,
                 $fixedCostId,
-                null,
+                $incomeItemId,
                 $categoryId,
                 $row['bank_reference'] ?? null
             );
@@ -186,6 +206,12 @@ final class BankImportController
                     FixedCost::fillFuturePeriods($periodId);
                 }
                 $fixedLastCount++;
+            } elseif ($incomeItemId) {
+                IncomeItem::syncActualFromTransactions($incomeItemId);
+                if ($isRecurring) {
+                    IncomeItem::fillFuturePeriods($periodId);
+                }
+                $fixedIncomeCount++;
             }
 
             $importedCount++;
@@ -196,12 +222,19 @@ final class BankImportController
         if ($importedCount > 0) {
             Activity::log(
                 'kasstroom',
-                sprintf('%d mutatie%s geïmporteerd (%d als vaste last)', $importedCount, $importedCount === 1 ? '' : 's', $fixedLastCount)
+                sprintf('%d mutatie%s geïmporteerd (%d als vaste last, %d als vaste inkomst)', $importedCount, $importedCount === 1 ? '' : 's', $fixedLastCount, $fixedIncomeCount)
             );
         }
 
+        $extras = [];
+        if ($fixedLastCount > 0) {
+            $extras[] = $fixedLastCount . ' als vaste last';
+        }
+        if ($fixedIncomeCount > 0) {
+            $extras[] = $fixedIncomeCount . ' als vaste inkomst';
+        }
         $message = $importedCount . ' mutatie' . ($importedCount === 1 ? '' : 's') . ' geïmporteerd'
-            . ($fixedLastCount > 0 ? ', waarvan ' . $fixedLastCount . ' als vaste last' : '') . '.';
+            . (!empty($extras) ? ', waarvan ' . implode(' en ', $extras) : '') . '.';
         if ($ignoredCount > 0) {
             $message .= ' ' . $ignoredCount . ' regel' . ($ignoredCount === 1 ? '' : 's') . ' genegeerd.';
         }
@@ -210,7 +243,7 @@ final class BankImportController
         }
         View::flash($message, $skippedNoPeriod > 0 ? 'warning' : 'success');
 
-        header('Location: ' . View::url('vaste-lasten'));
+        header('Location: ' . View::url('kasstroom'));
         exit;
     }
 }

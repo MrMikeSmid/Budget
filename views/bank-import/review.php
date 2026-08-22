@@ -6,22 +6,23 @@ use App\Support\View;
 /** @var array $rows */
 /** @var string $bank */
 /** @var array $banks */
-/** @var array $categories */
+/** @var array $expenseCategories */
+/** @var array $incomeCategories */
 
 $duplicateCount = count(array_filter($rows, static fn (array $r): bool => !empty($r['is_duplicate'])));
 $importableCount = count($rows) - $duplicateCount;
 ?>
 <div class="card">
-    <h2 class="mt-0">Uitgaven controleren</h2>
+    <h2 class="mt-0">Mutaties controleren</h2>
     <p class="text-muted">
-        <?= (int) count($rows) ?> uitgave<?= count($rows) === 1 ? '' : 'n' ?> gevonden in het <?= View::e($banks[$bank] ?? $bank) ?>-bestand<?php if ($duplicateCount > 0): ?>, waarvan <?= $duplicateCount ?> al eerder geïmporteerd (grijs, wordt overgeslagen)<?php endif; ?>.
-        Vink aan wat een vaste last is, en of die terugkerend is — de rest komt gewoon als losse mutatie in Kasstroom, met de gekozen categorie.
+        <?= (int) count($rows) ?> mutatie<?= count($rows) === 1 ? '' : 's' ?> gevonden in het <?= View::e($banks[$bank] ?? $bank) ?>-bestand<?php if ($duplicateCount > 0): ?>, waarvan <?= $duplicateCount ?> al eerder geïmporteerd (grijs, wordt overgeslagen)<?php endif; ?>.
+        Vink aan wat een vaste last of vaste inkomst is, en of die terugkerend is — de rest komt gewoon als losse mutatie in Kasstroom, met de gekozen categorie.
     </p>
 </div>
 
 <?php if ($importableCount === 0): ?>
     <div class="card">
-        <p class="text-muted">Alle gevonden uitgaven zijn al eerder geïmporteerd — er is niets nieuws om te importeren.</p>
+        <p class="text-muted">Alle gevonden mutaties zijn al eerder geïmporteerd — er is niets nieuws om te importeren.</p>
         <a class="btn secondary" href="<?= View::e(View::url('kasstroom-import')) ?>">Terug</a>
     </div>
 <?php else: ?>
@@ -29,13 +30,17 @@ $importableCount = count($rows) - $duplicateCount;
         <?= Csrf::field() ?>
         <div class="expense-list">
             <?php foreach ($rows as $index => $row): ?>
-                <?php $isDuplicate = !empty($row['is_duplicate']); ?>
+                <?php
+                $isDuplicate = !empty($row['is_duplicate']);
+                $isIncome = (float) $row['amount'] > 0;
+                $categories = $isIncome ? $incomeCategories : $expenseCategories;
+                ?>
                 <div class="expense-list-item" style="<?= $isDuplicate ? 'opacity:.55;' : '' ?> align-items: flex-start; flex-wrap: wrap; cursor: default;">
                     <span class="expense-list-body" style="flex: 1 1 220px;">
                         <span class="expense-list-title"><?= View::e($row['description']) ?></span>
                         <span class="expense-list-amount"><?= View::e($row['date']) ?><?php if ($isDuplicate): ?> · <span class="badge neutral">Al geïmporteerd</span><?php endif; ?></span>
                     </span>
-                    <span class="expense-list-value negative" style="flex: none;"><?= View::money((float) $row['amount']) ?></span>
+                    <span class="expense-list-value <?= $isIncome ? 'positive' : 'negative' ?>" style="flex: none;"><?= $isIncome ? '+ ' : '' ?><?= View::money((float) $row['amount']) ?></span>
 
                     <?php if (!$isDuplicate): ?>
                         <div class="checkbox-field" style="flex-basis: 100%;">
@@ -58,7 +63,7 @@ $importableCount = count($rows) - $duplicateCount;
                             <div class="checkbox-field">
                                 <input type="checkbox" id="vaste_last_<?= (int) $index ?>" name="vaste_last[<?= (int) $index ?>]"
                                     onchange="document.getElementById('terugkerend_wrap_<?= (int) $index ?>').style.display = this.checked ? 'flex' : 'none';">
-                                <label for="vaste_last_<?= (int) $index ?>">Vaste last</label>
+                                <label for="vaste_last_<?= (int) $index ?>"><?= $isIncome ? 'Vaste inkomst' : 'Vaste last' ?></label>
                             </div>
                             <div class="checkbox-field" id="terugkerend_wrap_<?= (int) $index ?>" style="display: none;">
                                 <input type="checkbox" id="terugkerend_<?= (int) $index ?>" name="terugkerend[<?= (int) $index ?>]">
