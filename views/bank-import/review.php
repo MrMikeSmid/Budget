@@ -38,25 +38,32 @@ $importableCount = count($rows) - $duplicateCount;
                     <span class="expense-list-value negative" style="flex: none;"><?= View::money((float) $row['amount']) ?></span>
 
                     <?php if (!$isDuplicate): ?>
-                        <div class="field-row" style="flex-basis: 100%; margin-top: 8px;">
-                            <div class="field">
-                                <label for="category_<?= (int) $index ?>">Categorie</label>
-                                <select id="category_<?= (int) $index ?>" name="category_id[<?= (int) $index ?>]">
-                                    <option value="">Geen categorie</option>
-                                    <?php foreach ($categories as $c): ?>
-                                        <option value="<?= (int) $c['id'] ?>"><?= View::e($c['name']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
                         <div class="checkbox-field" style="flex-basis: 100%;">
-                            <input type="checkbox" id="vaste_last_<?= (int) $index ?>" name="vaste_last[<?= (int) $index ?>]"
-                                onchange="document.getElementById('terugkerend_wrap_<?= (int) $index ?>').style.display = this.checked ? 'flex' : 'none';">
-                            <label for="vaste_last_<?= (int) $index ?>">Vaste last</label>
+                            <input type="checkbox" id="negeren_<?= (int) $index ?>" name="negeren[<?= (int) $index ?>]"
+                                onchange="document.getElementById('controls_<?= (int) $index ?>').style.display = this.checked ? 'none' : '';">
+                            <label for="negeren_<?= (int) $index ?>">Negeren — deze mutatie niet importeren</label>
                         </div>
-                        <div class="checkbox-field" id="terugkerend_wrap_<?= (int) $index ?>" style="flex-basis: 100%; display: none;">
-                            <input type="checkbox" id="terugkerend_<?= (int) $index ?>" name="terugkerend[<?= (int) $index ?>]">
-                            <label for="terugkerend_<?= (int) $index ?>">Terugkerend — automatisch overnemen bij een nieuwe periode</label>
+                        <div id="controls_<?= (int) $index ?>" style="flex-basis: 100%;">
+                            <div class="field-row" style="margin-top: 8px;">
+                                <div class="field">
+                                    <label for="category_<?= (int) $index ?>">Categorie</label>
+                                    <select id="category_<?= (int) $index ?>" name="category_id[<?= (int) $index ?>]">
+                                        <option value="">Geen categorie</option>
+                                        <?php foreach ($categories as $c): ?>
+                                            <option value="<?= (int) $c['id'] ?>"><?= View::e($c['name']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="checkbox-field">
+                                <input type="checkbox" id="vaste_last_<?= (int) $index ?>" name="vaste_last[<?= (int) $index ?>]"
+                                    onchange="document.getElementById('terugkerend_wrap_<?= (int) $index ?>').style.display = this.checked ? 'flex' : 'none';">
+                                <label for="vaste_last_<?= (int) $index ?>">Vaste last</label>
+                            </div>
+                            <div class="checkbox-field" id="terugkerend_wrap_<?= (int) $index ?>" style="display: none;">
+                                <input type="checkbox" id="terugkerend_<?= (int) $index ?>" name="terugkerend[<?= (int) $index ?>]">
+                                <label for="terugkerend_<?= (int) $index ?>">Terugkerend — automatisch overnemen bij een nieuwe periode</label>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>

@@ -126,9 +126,15 @@ final class BankImportController
         $importedCount = 0;
         $fixedLastCount = 0;
         $skippedNoPeriod = 0;
+        $ignoredCount = 0;
 
         foreach ($rows as $index => $row) {
             if (!empty($row['is_duplicate'])) {
+                continue;
+            }
+
+            if (!empty($_POST['negeren'][$index])) {
+                $ignoredCount++;
                 continue;
             }
 
@@ -196,6 +202,9 @@ final class BankImportController
 
         $message = $importedCount . ' mutatie' . ($importedCount === 1 ? '' : 's') . ' geïmporteerd'
             . ($fixedLastCount > 0 ? ', waarvan ' . $fixedLastCount . ' als vaste last' : '') . '.';
+        if ($ignoredCount > 0) {
+            $message .= ' ' . $ignoredCount . ' regel' . ($ignoredCount === 1 ? '' : 's') . ' genegeerd.';
+        }
         if ($skippedNoPeriod > 0) {
             $message .= ' ' . $skippedNoPeriod . ' regel' . ($skippedNoPeriod === 1 ? '' : 's') . ' overgeslagen: geen periode gevonden voor die datum.';
         }

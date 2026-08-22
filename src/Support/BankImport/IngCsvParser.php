@@ -21,7 +21,7 @@ final class IngCsvParser
 
         $rows = [];
         foreach ($lines as $index => $line) {
-            $fields = str_getcsv($line, ';');
+            $fields = str_getcsv($line, ';', '"', '');
 
             // Header ("Datum;Naam / Omschrijving;...") overslaan.
             if ($index === 0 && isset($fields[0]) && mb_strtolower(trim($fields[0])) === 'datum') {
